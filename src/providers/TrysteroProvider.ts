@@ -36,12 +36,44 @@ export class TrysteroProvider {
     this.room = joinRoom(
       {
         appId: 'collab-code',
+        relayUrls: [
+          'wss://tracker.openwebtorrent.com',
+          'wss://tracker.btorrent.xyz',
+          'wss://tracker.webtorrent.dev',
+        ],
+        relayRedundancy: 3,
         rtcConfig: {
           iceServers: [
+            // STUN — discover public IP
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
             { urls: 'stun:stun.cloudflare.com:3478' },
+            // TURN — relay traffic when direct P2P fails (symmetric NAT, firewalls)
+            {
+              urls: 'turn:openrelay.metered.ca:80',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
+            },
+            {
+              urls: 'turn:openrelay.metered.ca:443',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
+            },
+            {
+              urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
+            },
+            {
+              urls: 'turn:freestun.net:3479',
+              username: 'free',
+              credential: 'free',
+            },
+            {
+              urls: 'turns:freestun.net:5350',
+              username: 'free',
+              credential: 'free',
+            },
           ],
         },
       },
