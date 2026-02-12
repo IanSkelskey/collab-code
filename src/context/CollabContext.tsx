@@ -7,8 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 import * as Y from 'yjs';
-import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { TrysteroProvider } from '../providers/TrysteroProvider';
 import type { Awareness } from 'y-protocols/awareness';
 
 const PEER_COLORS = [
@@ -26,7 +26,7 @@ function getRandomName(): string {
 
 interface CollabContextValue {
   ydoc: Y.Doc;
-  provider: WebrtcProvider | null;
+  provider: TrysteroProvider | null;
   awareness: Awareness | null;
   roomId: string;
   peerCount: number;
@@ -49,7 +49,7 @@ interface CollabProviderProps {
 
 export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const ydocRef = useRef<Y.Doc>(new Y.Doc());
-  const [provider, setProvider] = useState<WebrtcProvider | null>(null);
+  const [provider, setProvider] = useState<TrysteroProvider | null>(null);
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const [peerCount, setPeerCount] = useState(1);
   const [userName] = useState(() => getRandomName());
@@ -64,58 +64,29 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     // Local persistence
     const idb = new IndexeddbPersistence(fullRoomName, ydoc);
 
-    // WebRTC provider for P2P sync
-    const webrtcProvider = new WebrtcProvider(fullRoomName, ydoc, {
-      signaling: [
-        'wss://signaling.yjs.dev',
-        'wss://y-webrtc-signaling-fly-1.onrender.com',
-      ],
-      peerOpts: {
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' },
-            {
-              urls: 'turn:openrelay.metered.ca:80',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-            {
-              urls: 'turn:openrelay.metered.ca:443',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-            {
-              urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-          ],
-        },
-      },
-    });
+    // P2P sync via Trystero (uses public BitTorrent/WebTorrent trackers
+    // for signaling — no dedicated signaling server required)
+    const trysteroProvider = new TrysteroProvider(fullRoomName, ydoc);
 
     // Set local awareness state
-    webrtcProvider.awareness.setLocalStateField('user', {
+    trysteroProvider.awareness.setLocalStateField('user', {
       name: userName,
       color: userColor,
     });
 
     // Track peers
     const updatePeers = () => {
-      setPeerCount(webrtcProvider.awareness.getStates().size);
+      setPeerCount(trysteroProvider.awareness.getStates().size);
     };
-    webrtcProvider.awareness.on('change', updatePeers);
+    trysteroProvider.awareness.on('change', updatePeers);
     updatePeers();
 
-    setProvider(webrtcProvider);
-    setAwareness(webrtcProvider.awareness);
+    setProvider(trysteroProvider);
+    setAwareness(trysteroProvider.awareness);
 
     return () => {
-      webrtcProvider.awareness.off('change', updatePeers);
-      webrtcProvider.destroy();
+      trysteroProvider.awareness.off('change', updatePeers);
+      trysteroProvider.destroy();
       idb.destroy();
     };
   }, [roomId, userName, userColor]);
