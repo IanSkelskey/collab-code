@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
 import type { editor } from 'monaco-editor';
@@ -11,10 +11,18 @@ const DEFAULT_CODE = `public class Main {
 }
 `;
 
-export default function Editor() {
+export interface EditorHandle {
+  getCode: () => string;
+}
+
+const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const bindingRef = useRef<MonacoBinding | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
+  }), [monacoEditor]);
 
   const handleMount: OnMount = useCallback((ed) => {
     setMonacoEditor(ed);
@@ -74,4 +82,6 @@ export default function Editor() {
       />
     </div>
   );
-}
+});
+
+export default Editor;

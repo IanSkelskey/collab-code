@@ -81,6 +81,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       term.writeln('');
       term.writeln('  Commands:  \x1b[1;32mrun\x1b[0m     — compile & execute Java');
       term.writeln('             \x1b[1;32mclear\x1b[0m   — clear terminal');
+      term.writeln('             \x1b[1;32mreset\x1b[0m   — clear room data & reload');
       term.writeln('             \x1b[1;32mhelp\x1b[0m    — show this message');
       term.writeln('');
       writePrompt();
@@ -100,9 +101,20 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           } else if (cmd === 'clear') {
             term.clear();
             writePrompt();
+          } else if (cmd === 'reset') {
+            term.writeln('\x1b[33mClearing room data...\x1b[0m');
+            const dbNames = await indexedDB.databases?.() ?? [];
+            for (const db of dbNames) {
+              if (db.name && db.name.startsWith('collab-code-')) {
+                indexedDB.deleteDatabase(db.name);
+              }
+            }
+            term.writeln('\x1b[32mDone. Reloading...\x1b[0m');
+            setTimeout(() => window.location.reload(), 500);
           } else if (cmd === 'help') {
             term.writeln('  \x1b[1;32mrun\x1b[0m     — compile & execute Java');
             term.writeln('  \x1b[1;32mclear\x1b[0m   — clear terminal');
+            term.writeln('  \x1b[1;32mreset\x1b[0m   — clear room data & reload');
             term.writeln('  \x1b[1;32mhelp\x1b[0m    — show this message');
             writePrompt();
           } else if (cmd) {

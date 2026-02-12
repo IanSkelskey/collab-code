@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState } from 'react';
 import { CollabProvider, useCollab } from './context/CollabContext';
 import { useRoom } from './hooks/useRoom';
-import Editor from './components/Editor';
+import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
 import PeerAvatars from './components/PeerAvatars';
 import { executeJava } from './services/pistonApi';
@@ -9,6 +9,7 @@ import { executeJava } from './services/pistonApi';
 function AppContent() {
   const { ydoc, peerCount, roomId } = useCollab();
   const terminalRef = useRef<TerminalHandle>(null);
+  const editorRef = useRef<EditorHandle>(null);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const runningRef = useRef(false);
@@ -16,7 +17,9 @@ function AppContent() {
   const handleRun = useCallback(async () => {
     if (runningRef.current) return;
 
-    const sourceCode = ydoc.getText('code').toString();
+    // Read from what Monaco actually displays, not from Y.Text directly,
+    // to avoid stale/corrupted IndexedDB data mismatch
+    const sourceCode = editorRef.current?.getCode() ?? ydoc.getText('code').toString();
     if (!sourceCode.trim()) {
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
       terminalRef.current?.write('\x1b[38;2;86;182;194m$ \x1b[0m');
@@ -151,7 +154,7 @@ function AppContent() {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Editor */}
         <div className="flex-[3] min-h-0">
-          <Editor />
+          <Editor ref={editorRef} />
         </div>
 
         {/* Divider */}
