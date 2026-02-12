@@ -33,46 +33,21 @@ export class TrysteroProvider {
     // Join a Trystero room using the BitTorrent/WebTorrent tracker strategy.
     // Peers discover each other via public tracker WebSocket servers —
     // no custom signaling server needed.
+    //
+    // Config mirrors Chitchatter's proven cross-network setup:
+    // - relayUrls omitted → Trystero uses its own maintained tracker list
+    // - relayRedundancy: 4 → connect through 4 trackers simultaneously
+    // - ExpressTURN for NAT traversal (same server Chitchatter uses)
     this.room = joinRoom(
       {
         appId: 'collab-code',
-        relayUrls: [
-          'wss://tracker.openwebtorrent.com',
-          'wss://tracker.btorrent.xyz',
-          'wss://tracker.webtorrent.dev',
-        ],
-        relayRedundancy: 3,
+        relayRedundancy: 4,
         rtcConfig: {
           iceServers: [
-            // STUN — discover public IP
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' },
-            // TURN — relay traffic when direct P2P fails (symmetric NAT, firewalls)
             {
-              urls: 'turn:openrelay.metered.ca:80',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-            {
-              urls: 'turn:openrelay.metered.ca:443',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-            {
-              urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-              username: 'openrelayproject',
-              credential: 'openrelayproject',
-            },
-            {
-              urls: 'turn:freestun.net:3479',
-              username: 'free',
-              credential: 'free',
-            },
-            {
-              urls: 'turns:freestun.net:5350',
-              username: 'free',
-              credential: 'free',
+              urls: ['turn:relay1.expressturn.com:3478'],
+              username: 'efQUQ79N77B5BNVVKF',
+              credential: 'N4EAUgpjMzPLrxSS',
             },
           ],
         },
