@@ -5,14 +5,15 @@ import {
   applyAwarenessUpdate,
   removeAwarenessStates,
 } from 'y-protocols/awareness';
-import { joinRoom } from 'trystero/torrent';
+import { joinRoom } from 'trystero/nostr';
 
 /**
- * A Yjs provider that uses Trystero (BitTorrent/WebTorrent trackers)
- * for peer discovery and WebRTC data channels for document sync.
+ * A Yjs provider that uses Trystero (Nostr relays) for peer
+ * discovery and WebRTC data channels for document sync.
  *
  * No dedicated signaling server required — peers find each other
- * through the public WebTorrent tracker network.
+ * through public Nostr relay WebSocket servers, which are far more
+ * reliable than WebTorrent trackers.
  */
 export class TrysteroProvider {
   readonly awareness: Awareness;
@@ -30,20 +31,29 @@ export class TrysteroProvider {
     this.doc = doc;
     this.awareness = new Awareness(doc);
 
-    // Join a Trystero room using the BitTorrent/WebTorrent tracker strategy.
-    // Peers discover each other via public tracker WebSocket servers —
-    // no custom signaling server needed.
+    console.log('[CollabCode] Joining room:', roomId, '(Nostr relay strategy)');
+
+    // Join a Trystero room using the Nostr relay strategy.
+    // Peers discover each other via public Nostr relay WebSocket servers.
+    // These are well-maintained infrastructure used by the Nostr social
+    // network — much more reliable than WebTorrent trackers.
     //
-    // Config mirrors Chitchatter's proven cross-network setup:
-    // - relayUrls omitted → Trystero uses its own maintained tracker list
-    // - relayRedundancy: 4 → connect through 4 trackers simultaneously
-    // - ExpressTURN for NAT traversal (same server Chitchatter uses)
+    // ICE servers:
+    // - Google STUN for basic NAT traversal (free, always up)
+    // - ExpressTURN for symmetric NAT / restrictive firewalls
     this.room = joinRoom(
       {
         appId: 'collab-code',
-        relayRedundancy: 4,
+        relayUrls: [
+          'wss://relay.damus.io',
+          'wss://nos.lol',
+          'wss://relay.nostr.band',
+          'wss://nostr.mom',
+        ],
         rtcConfig: {
           iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
             {
               urls: ['turn:relay1.expressturn.com:3478'],
               username: 'efQUQ79N77B5BNVVKF',
@@ -64,6 +74,7 @@ export class TrysteroProvider {
     // --- Peer lifecycle ---
 
     this.room.onPeerJoin((peerId: string) => {
+      console.log('[CollabCode] Peer joined:', peerId);
       // Tell the new peer our Yjs clientID so they can clean up our
       // awareness state if we disconnect.
       sendClientId(doc.clientID, peerId);
@@ -79,6 +90,7 @@ export class TrysteroProvider {
     });
 
     this.room.onPeerLeave((peerId: string) => {
+      console.log('[CollabCode] Peer left:', peerId);
       // Remove the departed peer's awareness state so their cursor disappears
       const clientId = this.peerClientIds.get(peerId);
       if (clientId !== undefined) {

@@ -12,7 +12,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           monaco: ['monaco-editor', '@monaco-editor/react'],
-          yjs: ['yjs', 'y-webrtc', 'y-indexeddb', 'y-monaco'],
+          yjs: ['yjs', 'y-indexeddb', 'y-monaco', 'trystero'],
           xterm: ['@xterm/xterm', '@xterm/addon-fit'],
         },
       },
