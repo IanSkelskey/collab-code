@@ -1,54 +1,59 @@
-# React + TypeScript + Vite
+# Collab Code — Collaborative Java IDE
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A serverless collaborative Java development environment that runs entirely in the browser. Share a link, code together in real-time, and execute Java — no backend required. Built for free hosting on GitHub Pages.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Real-time collaborative editing** — Multiple users edit the same code simultaneously with live cursors and selections powered by [Yjs](https://github.com/yjs/yjs) CRDTs
+- **Peer-to-peer sync** — No server needed. Peers connect directly via WebRTC using public signaling servers
+- **Java execution** — Compile and run Java code via the [Piston API](https://github.com/engineer-man/piston) (free, no signup)
+- **Integrated terminal** — xterm.js-based terminal panel for viewing compilation output, runtime results, and errors
+- **Offline persistence** — Code is saved locally in IndexedDB and syncs on reconnect
+- **One-click sharing** — Room ID is embedded in the URL hash. Click "Share" to copy the invite link
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Component | Technology |
+|---|---|
+| Framework | React 19 + TypeScript |
+| Build tool | Vite 6 |
+| Code editor | Monaco Editor (`@monaco-editor/react`) |
+| Collaboration | Yjs + y-webrtc + y-indexeddb + y-monaco |
+| Java execution | Piston API (cloud) |
+| Terminal UI | xterm.js (`@xterm/xterm`) |
+| Styling | Tailwind CSS v4 |
+| Deployment | GitHub Pages via GitHub Actions |
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open `http://localhost:5173/collab-code/` in your browser.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Test collaboration locally
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+Open two browser tabs to the same URL (e.g. `http://localhost:5173/collab-code/#myroom`). Edits in one tab appear in the other with colored cursors.
+
+## Terminal Commands
+
+| Command | Description |
+|---|---|
+| `run` | Compile and execute the Java code |
+| `clear` | Clear the terminal |
+| `help` | Show available commands |
+
+You can also click the **Run** button in the toolbar.
+
+## Deployment
+
+Push to `main` and the included GitHub Actions workflow builds and deploys to GitHub Pages automatically. Make sure GitHub Pages is configured to deploy from **GitHub Actions** in your repo settings.
+
+## Limitations
+
+- **Java execution requires internet** — Code is sent to the Piston API for compilation (5 req/sec rate limit)
+- **Signaling servers** — WebRTC peer discovery uses free public signaling servers (`signaling.yjs.dev`) with no SLA
+- **Peer limit** — Optimized for 2–5 concurrent collaborators
+- **No persistent rooms** — If all peers disconnect, the document only survives in each peer's local IndexedDB
