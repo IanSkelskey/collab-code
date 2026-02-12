@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #0d1117;
+  color: #e0e0e0;
+}
+
+/* ── Yjs remote cursor styles ── */
+.yRemoteSelection {
+  opacity: 0.3;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid;
+  border-color: inherit;
+  height: 100%;
+}
+
+.yRemoteSelectionHead::after {
+  content: attr(data-name);
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  font-size: 0.7rem;
+  padding: 1px 4px;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+  color: #fff;
+  background-color: inherit;
+  font-family: system-ui, sans-serif;
+}
