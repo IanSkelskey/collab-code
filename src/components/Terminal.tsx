@@ -53,7 +53,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
 
       const term = new XTerminal({
         cursorBlink: true,
-        fontSize: 13,
+        fontSize: window.innerWidth < 640 ? 11 : 13,
         fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
         theme: {
           background: '#1a1a2e',
@@ -74,15 +74,21 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         try { fit.fit(); } catch { /* container not ready */ }
       });
 
-      // Welcome message
-      term.writeln('\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m');
-      term.writeln('\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — Java IDE Terminal   \x1b[1;36m║\x1b[0m');
-      term.writeln('\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m');
+      // Welcome message — compact for mobile
+      const narrow = window.innerWidth < 480;
+      if (narrow) {
+        term.writeln('\x1b[1;36m── Collab Code ──\x1b[0m');
+        term.writeln('\x1b[1;33mJava IDE Terminal\x1b[0m');
+      } else {
+        term.writeln('\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m');
+        term.writeln('\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — Java IDE Terminal   \x1b[1;36m║\x1b[0m');
+        term.writeln('\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m');
+      }
       term.writeln('');
-      term.writeln('  Commands:  \x1b[1;32mrun\x1b[0m     — compile & execute Java');
-      term.writeln('             \x1b[1;32mclear\x1b[0m   — clear terminal');
-      term.writeln('             \x1b[1;32mreset\x1b[0m   — clear room data & reload');
-      term.writeln('             \x1b[1;32mhelp\x1b[0m    — show this message');
+      term.writeln('  \x1b[1;32mrun\x1b[0m   — compile & execute');
+      term.writeln('  \x1b[1;32mclear\x1b[0m — clear terminal');
+      term.writeln('  \x1b[1;32mreset\x1b[0m — clear data & reload');
+      term.writeln('  \x1b[1;32mhelp\x1b[0m  — show commands');
       term.writeln('');
       writePrompt();
 
@@ -114,10 +120,10 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
               setTimeout(() => window.location.reload(), 500);
             })();
           } else if (cmd === 'help') {
-            term.writeln('  \x1b[1;32mrun\x1b[0m     — compile & execute Java');
-            term.writeln('  \x1b[1;32mclear\x1b[0m   — clear terminal');
-            term.writeln('  \x1b[1;32mreset\x1b[0m   — clear room data & reload');
-            term.writeln('  \x1b[1;32mhelp\x1b[0m    — show this message');
+            term.writeln('  \x1b[1;32mrun\x1b[0m   — compile & execute');
+            term.writeln('  \x1b[1;32mclear\x1b[0m — clear terminal');
+            term.writeln('  \x1b[1;32mreset\x1b[0m — clear data & reload');
+            term.writeln('  \x1b[1;32mhelp\x1b[0m  — show commands');
             writePrompt();
           } else if (cmd) {
             term.writeln(`\x1b[31mUnknown command: ${cmd}\x1b[0m`);
@@ -157,8 +163,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     return (
       <div
         ref={containerRef}
-        className="h-full w-full"
-        style={{ padding: '4px 8px' }}
+        className="h-full w-full p-1 sm:p-2"
       />
     );
   }

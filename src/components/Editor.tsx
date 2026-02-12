@@ -65,17 +65,21 @@ const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
         theme="vs-dark"
         onMount={handleMount}
         options={{
-          fontSize: 14,
+          fontSize: window.innerWidth < 640 ? 12 : 14,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           automaticLayout: true,
-          padding: { top: 12 },
+          padding: { top: 8 },
           wordWrap: 'on',
           tabSize: 4,
           insertSpaces: true,
+          lineNumbers: window.innerWidth < 480 ? 'off' : 'on',
+          folding: window.innerWidth >= 640,
+          glyphMargin: false,
+          lineDecorationsWidth: window.innerWidth < 640 ? 4 : 10,
         }}
         loading={
-          <div className="flex items-center justify-center h-full text-zinc-400">
+          <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
             Loading editor...
           </div>
         }

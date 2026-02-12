@@ -32,7 +32,7 @@ export default function PeerAvatars() {
   }, [awareness]);
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       {peers.map((peer) => {
         const isMe = peer.name === userName && peer.color === userColor;
         return (
@@ -41,7 +41,7 @@ export default function PeerAvatars() {
             className="relative group"
           >
             <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white cursor-default border-2"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white cursor-default border-2"
               style={{
                 backgroundColor: peer.color,
                 borderColor: isMe ? '#fff' : 'transparent',
