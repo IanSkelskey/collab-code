@@ -103,14 +103,16 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             writePrompt();
           } else if (cmd === 'reset') {
             term.writeln('\x1b[33mClearing room data...\x1b[0m');
-            const dbNames = await indexedDB.databases?.() ?? [];
-            for (const db of dbNames) {
-              if (db.name && db.name.startsWith('collab-code-')) {
-                indexedDB.deleteDatabase(db.name);
+            (async () => {
+              const dbNames = await indexedDB.databases?.() ?? [];
+              for (const db of dbNames) {
+                if (db.name && db.name.startsWith('collab-code-')) {
+                  indexedDB.deleteDatabase(db.name);
+                }
               }
-            }
-            term.writeln('\x1b[32mDone. Reloading...\x1b[0m');
-            setTimeout(() => window.location.reload(), 500);
+              term.writeln('\x1b[32mDone. Reloading...\x1b[0m');
+              setTimeout(() => window.location.reload(), 500);
+            })();
           } else if (cmd === 'help') {
             term.writeln('  \x1b[1;32mrun\x1b[0m     — compile & execute Java');
             term.writeln('  \x1b[1;32mclear\x1b[0m   — clear terminal');
