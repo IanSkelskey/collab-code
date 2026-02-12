@@ -40,7 +40,9 @@ export class TrysteroProvider {
     //
     // ICE servers:
     // - Google STUN for basic NAT traversal (free, always up)
-    // - ExpressTURN for symmetric NAT / restrictive firewalls
+    // - TURN on port 3478 for moderate firewalls
+    // - TURNS on port 443 (TLS) for restrictive firewalls (campus WiFi, etc.)
+    //   Port 443 looks like HTTPS traffic, so it bypasses most firewalls.
     this.room = joinRoom(
       {
         appId: 'collab-code',
@@ -49,17 +51,34 @@ export class TrysteroProvider {
           'wss://nos.lol',
           'wss://relay.nostr.band',
           'wss://nostr.mom',
+          'wss://relay.snort.social',
+          'wss://offchain.pub',
         ],
         rtcConfig: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
             {
-              urls: ['turn:relay1.expressturn.com:3478'],
+              urls: [
+                'turn:relay1.expressturn.com:3478',
+                'turns:relay1.expressturn.com:443',
+              ],
               username: 'efQUQ79N77B5BNVVKF',
               credential: 'N4EAUgpjMzPLrxSS',
             },
+            {
+              urls: 'turn:openrelay.metered.ca:443',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
+            },
+            {
+              urls: 'turns:openrelay.metered.ca:443',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
+            },
           ],
+          iceTransportPolicy: 'all',
         },
       },
       roomId
