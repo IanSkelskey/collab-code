@@ -26,11 +26,6 @@ export default function Editor() {
 
     const ytext = ydoc.getText('code');
 
-    // Seed with default code only if the doc is empty
-    if (ytext.length === 0) {
-      ytext.insert(0, DEFAULT_CODE);
-    }
-
     // Create the Yjs <-> Monaco binding
     const binding = new MonacoBinding(
       ytext,
@@ -40,7 +35,16 @@ export default function Editor() {
     );
     bindingRef.current = binding;
 
+    // Wait a moment for sync from existing peers before seeding default code.
+    // If a peer sends us their document state, ytext won't be empty anymore.
+    const seedTimeout = setTimeout(() => {
+      if (ytext.length === 0) {
+        ytext.insert(0, DEFAULT_CODE);
+      }
+    }, 1500);
+
     return () => {
+      clearTimeout(seedTimeout);
       binding.destroy();
       bindingRef.current = null;
     };
