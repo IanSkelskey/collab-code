@@ -47,12 +47,9 @@ export class TrysteroProvider {
       {
         appId: 'collab-code',
         relayUrls: [
-          'wss://relay.damus.io',
           'wss://nos.lol',
-          'wss://relay.nostr.band',
-          'wss://nostr.mom',
           'wss://relay.snort.social',
-          'wss://offchain.pub',
+          'wss://nostr.mom',
         ],
         rtcConfig: {
           iceServers: [
