@@ -5,15 +5,17 @@ import {
   applyAwarenessUpdate,
   removeAwarenessStates,
 } from 'y-protocols/awareness';
-import { joinRoom } from 'trystero/nostr';
+import { joinRoom } from 'trystero/mqtt';
 
 /**
- * A Yjs provider that uses Trystero (Nostr relays) for peer
+ * A Yjs provider that uses Trystero (MQTT brokers) for peer
  * discovery and WebRTC data channels for document sync.
  *
  * No dedicated signaling server required — peers find each other
- * through public Nostr relay WebSocket servers, which are far more
- * reliable than WebTorrent trackers.
+ * through free public MQTT brokers (HiveMQ, EMQX). These are
+ * enterprise-grade infrastructure designed for high-throughput
+ * IoT messaging, so signaling traffic for a few peers is trivial
+ * and never rate-limited.
  */
 export class TrysteroProvider {
   readonly awareness: Awareness;
@@ -31,26 +33,20 @@ export class TrysteroProvider {
     this.doc = doc;
     this.awareness = new Awareness(doc);
 
-    console.log('[CollabCode] Joining room:', roomId, '(Nostr relay strategy)');
+    console.log('[CollabCode] Joining room:', roomId, '(MQTT broker strategy)');
 
-    // Join a Trystero room using the Nostr relay strategy.
-    // Peers discover each other via public Nostr relay WebSocket servers.
-    // These are well-maintained infrastructure used by the Nostr social
-    // network — much more reliable than WebTorrent trackers.
+    // Join a Trystero room using the MQTT broker strategy.
+    // Peers discover each other via free public MQTT brokers.
+    // MQTT brokers are designed for massive IoT message throughput —
+    // signaling a handful of WebRTC peers is trivial, so no rate limits.
     //
     // ICE servers:
     // - Google STUN for basic NAT traversal (free, always up)
     // - TURN on port 3478 for moderate firewalls
     // - TURNS on port 443 (TLS) for restrictive firewalls (campus WiFi, etc.)
-    //   Port 443 looks like HTTPS traffic, so it bypasses most firewalls.
     this.room = joinRoom(
       {
         appId: 'collab-code',
-        relayUrls: [
-          'wss://nos.lol',
-          'wss://relay.snort.social',
-          'wss://nostr.mom',
-        ],
         rtcConfig: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
