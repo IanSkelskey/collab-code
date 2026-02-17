@@ -1,0 +1,18 @@
+{
+  "name": "collab-code-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Yjs WebSocket sync server for Collab Code",
+  "main": "index.cjs",
+  "scripts": {
+    "start": "node index.cjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "y-websocket": "^2.1.0",
+    "yjs": "^13.6.29"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

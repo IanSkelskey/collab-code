@@ -1,0 +1,14 @@
+# Render deployment blueprint for the Yjs sync server.
+# See: https://docs.render.com/infrastructure-as-code
+services:
+  - type: web
+    name: collab-code-sync
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.cjs
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+    healthCheckPath: /

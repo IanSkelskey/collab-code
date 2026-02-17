@@ -8,7 +8,7 @@ import {
 } from 'react';
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { TrysteroProvider } from '../providers/TrysteroProvider';
+import { CollabProvider as SyncProvider } from '../providers/SyncProvider';
 import type { Awareness } from 'y-protocols/awareness';
 
 const PEER_COLORS = [
@@ -26,7 +26,7 @@ function getRandomName(): string {
 
 interface CollabContextValue {
   ydoc: Y.Doc;
-  provider: TrysteroProvider | null;
+  provider: SyncProvider | null;
   awareness: Awareness | null;
   roomId: string;
   peerCount: number;
@@ -49,7 +49,7 @@ interface CollabProviderProps {
 
 export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const ydocRef = useRef<Y.Doc>(new Y.Doc());
-  const [provider, setProvider] = useState<TrysteroProvider | null>(null);
+  const [provider, setProvider] = useState<SyncProvider | null>(null);
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const [peerCount, setPeerCount] = useState(1);
   const [userName] = useState(() => getRandomName());
@@ -64,9 +64,9 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     // Local persistence
     const idb = new IndexeddbPersistence(fullRoomName, ydoc);
 
-    // P2P sync via Trystero (uses public BitTorrent/WebTorrent trackers
-    // for signaling — no dedicated signaling server required)
-    const trysteroProvider = new TrysteroProvider(fullRoomName, ydoc);
+    // Sync via WebSocket server — works reliably through campus WiFi,
+    // corporate firewalls, and any NAT configuration.
+    const trysteroProvider = new SyncProvider(fullRoomName, ydoc);
 
     // Set local awareness state
     trysteroProvider.awareness.setLocalStateField('user', {

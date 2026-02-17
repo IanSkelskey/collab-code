@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "node server/index.cjs",
+    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:server": "node server/index.cjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -15,14 +18,15 @@
     "@xterm/xterm": "^6.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "trystero": "^0.22.0",
-    "webrtc-adapter": "^9.0.3",
     "y-indexeddb": "^9.0.12",
     "y-monaco": "^0.1.6",
     "y-protocols": "^1.0.7",
-    "yjs": "^13.6.29"
+    "y-websocket": "^2.1.0",
+    "yjs": "^13.6.29",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "@eslint/js": "^9.25.0",
     "@tailwindcss/vite": "^4.1.18",
     "@types/react": "^19.1.2",
