@@ -1,9 +1,20 @@
 import type { ExecutionResult } from '../types';
 
-const PISTON_API_URL = 'https://emkc.org/api/v2/piston/execute';
+/**
+ * Derive the HTTP API URL from the WebSocket URL.
+ * wss://host -> https://host, ws://host -> http://host
+ * Falls back to the current origin in development.
+ */
+function getApiUrl(): string {
+  const wsUrl = import.meta.env.VITE_WS_URL ?? '';
+  if (wsUrl) {
+    return wsUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+  }
+  return window.location.origin;
+}
 
 export async function executeJava(sourceCode: string): Promise<ExecutionResult> {
-  const response = await fetch(PISTON_API_URL, {
+  const response = await fetch(`${getApiUrl()}/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
