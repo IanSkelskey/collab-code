@@ -1,13 +1,8 @@
 /**
- * Lightweight Yjs WebSocket server for Collab Code.
+ * Lightweight Yjs WebSocket + code execution server for Collab Code.
  *
- * Each room URL hash maps to a separate Yjs document.
- * The server:
- *   - Relays Yjs document updates between connected clients
- *   - Relays awareness updates (cursors, user names, colors)
- *   - Keeps a copy of each document in memory so late joiners
- *     get the full state instantly (no waiting for a peer)
- *   - Optionally persists documents to disk via LevelDB
+ * - Relays Yjs document updates and awareness between clients via WebSocket
+ * - Proxies code execution to Judge0 CE (free, no API key required)
  *
  * Usage:
  *   node server/index.cjs              # default port 4444
@@ -15,40 +10,119 @@
  */
 
 const http = require('http');
+const https = require('https');
+const { URL } = require('url');
 const WebSocket = require('ws');
 const { setupWSConnection } = require('y-websocket/bin/utils');
 
 const PORT = parseInt(process.env.PORT || '4444', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Piston public API for code execution.
-// Falls back through multiple known instances.
-const PISTON_URLS = [
-  'https://emkc.org/api/v2/piston/execute',
-  'https://piston.e-z.host/api/v2/execute',
-];
+// Judge0 CE public instance — free, no API key required.
+// Language IDs: https://ce.judge0.com/languages
+const JUDGE0_HOST = process.env.JUDGE0_HOST || 'ce.judge0.com';
+
+// Map language names to Judge0 language IDs
+const LANGUAGE_IDS = {
+  java: 91,       // Java (JDK 17.0.6)
+  python: 92,     // Python (3.11.2)
+  javascript: 97, // JavaScript (Node.js 20.17.0)
+  c: 75,          // C (Clang 18.1.8)
+  cpp: 76,        // C++ (Clang 18.1.8)
+};
 
 /**
- * Try each Piston endpoint in order until one succeeds.
+ * Make an HTTPS request using Node's built-in https module.
  */
-async function executePiston(body) {
-  for (const url of PISTON_URLS) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+function httpsRequest(method, url, jsonBody) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const data = jsonBody ? JSON.stringify(jsonBody) : null;
+    const options = {
+      hostname: parsed.hostname,
+      port: parsed.port || 443,
+      path: parsed.pathname + parsed.search,
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+    };
+    if (data) options.headers['Content-Length'] = Buffer.byteLength(data);
+
+    const req = https.request(options, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString();
+        resolve({ statusCode: res.statusCode, body });
       });
-      if (res.ok) return { status: res.status, data: await res.json() };
-      // If 401/403, try next endpoint
-      if (res.status === 401 || res.status === 403) continue;
-      // Other errors — return as-is
-      return { status: res.status, data: await res.text() };
-    } catch {
-      continue; // network error, try next
+    });
+
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+/**
+ * Execute code via Judge0 CE and normalize the response to match
+ * the format the frontend expects (Piston-compatible).
+ */
+async function executeCode(body) {
+  const { language, source_code } = body;
+  const languageId = LANGUAGE_IDS[language] || LANGUAGE_IDS.java;
+
+  console.log(`[exec] Submitting ${language} (id=${languageId}) to Judge0`);
+
+  try {
+    const judge0Url = `https://${JUDGE0_HOST}/submissions?base64_encoded=false&wait=true`;
+    const { statusCode, body: respBody } = await httpsRequest('POST', judge0Url, {
+      language_id: languageId,
+      source_code,
+    });
+
+    console.log(`[exec] Judge0 responded with ${statusCode}`);
+
+    if (statusCode >= 200 && statusCode < 300) {
+      const j = JSON.parse(respBody);
+
+      // Normalize Judge0 response to Piston-like format that the frontend expects
+      const result = {
+        language: language || 'java',
+        version: '',
+        run: {
+          stdout: j.stdout || '',
+          stderr: j.stderr || '',
+          code: j.status?.id === 3 ? 0 : (j.status?.id || 1),
+          signal: null,
+          output: (j.stdout || '') + (j.stderr || ''),
+        },
+      };
+
+      // Judge0 status IDs: 3=Accepted, 6=Compilation Error, 5=Time Limit, 11=Runtime Error
+      if (j.compile_output) {
+        result.compile = {
+          stdout: '',
+          stderr: j.compile_output,
+          code: j.status?.id === 6 ? 1 : 0,
+          signal: null,
+          output: j.compile_output,
+        };
+      }
+
+      if (j.message) {
+        result.run.stderr = j.message + (result.run.stderr ? '\n' + result.run.stderr : '');
+        result.run.output = result.run.stderr + result.run.stdout;
+      }
+
+      return { status: 200, data: result };
     }
+
+    return { status: statusCode, data: { error: respBody } };
+  } catch (err) {
+    console.log(`[exec] Judge0 failed: ${err.message}`);
+    return { status: 502, data: { error: `Execution backend unavailable: ${err.message}` } };
   }
-  return { status: 502, data: { error: 'All execution backends unavailable' } };
 }
 
 /**
@@ -78,11 +152,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // POST /execute — proxy code execution to Piston
+  // POST /execute — proxy code execution to Judge0 CE
   if (req.method === 'POST' && req.url === '/execute') {
     try {
       const body = await readBody(req);
-      const result = await executePiston(body);
+      const result = await executeCode(body);
       res.writeHead(result.status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result.data));
     } catch (err) {

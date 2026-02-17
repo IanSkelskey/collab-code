@@ -19,13 +19,12 @@ export async function executeJava(sourceCode: string): Promise<ExecutionResult> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       language: 'java',
-      version: '15.0.2',
-      files: [{ content: sourceCode }],
+      source_code: sourceCode,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Piston API error: ${response.status} ${response.statusText}`);
+    throw new Error(`Execution API error: ${response.status} ${response.statusText}`);
   }
 
   return response.json();
