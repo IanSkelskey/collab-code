@@ -134,6 +134,21 @@ function AppContent() {
         finish();
       },
 
+      onFilesSync(syncedFiles) {
+        // Write files created/modified by the Java program back into the VFS
+        let count = 0;
+        for (const [relPath, content] of Object.entries(syncedFiles)) {
+          const vfsPath = '~/' + relPath;
+          fs.writeFile(vfsPath, content);
+          count++;
+        }
+        if (count > 0) {
+          terminalRef.current?.writeln(
+            `\x1b[2m[${count} file(s) synced to workspace]\x1b[0m`
+          );
+        }
+      },
+
       onError(error) {
         terminalRef.current?.writeln(`\x1b[31mExecution failed: ${error}\x1b[0m`);
         finish();

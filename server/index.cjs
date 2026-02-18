@@ -156,6 +156,7 @@ function handleExecConnection(ws) {
 
         // --- Run ---
         javaProcess = spawn('java', ['-cp', tmpDir, 'Main'], {
+          cwd: tmpDir,
           stdio: ['pipe', 'pipe', 'pipe'],
         });
 
@@ -177,6 +178,38 @@ function handleExecConnection(ws) {
 
         javaProcess.on('close', (exitCode) => {
           console.log(`[exec] Process exited with code ${exitCode}`);
+
+          // Scan temp dir for files created/modified by the Java program
+          // and sync them back to the client's virtual filesystem.
+          try {
+            const syncFiles = {};
+            const scanDir = (dir, rel) => {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const fullPath = path.join(dir, entry.name);
+                const relPath = rel ? rel + '/' + entry.name : entry.name;
+                if (entry.isDirectory()) {
+                  scanDir(fullPath, relPath);
+                } else if (!entry.name.endsWith('.class')) {
+                  // Skip .class files, include everything else
+                  const content = fs.readFileSync(fullPath, 'utf-8');
+                  const original = files[relPath];
+                  // Only send back new files or files whose content changed
+                  if (original === undefined || original !== content) {
+                    syncFiles[relPath] = content;
+                  }
+                }
+              }
+            };
+            scanDir(tmpDir, '');
+
+            if (Object.keys(syncFiles).length > 0) {
+              console.log(`[exec] Syncing ${Object.keys(syncFiles).length} file(s) back to client`);
+              send({ type: 'files-sync', files: syncFiles });
+            }
+          } catch (err) {
+            console.log(`[exec] File sync scan failed: ${err.message}`);
+          }
+
           send({ type: 'exit', code: exitCode ?? 1 });
           javaProcess = null;
           cleanup();

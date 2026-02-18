@@ -14,6 +14,8 @@ export interface ExecCallbacks {
   onStderr: (data: string) => void;
   onExit: (code: number) => void;
   onError: (error: string) => void;
+  /** Called with files created/modified by the Java program, to sync back to VFS */
+  onFilesSync?: (files: Record<string, string>) => void;
 }
 
 export class InteractiveExecutor {
@@ -37,7 +39,7 @@ export class InteractiveExecutor {
     };
 
     this.ws.onmessage = (event) => {
-      let msg: { type: string; data?: string; code?: number };
+      let msg: { type: string; data?: string; code?: number; files?: Record<string, string> };
       try {
         msg = JSON.parse(event.data as string);
       } catch {
@@ -62,6 +64,9 @@ export class InteractiveExecutor {
           break;
         case 'exit':
           callbacks.onExit(msg.code ?? 1);
+          break;
+        case 'files-sync':
+          if (msg.files) callbacks.onFilesSync?.(msg.files);
           break;
         case 'error':
           callbacks.onError(msg.data ?? 'Unknown execution error');
