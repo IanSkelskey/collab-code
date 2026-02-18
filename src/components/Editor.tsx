@@ -4,13 +4,7 @@ import { MonacoBinding } from 'y-monaco';
 import type { editor } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
 import type { DiagnosticMarker } from '../services/javaDiagnostics';
-
-const DEFAULT_CODE = `public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello, Collab Code!");
-    }
-}
-`;
+import type { VirtualFS } from '../hooks/useVirtualFS';
 
 export interface EditorHandle {
   getCode: () => string;
@@ -21,11 +15,28 @@ export interface EditorHandle {
 interface EditorProps {
   onRun?: () => void;
   fontSize?: number;
+  fs?: VirtualFS;
 }
 
 const MARKER_OWNER = 'collab-code-diagnostics';
 
-const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fontSize = 14 }, ref) {
+/** Derive Monaco language from file extension */
+function languageForFile(path: string): string {
+  if (path.endsWith('.java')) return 'java';
+  if (path.endsWith('.py')) return 'python';
+  if (path.endsWith('.js') || path.endsWith('.mjs')) return 'javascript';
+  if (path.endsWith('.ts') || path.endsWith('.tsx')) return 'typescript';
+  if (path.endsWith('.json')) return 'json';
+  if (path.endsWith('.xml')) return 'xml';
+  if (path.endsWith('.html')) return 'html';
+  if (path.endsWith('.css')) return 'css';
+  if (path.endsWith('.md')) return 'markdown';
+  if (path.endsWith('.c') || path.endsWith('.h')) return 'c';
+  if (path.endsWith('.cpp') || path.endsWith('.hpp')) return 'cpp';
+  return 'plaintext';
+}
+
+const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fontSize = 14, fs }, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -34,6 +45,9 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
   // Keep a stable ref for the run callback to avoid re-registering keybinding
   const onRunRef = useRef(onRun);
   useEffect(() => { onRunRef.current = onRun; }, [onRun]);
+
+  // Track the file path currently bound to the editor
+  const boundFileRef = useRef<string | null>(null);
 
   useImperativeHandle(ref, () => ({
     getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
@@ -76,13 +90,42 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
     monacoEditor.updateOptions({ fontSize });
   }, [monacoEditor, fontSize]);
 
-  // Create the Yjs <-> Monaco binding once both editor AND awareness are ready
+  // Bind to the active file's Y.Text (or fall back to legacy Y.Text('code'))
+  const activeFile = fs?.activeFile ?? null;
+
   useEffect(() => {
     if (!monacoEditor || !awareness) return;
 
-    const ytext = ydoc.getText('code');
+    // Determine which Y.Text to bind
+    let ytext: import('yjs').Text;
+    let filePath: string | null = null;
 
-    // Create the Yjs <-> Monaco binding
+    if (fs && activeFile && fs.getFileText(activeFile)) {
+      ytext = fs.getFileText(activeFile)!;
+      filePath = activeFile;
+    } else {
+      // Legacy fallback — single file mode
+      ytext = ydoc.getText('code');
+      filePath = null;
+    }
+
+    // Don't re-bind if we're already bound to this file
+    if (boundFileRef.current === filePath && bindingRef.current) return;
+
+    // Clean up previous binding
+    if (bindingRef.current) {
+      bindingRef.current.destroy();
+      bindingRef.current = null;
+    }
+
+    // Set language based on file extension
+    const model = monacoEditor.getModel();
+    if (model && filePath) {
+      const lang = languageForFile(filePath);
+      monacoRef.current?.editor.setModelLanguage(model, lang);
+    }
+
+    // Create new binding
     const binding = new MonacoBinding(
       ytext,
       monacoEditor.getModel()!,
@@ -90,21 +133,14 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
       awareness
     );
     bindingRef.current = binding;
-
-    // Wait a moment for sync from existing peers before seeding default code.
-    // If a peer sends us their document state, ytext won't be empty anymore.
-    const seedTimeout = setTimeout(() => {
-      if (ytext.length === 0) {
-        ytext.insert(0, DEFAULT_CODE);
-      }
-    }, 1500);
+    boundFileRef.current = filePath;
 
     return () => {
-      clearTimeout(seedTimeout);
       binding.destroy();
       bindingRef.current = null;
+      boundFileRef.current = null;
     };
-  }, [monacoEditor, awareness, ydoc]);
+  }, [monacoEditor, awareness, ydoc, activeFile, fs]);
 
   return (
     <div className="h-full w-full">

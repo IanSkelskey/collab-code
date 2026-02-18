@@ -109,16 +109,34 @@ function handleExecConnection(ws) {
         return;
       }
 
-      // Create temp directory and write source
+      // Create temp directory and write all source files
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'collab-exec-'));
-      const sourceFile = path.join(tmpDir, 'Main.java');
-      fs.writeFileSync(sourceFile, msg.source_code);
 
-      console.log(`[exec] Compiling in ${tmpDir}`);
+      // Support both old { source_code } and new { files } protocol
+      const files = msg.files || { 'Main.java': msg.source_code };
+      const javaFiles = [];
+
+      for (const [relPath, content] of Object.entries(files)) {
+        // Security: prevent path traversal
+        const safePath = relPath.replace(/\.\./g, '').replace(/^\//, '');
+        const fullPath = path.join(tmpDir, safePath);
+        const dir = path.dirname(fullPath);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(fullPath, content);
+        if (safePath.endsWith('.java')) javaFiles.push(fullPath);
+      }
+
+      if (javaFiles.length === 0) {
+        send({ type: 'error', data: 'No .java files found in project' });
+        cleanup();
+        return;
+      }
+
+      console.log(`[exec] Compiling ${javaFiles.length} file(s) in ${tmpDir}`);
       send({ type: 'compile-start' });
 
-      // --- Compile ---
-      const javac = spawn('javac', [sourceFile]);
+      // --- Compile all Java files ---
+      const javac = spawn('javac', javaFiles);
       let compileErr = '';
 
       javac.stderr.on('data', (data) => {

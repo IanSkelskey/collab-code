@@ -1,14 +1,17 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { CollabProvider, useCollab } from './context/CollabContext';
 import { useRoom } from './hooks/useRoom';
+import { useVirtualFS } from './hooks/useVirtualFS';
 import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
+import FileExplorer from './components/FileExplorer';
 import PeerAvatars from './components/PeerAvatars';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 
 function AppContent() {
   const { ydoc, peerCount, roomId, connected } = useCollab();
+  const fs = useVirtualFS(ydoc);
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const [running, setRunning] = useState(false);
@@ -17,6 +20,10 @@ function AppContent() {
   const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
   const runningRef = useRef(false);
   const executorRef = useRef<InteractiveExecutor | null>(null);
+  const [explorerVisible, setExplorerVisible] = useState(() => window.innerWidth >= 768);
+  const [explorerWidth, setExplorerWidth] = useState(() =>
+    window.innerWidth < 640 ? 160 : 200
+  );
 
   // Terminal panel state
   const [terminalVisible, setTerminalVisible] = useState(true);
@@ -29,10 +36,11 @@ function AppContent() {
   const handleRun = useCallback(() => {
     if (runningRef.current) return;
 
-    const sourceCode = editorRef.current?.getCode() ?? ydoc.getText('code').toString();
-    if (!sourceCode.trim()) {
+    // Send all project files to the server for multi-file compilation
+    const allFiles = fs.getAllFiles();
+    const fileNames = Object.keys(allFiles);
+    if (fileNames.length === 0 || fileNames.every(f => !allFiles[f].trim())) {
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
-      terminalRef.current?.write('\x1b[38;2;86;182;194m$ \x1b[0m');
       return;
     }
 
@@ -63,7 +71,7 @@ function AppContent() {
       executorRef.current = null;
     };
 
-    executor.execute(sourceCode, {
+    executor.execute(allFiles, {
       onCompileStart() {
         terminalRef.current?.writeln('\x1b[1;36m▶ Compiling...\x1b[0m');
       },
@@ -123,7 +131,7 @@ function AppContent() {
         finish();
       },
     });
-  }, [ydoc]);
+  }, [fs]);
 
   const handleShare = useCallback(async () => {
     const url = `${window.location.origin}${window.location.pathname}#${roomId}`;
@@ -156,12 +164,14 @@ function AppContent() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Main.java';
+    // Use active filename or default to Main.java
+    const activeName = fs.activeFile?.split('/').pop() ?? 'Main.java';
+    a.download = activeName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, []);
+  }, [fs.activeFile]);
 
   const handleToggleTerminal = useCallback(() => {
     setTerminalVisible((v) => !v);
@@ -174,6 +184,47 @@ function AppContent() {
   const handleFontSizeDown = useCallback(() => {
     setFontSize((s) => Math.max(s - 2, 8));
   }, []);
+
+  const handleToggleExplorer = useCallback(() => {
+    setExplorerVisible((v) => !v);
+  }, []);
+
+  // Ctrl+B keyboard shortcut to toggle explorer
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        setExplorerVisible((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Drag-to-resize explorer panel
+  const handleExplorerDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const startWidth = explorerWidth;
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in ev ? ev.touches[0].clientX : ev.clientX;
+      const delta = clientX - startX;
+      setExplorerWidth(Math.max(120, Math.min(400, startWidth + delta)));
+    };
+
+    const onEnd = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove);
+    document.addEventListener('touchend', onEnd);
+  }, [explorerWidth]);
 
   // Drag-to-resize terminal panel
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -293,6 +344,7 @@ function AppContent() {
               A+
             </button>
           </div>
+
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -332,11 +384,46 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Main content: Editor + Terminal */}
+      {/* Main content: Activity bar + Explorer + Editor + Terminal */}
       <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
-        {/* Editor — fills remaining space */}
-        <div className="flex-1 min-h-[120px]">
-          <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} />
+        {/* Top section: Activity bar + Explorer + Editor side by side */}
+        <div className="flex-1 flex min-h-[120px]">
+          {/* Activity bar — thin icon strip */}
+          <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1">
+            <button
+              onClick={handleToggleExplorer}
+              title={`Toggle Explorer (Ctrl+B)`}
+              className={`p-2 rounded transition-colors cursor-pointer ${
+                explorerVisible
+                  ? 'text-white bg-zinc-700/50'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+
+          {/* File Explorer */}
+          {explorerVisible && (
+            <>
+              <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
+                <FileExplorer fs={fs} />
+              </div>
+              {/* Explorer resize handle */}
+              <div
+                onMouseDown={handleExplorerDragStart}
+                onTouchStart={handleExplorerDragStart}
+                className="w-[3px] shrink-0 cursor-col-resize bg-zinc-700/50 hover:bg-emerald-400 transition-colors"
+              />
+            </>
+          )}
+
+          {/* Editor — fills remaining space */}
+          <div className="flex-1 min-w-0">
+            <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
+          </div>
         </div>
 
         {/* Terminal bar — always visible, acts as toggle + drag handle */}
@@ -380,7 +467,7 @@ function AppContent() {
             style={{ height: terminalHeight }}
             className="shrink-0 bg-[#1a1a2e] overflow-hidden"
           >
-            <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} />
+            <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} />
           </div>
         )}
       </div>
