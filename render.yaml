@@ -3,11 +3,9 @@
 services:
   - type: web
     name: collab-code-sync
-    runtime: node
+    runtime: docker
     plan: free
     rootDir: server
-    buildCommand: npm install
-    startCommand: node index.cjs
     envVars:
       - key: HOST
         value: 0.0.0.0

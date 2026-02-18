@@ -4,17 +4,19 @@ import { useRoom } from './hooks/useRoom';
 import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
 import PeerAvatars from './components/PeerAvatars';
-import { executeJava } from './services/pistonApi';
+import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 
 function AppContent() {
-  const { ydoc, peerCount, roomId } = useCollab();
+  const { ydoc, peerCount, roomId, connected } = useCollab();
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
   const runningRef = useRef(false);
+  const executorRef = useRef<InteractiveExecutor | null>(null);
 
   // Terminal panel state
   const [terminalVisible, setTerminalVisible] = useState(true);
@@ -22,11 +24,11 @@ function AppContent() {
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleRun = useCallback(async () => {
+  // Interactive execution via WebSocket — runs Java on the server with
+  // real-time stdin/stdout/stderr streaming, just like a real IDE.
+  const handleRun = useCallback(() => {
     if (runningRef.current) return;
 
-    // Read from what Monaco actually displays, not from Y.Text directly,
-    // to avoid stale/corrupted IndexedDB data mismatch
     const sourceCode = editorRef.current?.getCode() ?? ydoc.getText('code').toString();
     if (!sourceCode.trim()) {
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
@@ -34,64 +36,93 @@ function AppContent() {
       return;
     }
 
+    // Auto-show terminal
+    setTerminalVisible(true);
+
+    // Kill any previous execution
+    if (executorRef.current) {
+      executorRef.current.close();
+      executorRef.current = null;
+    }
+
     runningRef.current = true;
     setRunning(true);
     editorRef.current?.clearMarkers();
-    terminalRef.current?.writeln('\x1b[1;36m▶ Compiling & running...\x1b[0m');
 
-    try {
-      const result = await executeJava(sourceCode);
+    // Accumulated stderr for diagnostics parsing at exit
+    let compileOutput = '';
+    let runtimeStderr = '';
 
-      // Show compilation errors if any
-      if (result.compile && result.compile.stderr) {
-        terminalRef.current?.writeln('\x1b[1;31m── Compilation Error ──\x1b[0m');
-        result.compile.stderr.split('\n').forEach((line) => {
-          terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
-        });
-      }
+    const executor = new InteractiveExecutor();
+    executorRef.current = executor;
 
-      if (result.compile && result.compile.stdout) {
-        result.compile.stdout.split('\n').forEach((line) => {
-          terminalRef.current?.writeln(line);
-        });
-      }
-
-      // Show runtime output
-      if (result.run.stdout) {
-        terminalRef.current?.writeln('\x1b[1;32m── Output ──\x1b[0m');
-        result.run.stdout.split('\n').forEach((line) => {
-          terminalRef.current?.writeln(line);
-        });
-      }
-
-      if (result.run.stderr) {
-        terminalRef.current?.writeln('\x1b[1;31m── Runtime Error ──\x1b[0m');
-        result.run.stderr.split('\n').forEach((line) => {
-          terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
-        });
-      }
-
-      if (result.run.code !== 0 && result.run.code !== null) {
-        terminalRef.current?.writeln(
-          `\x1b[33mProcess exited with code ${result.run.code}\x1b[0m`
-        );
-      }
-
-      // Set inline diagnostics (error/warning underlines) in the editor
-      const compileMarkers = parseJavaDiagnostics(result.compile?.stderr ?? result.compile?.output ?? '');
-      const runtimeMarkers = parseJavaRuntimeErrors(result.run.stderr);
-      const allMarkers = [...compileMarkers, ...runtimeMarkers];
-      if (allMarkers.length > 0) {
-        editorRef.current?.setMarkers(allMarkers);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      terminalRef.current?.writeln(`\x1b[31mExecution failed: ${msg}\x1b[0m`);
-    } finally {
+    const finish = () => {
       runningRef.current = false;
       setRunning(false);
-      terminalRef.current?.write('\x1b[38;2;86;182;194m$ \x1b[0m');
-    }
+      terminalRef.current?.exitExecMode();
+      executorRef.current = null;
+    };
+
+    executor.execute(sourceCode, {
+      onCompileStart() {
+        terminalRef.current?.writeln('\x1b[1;36m▶ Compiling...\x1b[0m');
+      },
+
+      onCompileError(data) {
+        compileOutput = data;
+        terminalRef.current?.writeln('\x1b[1;31m── Compilation Error ──\x1b[0m');
+        data.split('\n').forEach((line) => {
+          terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
+        });
+
+        // Set inline diagnostics in the editor
+        const markers = parseJavaDiagnostics(compileOutput);
+        if (markers.length > 0) editorRef.current?.setMarkers(markers);
+
+        finish();
+      },
+
+      onCompileOk() {
+        terminalRef.current?.writeln('\x1b[1;32m── Running ──\x1b[0m');
+
+        // Enter interactive execution mode — stdin typed in the terminal
+        // is forwarded to the running Java process in real time.
+        terminalRef.current?.enterExecMode(
+          (data) => executor.sendStdin(data),
+          () => executor.kill(),
+        );
+      },
+
+      onStdout(data) {
+        terminalRef.current?.write(data);
+      },
+
+      onStderr(data) {
+        runtimeStderr += data;
+        terminalRef.current?.write(`\x1b[31m${data}\x1b[0m`);
+      },
+
+      onExit(code) {
+        if (code !== 0 && code !== null) {
+          terminalRef.current?.writeln(
+            `\n\x1b[33mProcess exited with code ${code}\x1b[0m`
+          );
+        } else {
+          terminalRef.current?.writeln('');
+        }
+
+        // Set runtime error markers if any
+        const markers = parseJavaRuntimeErrors(runtimeStderr);
+        if (markers.length > 0) editorRef.current?.setMarkers(markers);
+
+        finish();
+      },
+
+      onError(error) {
+        terminalRef.current?.writeln(`\x1b[31mExecution failed: ${error}\x1b[0m`);
+        finish();
+      },
+    });
   }, [ydoc]);
 
   const handleShare = useCallback(async () => {
@@ -134,6 +165,14 @@ function AppContent() {
 
   const handleToggleTerminal = useCallback(() => {
     setTerminalVisible((v) => !v);
+  }, []);
+
+  const handleFontSizeUp = useCallback(() => {
+    setFontSize((s) => Math.min(s + 2, 28));
+  }, []);
+
+  const handleFontSizeDown = useCallback(() => {
+    setFontSize((s) => Math.max(s - 2, 8));
   }, []);
 
   // Drag-to-resize terminal panel
@@ -184,6 +223,7 @@ function AppContent() {
           <button
             onClick={handleRun}
             disabled={running}
+            title="Run code (Ctrl+Enter)"
             className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer touch-manipulation"
           >
             {running ? (
@@ -233,11 +273,40 @@ function AppContent() {
             </svg>
             <span className="hidden sm:inline">Save</span>
           </button>
+
+          <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+
+          {/* Font size controls */}
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={handleFontSizeDown}
+              title="Decrease font size"
+              className="px-1.5 py-1.5 rounded text-xs font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation leading-none"
+            >
+              A−
+            </button>
+            <button
+              onClick={handleFontSizeUp}
+              title="Increase font size"
+              className="px-1.5 py-1.5 rounded text-sm font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation leading-none"
+            >
+              A+
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Peer count + avatars */}
           <PeerAvatars />
+
+          {/* Connection status dot */}
+          <div
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              connected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+            }`}
+            title={connected ? 'Connected to server' : 'Connecting...'}
+          />
+
           <span className="text-xs text-zinc-400 hidden sm:inline">
             {peerCount} {peerCount === 1 ? 'peer' : 'peers'}
           </span>
@@ -267,7 +336,7 @@ function AppContent() {
       <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
         {/* Editor — fills remaining space */}
         <div className="flex-1 min-h-[120px]">
-          <Editor ref={editorRef} />
+          <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} />
         </div>
 
         {/* Terminal bar — always visible, acts as toggle + drag handle */}
@@ -311,7 +380,7 @@ function AppContent() {
             style={{ height: terminalHeight }}
             className="shrink-0 bg-[#1a1a2e] overflow-hidden"
           >
-            <Terminal ref={terminalRef} onRunRequested={handleRun} />
+            <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} />
           </div>
         )}
       </div>

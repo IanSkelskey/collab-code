@@ -18,13 +18,22 @@ export interface EditorHandle {
   clearMarkers: () => void;
 }
 
+interface EditorProps {
+  onRun?: () => void;
+  fontSize?: number;
+}
+
 const MARKER_OWNER = 'collab-code-diagnostics';
 
-const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
+const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fontSize = 14 }, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const bindingRef = useRef<MonacoBinding | null>(null);
+
+  // Keep a stable ref for the run callback to avoid re-registering keybinding
+  const onRunRef = useRef(onRun);
+  useEffect(() => { onRunRef.current = onRun; }, [onRun]);
 
   useImperativeHandle(ref, () => ({
     getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
@@ -46,6 +55,26 @@ const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
     setMonacoEditor(ed);
     monacoRef.current = monaco;
   }, []);
+
+  // Ctrl+Enter to run code
+  useEffect(() => {
+    const ed = monacoEditor;
+    const m = monacoRef.current;
+    if (!ed || !m) return;
+    const disposable = ed.addAction({
+      id: 'collab-code-run',
+      label: 'Run Code (Ctrl+Enter)',
+      keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.Enter],
+      run: () => { onRunRef.current?.(); },
+    });
+    return () => disposable.dispose();
+  }, [monacoEditor]);
+
+  // Update font size dynamically
+  useEffect(() => {
+    if (!monacoEditor) return;
+    monacoEditor.updateOptions({ fontSize });
+  }, [monacoEditor, fontSize]);
 
   // Create the Yjs <-> Monaco binding once both editor AND awareness are ready
   useEffect(() => {
@@ -84,7 +113,7 @@ const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
         theme="vs-dark"
         onMount={handleMount}
         options={{
-          fontSize: window.innerWidth < 640 ? 12 : 14,
+          fontSize,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           automaticLayout: true,

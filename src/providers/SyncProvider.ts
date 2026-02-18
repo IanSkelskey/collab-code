@@ -55,6 +55,17 @@ export class CollabProvider {
     return this.wsProvider.wsconnected;
   }
 
+  /** Subscribe to provider events (e.g. 'status'). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: 'status' | 'sync' | 'connection-close' | 'connection-error', callback: (...args: any[]) => void) {
+    this.wsProvider.on(event, callback);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  off(event: 'status' | 'sync' | 'connection-close' | 'connection-error', callback: (...args: any[]) => void) {
+    this.wsProvider.off(event, callback);
+  }
+
   destroy() {
     this.wsProvider.disconnect();
     this.wsProvider.destroy();

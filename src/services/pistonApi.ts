@@ -13,13 +13,14 @@ function getApiUrl(): string {
   return window.location.origin;
 }
 
-export async function executeJava(sourceCode: string): Promise<ExecutionResult> {
+export async function executeJava(sourceCode: string, stdin?: string): Promise<ExecutionResult> {
   const response = await fetch(`${getApiUrl()}/execute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       language: 'java',
       source_code: sourceCode,
+      stdin: stdin || '',
     }),
   });
 

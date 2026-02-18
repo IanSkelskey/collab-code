@@ -13,16 +13,25 @@ export interface TerminalHandle {
   write: (text: string) => void;
   writeln: (text: string) => void;
   clear: () => void;
+  /**
+   * Enter interactive execution mode.
+   * While in exec mode, typed text is buffered locally and sent as stdin
+   * one line at a time when Enter is pressed.  Ctrl+C triggers onKill.
+   */
+  enterExecMode: (onStdin: (data: string) => void, onKill: () => void) => void;
+  /** Leave execution mode and return to the normal command prompt. */
+  exitExecMode: () => void;
 }
 
 interface TerminalProps {
   onRunRequested?: () => void;
+  fontSize?: number;
 }
 
 const PROMPT = '\x1b[38;2;86;182;194m$ \x1b[0m';
 
 const Terminal = forwardRef<TerminalHandle, TerminalProps>(
-  function Terminal({ onRunRequested }, ref) {
+  function Terminal({ onRunRequested, fontSize }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const termRef = useRef<XTerminal | null>(null);
     const fitRef = useRef<FitAddon | null>(null);
@@ -30,6 +39,11 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     // Use a ref for the callback so the terminal effect doesn't re-run on every change
     const onRunRef = useRef(onRunRequested);
     useEffect(() => { onRunRef.current = onRunRequested; }, [onRunRequested]);
+
+    // Exec mode refs — active while a Java process is running
+    const execStdinCallback = useRef<((data: string) => void) | null>(null);
+    const execKillCallback = useRef<(() => void) | null>(null);
+    const execLineBuffer = useRef('');
 
     const writePrompt = useCallback(() => {
       termRef.current?.write(PROMPT);
@@ -46,6 +60,18 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         termRef.current?.clear();
         writePrompt();
       },
+      enterExecMode(onStdin: (data: string) => void, onKill: () => void) {
+        execStdinCallback.current = onStdin;
+        execKillCallback.current = onKill;
+        execLineBuffer.current = '';
+      },
+      exitExecMode() {
+        execStdinCallback.current = null;
+        execKillCallback.current = null;
+        execLineBuffer.current = '';
+        termRef.current?.write('\r\n');
+        writePrompt();
+      },
     }));
 
     useEffect(() => {
@@ -53,7 +79,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
 
       const term = new XTerminal({
         cursorBlink: true,
-        fontSize: window.innerWidth < 640 ? 11 : 13,
+        fontSize: fontSize ?? (window.innerWidth < 640 ? 11 : 13),
         fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
         theme: {
           background: '#1a1a2e',
@@ -81,7 +107,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         term.writeln('\x1b[1;33mJava IDE Terminal\x1b[0m');
       } else {
         term.writeln('\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m');
-        term.writeln('\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — Java IDE Terminal   \x1b[1;36m║\x1b[0m');
+        term.writeln('\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — Java IDE Terminal    \x1b[1;36m║\x1b[0m');
         term.writeln('\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m');
       }
       term.writeln('');
@@ -96,6 +122,39 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       term.onData((data) => {
         const code = data.charCodeAt(0);
 
+        // ── Interactive execution mode ──
+        if (execStdinCallback.current) {
+          if (code === 3) {
+            // Ctrl+C → kill running process
+            term.write('^C');
+            execKillCallback.current?.();
+            return;
+          }
+          if (code === 13) {
+            // Enter → send buffered line as stdin
+            term.write('\r\n');
+            const line = execLineBuffer.current + '\n';
+            execLineBuffer.current = '';
+            execStdinCallback.current(line);
+            return;
+          }
+          if (code === 127) {
+            // Backspace
+            if (execLineBuffer.current.length > 0) {
+              execLineBuffer.current = execLineBuffer.current.slice(0, -1);
+              term.write('\b \b');
+            }
+            return;
+          }
+          if (code >= 32) {
+            // Printable character — echo and buffer
+            execLineBuffer.current += data;
+            term.write(data);
+          }
+          return;
+        }
+
+        // ── Normal command mode ──
         if (code === 13) {
           // Enter
           term.write('\r\n');
@@ -159,6 +218,15 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [writePrompt]);
+
+    // Respond to font size changes from parent
+    useEffect(() => {
+      const term = termRef.current;
+      const fit = fitRef.current;
+      if (!term || !fit || fontSize == null) return;
+      term.options.fontSize = fontSize;
+      try { fit.fit(); } catch { /* ignore */ }
+    }, [fontSize]);
 
     return (
       <div

@@ -30,8 +30,10 @@ interface CollabContextValue {
   awareness: Awareness | null;
   roomId: string;
   peerCount: number;
+  connected: boolean;
   userName: string;
   userColor: string;
+  setUserName: (name: string) => void;
 }
 
 const CollabContext = createContext<CollabContextValue | null>(null);
@@ -52,11 +54,20 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const [provider, setProvider] = useState<SyncProvider | null>(null);
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const [peerCount, setPeerCount] = useState(1);
-  const [userName] = useState(() => getRandomName());
+  const [connected, setConnected] = useState(false);
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('collab-code-username') || getRandomName();
+  });
   const [userColor] = useState(
     () => PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)]
   );
 
+  // Persist username to localStorage
+  useEffect(() => {
+    localStorage.setItem('collab-code-username', userName);
+  }, [userName]);
+
+  // Create provider — only depends on roomId
   useEffect(() => {
     const ydoc = ydocRef.current;
     const fullRoomName = `collab-code-${roomId}`;
@@ -64,32 +75,41 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     // Local persistence
     const idb = new IndexeddbPersistence(fullRoomName, ydoc);
 
-    // Sync via WebSocket server — works reliably through campus WiFi,
-    // corporate firewalls, and any NAT configuration.
-    const trysteroProvider = new SyncProvider(fullRoomName, ydoc);
-
-    // Set local awareness state
-    trysteroProvider.awareness.setLocalStateField('user', {
-      name: userName,
-      color: userColor,
-    });
+    // Sync via WebSocket server
+    const syncProvider = new SyncProvider(fullRoomName, ydoc);
 
     // Track peers
     const updatePeers = () => {
-      setPeerCount(trysteroProvider.awareness.getStates().size);
+      setPeerCount(syncProvider.awareness.getStates().size);
     };
-    trysteroProvider.awareness.on('change', updatePeers);
+    syncProvider.awareness.on('change', updatePeers);
     updatePeers();
 
-    setProvider(trysteroProvider);
-    setAwareness(trysteroProvider.awareness);
+    // Track connection status
+    const handleStatus = ({ status }: { status: string }) => {
+      setConnected(status === 'connected');
+    };
+    syncProvider.on('status', handleStatus);
+
+    setProvider(syncProvider);
+    setAwareness(syncProvider.awareness);
 
     return () => {
-      trysteroProvider.awareness.off('change', updatePeers);
-      trysteroProvider.destroy();
+      syncProvider.off('status', handleStatus);
+      syncProvider.awareness.off('change', updatePeers);
+      syncProvider.destroy();
       idb.destroy();
     };
-  }, [roomId, userName, userColor]);
+  }, [roomId]);
+
+  // Update awareness when user info changes (name edits, etc.)
+  useEffect(() => {
+    if (!awareness) return;
+    awareness.setLocalStateField('user', {
+      name: userName,
+      color: userColor,
+    });
+  }, [awareness, userName, userColor]);
 
   const value: CollabContextValue = {
     ydoc: ydocRef.current,
@@ -97,8 +117,10 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     awareness,
     roomId,
     peerCount,
+    connected,
     userName,
     userColor,
+    setUserName,
   };
 
   return (
