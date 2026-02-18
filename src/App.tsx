@@ -83,8 +83,12 @@ function AppContent() {
           terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
         });
 
-        // Set inline diagnostics in the editor
-        const markers = parseJavaDiagnostics(compileOutput);
+        // Set inline diagnostics in the editor (filter to active file)
+        const allMarkers = parseJavaDiagnostics(compileOutput);
+        const activeFileName = fs.activeFile?.split('/').pop();
+        const markers = activeFileName
+          ? allMarkers.filter(m => !m.file || m.file === activeFileName)
+          : allMarkers;
         if (markers.length > 0) editorRef.current?.setMarkers(markers);
 
         finish();
@@ -119,9 +123,13 @@ function AppContent() {
           terminalRef.current?.writeln('');
         }
 
-        // Set runtime error markers if any
-        const markers = parseJavaRuntimeErrors(runtimeStderr);
-        if (markers.length > 0) editorRef.current?.setMarkers(markers);
+        // Set runtime error markers if any (filter to active file)
+        const allRtMarkers = parseJavaRuntimeErrors(runtimeStderr);
+        const activeRtFile = fs.activeFile?.split('/').pop();
+        const rtMarkers = activeRtFile
+          ? allRtMarkers.filter(m => !m.file || m.file === activeRtFile)
+          : allRtMarkers;
+        if (rtMarkers.length > 0) editorRef.current?.setMarkers(rtMarkers);
 
         finish();
       },

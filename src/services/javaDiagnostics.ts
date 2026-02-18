@@ -27,6 +27,8 @@ export interface DiagnosticMarker {
   endColumn: number;
   message: string;
   source: string;
+  /** The source filename (e.g. "Main.java") extracted from compiler output */
+  file?: string;
 }
 
 /**
@@ -39,13 +41,15 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
   const lines = compileOutput.split('\n');
 
   // Match lines like:  Main.java:3: error: ';' expected
+  // or:                /tmp/collab-exec-xxx/Main.java:3: error: ...
   // or:                Main.java:3: warning: [unchecked] unchecked call
-  const diagnosticPattern = /^(\w+\.java):(\d+):\s*(error|warning):\s*(.+)$/;
+  const diagnosticPattern = /^(?:.*[\/\\])?(\w+\.java):(\d+):\s*(error|warning):\s*(.+)$/;
 
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(diagnosticPattern);
     if (!match) continue;
 
+    const fileName = match[1];
     const lineNumber = parseInt(match[2], 10);
     const severityStr = match[3];
     const message = match[4].trim();
@@ -77,6 +81,7 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
       endColumn,
       message,
       source: 'javac',
+      file: fileName,
     });
   }
 
@@ -111,12 +116,13 @@ export function parseJavaRuntimeErrors(stderr: string): DiagnosticMarker[] {
 
   if (!exceptionMessage) return [];
 
-  // Find lines referencing Main.java
-  const stackPattern = /at\s+\S+\(Main\.java:(\d+)\)/;
+  // Find lines referencing any .java file in the stack trace
+  const stackPattern = /at\s+\S+\((\w+\.java):(\d+)\)/;
   for (const line of lines) {
     const match = line.match(stackPattern);
     if (match) {
-      const lineNumber = parseInt(match[1], 10);
+      const fileName = match[1];
+      const lineNumber = parseInt(match[2], 10);
       markers.push({
         severity: MarkerSeverity.Error,
         startLineNumber: lineNumber,
@@ -125,6 +131,7 @@ export function parseJavaRuntimeErrors(stderr: string): DiagnosticMarker[] {
         endColumn: 1000,
         message: exceptionMessage,
         source: 'java-runtime',
+        file: fileName,
       });
     }
   }
