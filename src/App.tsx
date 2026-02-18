@@ -5,6 +5,7 @@ import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
 import PeerAvatars from './components/PeerAvatars';
 import { executeJava } from './services/pistonApi';
+import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 
 function AppContent() {
   const { ydoc, peerCount, roomId } = useCollab();
@@ -35,6 +36,7 @@ function AppContent() {
 
     runningRef.current = true;
     setRunning(true);
+    editorRef.current?.clearMarkers();
     terminalRef.current?.writeln('\x1b[1;36m▶ Compiling & running...\x1b[0m');
 
     try {
@@ -73,6 +75,14 @@ function AppContent() {
         terminalRef.current?.writeln(
           `\x1b[33mProcess exited with code ${result.run.code}\x1b[0m`
         );
+      }
+
+      // Set inline diagnostics (error/warning underlines) in the editor
+      const compileMarkers = parseJavaDiagnostics(result.compile?.stderr ?? result.compile?.output ?? '');
+      const runtimeMarkers = parseJavaRuntimeErrors(result.run.stderr);
+      const allMarkers = [...compileMarkers, ...runtimeMarkers];
+      if (allMarkers.length > 0) {
+        editorRef.current?.setMarkers(allMarkers);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';

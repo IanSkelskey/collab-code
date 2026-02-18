@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
-import MonacoEditor, { type OnMount } from '@monaco-editor/react';
+import MonacoEditor, { type OnMount, type Monaco } from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
 import type { editor } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
+import type { DiagnosticMarker } from '../services/javaDiagnostics';
 
 const DEFAULT_CODE = `public class Main {
     public static void main(String[] args) {
@@ -13,19 +14,37 @@ const DEFAULT_CODE = `public class Main {
 
 export interface EditorHandle {
   getCode: () => string;
+  setMarkers: (markers: DiagnosticMarker[]) => void;
+  clearMarkers: () => void;
 }
+
+const MARKER_OWNER = 'collab-code-diagnostics';
 
 const Editor = forwardRef<EditorHandle>(function Editor(_props, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
   const bindingRef = useRef<MonacoBinding | null>(null);
 
   useImperativeHandle(ref, () => ({
     getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
+    setMarkers: (markers: DiagnosticMarker[]) => {
+      const monaco = monacoRef.current;
+      const model = monacoEditor?.getModel();
+      if (!monaco || !model) return;
+      monaco.editor.setModelMarkers(model, MARKER_OWNER, markers);
+    },
+    clearMarkers: () => {
+      const monaco = monacoRef.current;
+      const model = monacoEditor?.getModel();
+      if (!monaco || !model) return;
+      monaco.editor.setModelMarkers(model, MARKER_OWNER, []);
+    },
   }), [monacoEditor]);
 
-  const handleMount: OnMount = useCallback((ed) => {
+  const handleMount: OnMount = useCallback((ed, monaco) => {
     setMonacoEditor(ed);
+    monacoRef.current = monaco;
   }, []);
 
   // Create the Yjs <-> Monaco binding once both editor AND awareness are ready
