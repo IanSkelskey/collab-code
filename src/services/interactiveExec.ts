@@ -64,6 +64,8 @@ export class InteractiveExecutor {
           break;
         case 'exit':
           callbacks.onExit(msg.code ?? 1);
+          // Server closes the WebSocket after exit; clean up our side too
+          this.close();
           break;
         case 'files-sync':
           if (msg.files) callbacks.onFilesSync?.(msg.files);

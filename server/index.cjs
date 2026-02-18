@@ -190,8 +190,15 @@ function handleExecConnection(ws) {
                 if (entry.isDirectory()) {
                   scanDir(fullPath, relPath);
                 } else if (!entry.name.endsWith('.class')) {
-                  // Skip .class files, include everything else
-                  const content = fs.readFileSync(fullPath, 'utf-8');
+                  // Skip .class files and large/binary files
+                  const stat = fs.statSync(fullPath);
+                  if (stat.size > 1024 * 256) continue; // skip files > 256 KB
+
+                  const buf = fs.readFileSync(fullPath);
+                  // Skip binary files (check for null bytes)
+                  if (buf.includes(0)) continue;
+
+                  const content = buf.toString('utf-8');
                   const original = files[relPath];
                   // Only send back new files or files whose content changed
                   if (original === undefined || original !== content) {
@@ -213,6 +220,10 @@ function handleExecConnection(ws) {
           send({ type: 'exit', code: exitCode ?? 1 });
           javaProcess = null;
           cleanup();
+
+          // Close the exec WebSocket — each execution is a single session.
+          // Keeping it open leaks resources on the free tier.
+          try { ws.close(); } catch {}
         });
 
         javaProcess.on('error', (err) => {
