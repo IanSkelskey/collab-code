@@ -7,6 +7,8 @@ import Terminal, { type TerminalHandle } from './components/Terminal';
 import FileExplorer from './components/FileExplorer';
 import TabBar from './components/TabBar';
 import PeerAvatars from './components/PeerAvatars';
+import ConfirmDialog from './components/ConfirmDialog';
+import UndoToastContainer, { useUndoToast } from './components/UndoToast';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 import JSZip from 'jszip';
@@ -34,6 +36,21 @@ function AppContent() {
   const [terminalHeight, setTerminalHeight] = useState(250);
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Undo toast + confirm dialog state
+  const { toasts, pushToast, dismissToast } = useUndoToast();
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const requestConfirm = useCallback(
+    (title: string, message: string, onConfirm: () => void) => {
+      setConfirmDialog({ title, message, onConfirm });
+    },
+    []
+  );
 
   // Interactive execution via WebSocket — runs Java on the server with
   // real-time stdin/stdout/stderr streaming, just like a real IDE.
@@ -526,7 +543,7 @@ function AppContent() {
         {explorerVisible && (
           <>
             <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
-              <FileExplorer fs={fs} />
+              <FileExplorer fs={fs} pushToast={pushToast} requestConfirm={requestConfirm} />
             </div>
             {/* Explorer resize handle */}
             <div
@@ -610,11 +627,27 @@ function AppContent() {
               style={{ height: terminalHeight }}
               className="shrink-0 bg-[#1a1a2e] overflow-hidden"
             >
-              <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} />
+              <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} pushToast={pushToast} requestConfirm={requestConfirm} />
             </div>
           )}
         </div>
       </div>
+
+      {/* Confirm dialog overlay */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {/* Undo toasts */}
+      <UndoToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

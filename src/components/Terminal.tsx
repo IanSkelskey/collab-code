@@ -28,10 +28,12 @@ interface TerminalProps {
   onRunRequested?: () => void;
   fontSize?: number;
   fs?: VirtualFS;
+  pushToast?: (label: string, onUndo: () => void) => void;
+  requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
 }
 
 const Terminal = forwardRef<TerminalHandle, TerminalProps>(
-  function Terminal({ onRunRequested, fontSize, fs }, ref) {
+  function Terminal({ onRunRequested, fontSize, fs, pushToast, requestConfirm }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const termRef = useRef<XTerminal | null>(null);
     const fitRef = useRef<FitAddon | null>(null);
@@ -43,6 +45,12 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     // Keep fs in a ref so terminal commands always see the latest version
     const fsRef = useRef(fs);
     useEffect(() => { fsRef.current = fs; }, [fs]);
+
+    // Keep toast/confirm callbacks in refs
+    const pushToastRef = useRef(pushToast);
+    useEffect(() => { pushToastRef.current = pushToast; }, [pushToast]);
+    const requestConfirmRef = useRef(requestConfirm);
+    useEffect(() => { requestConfirmRef.current = requestConfirm; }, [requestConfirm]);
 
     // Exec mode refs — active while a Java process is running
     const execStdinCallback = useRef<((data: string) => void) | null>(null);
@@ -264,15 +272,48 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
               const recursive = flags.includes('r');
 
               if (vfs.isFile(target)) {
+                // Single file — delete with undo toast
+                const content = vfs.readFile(target) ?? '';
                 vfs.deleteFile(target);
+                const name = target.split('/').pop() ?? target;
+                pushToastRef.current?.(
+                  `Deleted ${name}`,
+                  () => { vfs.writeFile(target, content); }
+                );
               } else if (vfs.isDirectory(target)) {
                 if (!recursive) {
                   term.writeln(`\x1b[31mrm: ${targetArg}: is a directory (use rm -r)\x1b[0m`);
                 } else {
-                  // Delete all files in directory first, then rmdir
                   const allFiles = vfs.files.filter(f => f.startsWith(target + '/'));
-                  for (const f of allFiles) vfs.deleteFile(f);
-                  vfs.rmdir(target);
+                  if (allFiles.length === 0) {
+                    // Empty dir — just remove
+                    vfs.rmdir(target);
+                  } else {
+                    // Non-empty dir — confirm first
+                    const dirName = target.split('/').pop() ?? target;
+                    requestConfirmRef.current?.(
+                      `Delete "${dirName}"?`,
+                      `This will permanently delete ${allFiles.length} file${allFiles.length > 1 ? 's' : ''} inside this directory.`,
+                      () => {
+                        // Snapshot for undo
+                        const snapshot: Record<string, string> = {};
+                        for (const f of allFiles) {
+                          snapshot[f] = vfs.readFile(f) ?? '';
+                        }
+                        for (const f of allFiles) vfs.deleteFile(f);
+                        vfs.rmdir(target);
+                        pushToastRef.current?.(
+                          `Deleted ${dirName}/`,
+                          () => {
+                            vfs.mkdir(target);
+                            for (const [p, c] of Object.entries(snapshot)) {
+                              vfs.writeFile(p, c);
+                            }
+                          }
+                        );
+                      }
+                    );
+                  }
                 }
               } else {
                 term.writeln(`\x1b[31mrm: ${targetArg}: No such file or directory\x1b[0m`);

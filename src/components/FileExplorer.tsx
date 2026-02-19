@@ -251,9 +251,11 @@ function TreeNode({
 
 interface FileExplorerProps {
   fs: VirtualFS;
+  pushToast: (label: string, onUndo: () => void) => void;
+  requestConfirm: (title: string, message: string, onConfirm: () => void) => void;
 }
 
-export default function FileExplorer({ fs }: FileExplorerProps) {
+export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExplorerProps) {
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['~']));
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; type: 'file' | 'directory' } | null>(null);
@@ -290,14 +292,47 @@ export default function FileExplorer({ fs }: FileExplorerProps) {
 
   const handleDelete = useCallback((node: FSNode) => {
     if (node.type === 'file') {
+      // Snapshot content for undo
+      const content = fs.readFile(node.path) ?? '';
       fs.deleteFile(node.path);
+      const name = node.path.split('/').pop() ?? node.path;
+      pushToast(`Deleted ${name}`, () => {
+        fs.writeFile(node.path, content);
+        fs.openFile(node.path);
+      });
     } else {
-      const success = fs.rmdir(node.path);
-      if (!success) {
-        // Directory not empty — could show a toast, for now just ignore
+      // Directory — check if non-empty
+      const childFiles = fs.files.filter(f => f.startsWith(node.path + '/'));
+      if (childFiles.length === 0) {
+        // Empty directory — delete immediately
+        fs.rmdir(node.path);
+      } else {
+        // Non-empty — show confirmation
+        const dirName = node.path.split('/').pop() ?? node.path;
+        requestConfirm(
+          `Delete "${dirName}"?`,
+          `This will permanently delete ${childFiles.length} file${childFiles.length > 1 ? 's' : ''} inside this directory.`,
+          () => {
+            // Snapshot all files for undo
+            const snapshot: Record<string, string> = {};
+            for (const f of childFiles) {
+              snapshot[f] = fs.readFile(f) ?? '';
+            }
+            // Delete all files then directory
+            for (const f of childFiles) fs.deleteFile(f);
+            fs.rmdir(node.path);
+            pushToast(`Deleted ${dirName}/`, () => {
+              // Restore directory and all files
+              fs.mkdir(node.path);
+              for (const [path, content] of Object.entries(snapshot)) {
+                fs.writeFile(path, content);
+              }
+            });
+          }
+        );
       }
     }
-  }, [fs]);
+  }, [fs, pushToast, requestConfirm]);
 
   const getContextMenuItems = useCallback((node: FSNode) => {
     const items: { label: string; onClick: () => void; danger?: boolean }[] = [];
