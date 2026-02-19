@@ -10,6 +10,7 @@ const shortcuts: { keys: string; desc: string }[] = [
   { keys: 'Ctrl + Shift + S', desc: 'Download workspace as .zip' },
   { keys: 'Alt + N', desc: 'New file' },
   { keys: 'Alt + Shift + N', desc: 'New folder' },
+  { keys: 'Alt + Shift + F', desc: 'Format document' },
   { keys: 'Ctrl + B', desc: 'Toggle file explorer' },
   { keys: 'Ctrl + `', desc: 'Toggle terminal' },
   { keys: '↑ / ↓', desc: 'Terminal command history' },

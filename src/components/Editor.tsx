@@ -10,6 +10,7 @@ export interface EditorHandle {
   getCode: () => string;
   setMarkers: (markers: DiagnosticMarker[]) => void;
   clearMarkers: () => void;
+  format: () => void;
 }
 
 interface EditorProps {
@@ -19,6 +20,41 @@ interface EditorProps {
 }
 
 const MARKER_OWNER = 'collab-code-diagnostics';
+
+/** Basic brace-based formatter for C-like languages (Java, C, C++) */
+function formatBraceCode(text: string, tabSize: number): string {
+  const lines = text.split('\n');
+  const result: string[] = [];
+  let indent = 0;
+
+  for (const rawLine of lines) {
+    const stripped = rawLine.trim();
+
+    if (!stripped) {
+      result.push('');
+      continue;
+    }
+
+    // Count leading closing braces to dedent this line
+    let leadingCloses = 0;
+    for (const ch of stripped) {
+      if (ch === '}') leadingCloses++;
+      else break;
+    }
+
+    const lineIndent = Math.max(0, indent - leadingCloses);
+    result.push(' '.repeat(lineIndent * tabSize) + stripped);
+
+    // Update indent for next line
+    const opens = (stripped.match(/{/g) || []).length;
+    const closes = (stripped.match(/}/g) || []).length;
+    indent = Math.max(0, indent + opens - closes);
+  }
+
+  return result.join('\n');
+}
+
+const registeredFormatters = new Set<string>();
 
 /** Derive Monaco language from file extension */
 function languageForFile(path: string): string {
@@ -63,11 +99,36 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
       if (!monaco || !model) return;
       monaco.editor.setModelMarkers(model, MARKER_OWNER, []);
     },
+    format: () => {
+      monacoEditor?.getAction('editor.action.formatDocument')?.run();
+    },
   }), [monacoEditor]);
 
   const handleMount: OnMount = useCallback((ed, monaco) => {
     setMonacoEditor(ed);
     monacoRef.current = monaco;
+
+    // Register formatting providers for languages without built-in formatters
+    for (const lang of ['java', 'c', 'cpp']) {
+      if (!registeredFormatters.has(lang)) {
+        registeredFormatters.add(lang);
+        monaco.languages.registerDocumentFormattingEditProvider(lang, {
+          provideDocumentFormattingEdits(model: editor.ITextModel) {
+            const formatted = formatBraceCode(model.getValue(), model.getOptions().tabSize);
+            return [{ range: model.getFullModelRange(), text: formatted }];
+          },
+        });
+      }
+    }
+    if (!registeredFormatters.has('python')) {
+      registeredFormatters.add('python');
+      monaco.languages.registerDocumentFormattingEditProvider('python', {
+        provideDocumentFormattingEdits(model: editor.ITextModel) {
+          const formatted = model.getValue().split('\n').map((l: string) => l.trimEnd()).join('\n');
+          return [{ range: model.getFullModelRange(), text: formatted }];
+        },
+      });
+    }
   }, []);
 
   // Ctrl+Enter to run code

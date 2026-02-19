@@ -233,6 +233,10 @@ function AppContent() {
     }
   }, [roomId]);
 
+  const handleFormat = useCallback(() => {
+    editorRef.current?.format();
+  }, []);
+
   const handleCopyCode = useCallback(async () => {
     const code = editorRef.current?.getCode() ?? '';
     if (!code.trim()) return;
@@ -434,6 +438,21 @@ function AppContent() {
           </button>
 
           <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+
+          {/* Format button */}
+          <button
+            onClick={handleFormat}
+            title="Format Document (Alt+Shift+F)"
+            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
+              <line x1="9" y1="10" x2="21" y2="10" strokeLinecap="round" />
+              <line x1="9" y1="14" x2="21" y2="14" strokeLinecap="round" />
+              <line x1="3" y1="18" x2="21" y2="18" strokeLinecap="round" />
+            </svg>
+            <span className="hidden sm:inline">Format</span>
+          </button>
 
           {/* Copy code button */}
           <button
