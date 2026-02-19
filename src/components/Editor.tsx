@@ -15,6 +15,7 @@ export interface EditorHandle {
 
 interface EditorProps {
   onRun?: () => void;
+  onFormat?: () => void;
   fontSize?: number;
   fs?: VirtualFS;
 }
@@ -72,7 +73,7 @@ function languageForFile(path: string): string {
   return 'plaintext';
 }
 
-const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fontSize = 14, fs }, ref) {
+const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, onFormat, fontSize = 14, fs }, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -81,6 +82,9 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
   // Keep a stable ref for the run callback to avoid re-registering keybinding
   const onRunRef = useRef(onRun);
   useEffect(() => { onRunRef.current = onRun; }, [onRun]);
+
+  const onFormatRef = useRef(onFormat);
+  useEffect(() => { onFormatRef.current = onFormat; }, [onFormat]);
 
   // Track the file path currently bound to the editor
   const boundFileRef = useRef<string | null>(null);
@@ -141,6 +145,23 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
       label: 'Run Code (Ctrl+Enter)',
       keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.Enter],
       run: () => { onRunRef.current?.(); },
+    });
+    return () => disposable.dispose();
+  }, [monacoEditor]);
+
+  // Alt+Shift+F to format document with notification
+  useEffect(() => {
+    const ed = monacoEditor;
+    const m = monacoRef.current;
+    if (!ed || !m) return;
+    const disposable = ed.addAction({
+      id: 'collab-code-format',
+      label: 'Format Document (Alt+Shift+F)',
+      keybindings: [m.KeyMod.Alt | m.KeyMod.Shift | m.KeyCode.KeyF],
+      run: async (editor) => {
+        await editor.getAction('editor.action.formatDocument')?.run();
+        onFormatRef.current?.();
+      },
     });
     return () => disposable.dispose();
   }, [monacoEditor]);

@@ -24,6 +24,8 @@ function AppContent() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
   const runningRef = useRef(false);
   const executorRef = useRef<InteractiveExecutor | null>(null);
@@ -235,7 +237,8 @@ function AppContent() {
 
   const handleFormat = useCallback(() => {
     editorRef.current?.format();
-  }, []);
+    pushToast('Document formatted');
+  }, [pushToast]);
 
   const handleCopyCode = useCallback(async () => {
     const code = editorRef.current?.getCode() ?? '';
@@ -244,10 +247,12 @@ function AppContent() {
       await navigator.clipboard.writeText(code);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
+      const fileName = fs.activeFile?.split('/').pop() ?? 'code';
+      pushToast(`Copied ${fileName} to clipboard`);
     } catch {
       prompt('Copy this code:', code);
     }
-  }, []);
+  }, [fs.activeFile, pushToast]);
 
   const handleSaveFile = useCallback(() => {
     const code = editorRef.current?.getCode() ?? '';
@@ -263,7 +268,8 @@ function AppContent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [fs.activeFile]);
+    pushToast(`Downloaded ${activeName}`);
+  }, [fs.activeFile, pushToast]);
 
   const handleSaveAll = useCallback(async () => {
     const allFiles = fs.getAllFiles();
@@ -284,19 +290,28 @@ function AppContent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [fs, roomId]);
+    pushToast(`Downloaded collab-code-${roomId}.zip`);
+  }, [fs, roomId, pushToast]);
 
   const handleToggleTerminal = useCallback(() => {
     setTerminalVisible((v) => !v);
   }, []);
 
   const handleFontSizeUp = useCallback(() => {
-    setFontSize((s) => Math.min(s + 2, 28));
-  }, []);
+    setFontSize((s) => {
+      const next = Math.min(s + 2, 28);
+      pushToast(`Font size: ${next}`);
+      return next;
+    });
+  }, [pushToast]);
 
   const handleFontSizeDown = useCallback(() => {
-    setFontSize((s) => Math.max(s - 2, 8));
-  }, []);
+    setFontSize((s) => {
+      const next = Math.max(s - 2, 8);
+      pushToast(`Font size: ${next}`);
+      return next;
+    });
+  }, [pushToast]);
 
   const handleToggleExplorer = useCallback(() => {
     setExplorerVisible((v) => !v);
@@ -308,11 +323,14 @@ function AppContent() {
     awareness.setLocalStateField('activeFile', fs.activeFile);
   }, [awareness, fs.activeFile]);
 
-  // Close save menu on outside click
+  // Close popovers on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
         setSaveMenuOpen(false);
+      }
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -407,7 +425,7 @@ function AppContent() {
   return (
     <div className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-hidden">
       {/* Toolbar */}
-      <header className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
+      <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Logo / Title */}
           <h1 className="text-sm sm:text-base font-semibold tracking-tight">
@@ -436,119 +454,6 @@ function AppContent() {
             )}
             <span className="hidden sm:inline">{running ? 'Running...' : 'Run'}</span>
           </button>
-
-          <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
-
-          {/* Format button */}
-          <button
-            onClick={handleFormat}
-            title="Format Document (Alt+Shift+F)"
-            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
-              <line x1="9" y1="10" x2="21" y2="10" strokeLinecap="round" />
-              <line x1="9" y1="14" x2="21" y2="14" strokeLinecap="round" />
-              <line x1="3" y1="18" x2="21" y2="18" strokeLinecap="round" />
-            </svg>
-            <span className="hidden sm:inline">Format</span>
-          </button>
-
-          {/* Copy code button */}
-          <button
-            onClick={handleCopyCode}
-            title="Copy code to clipboard"
-            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
-          >
-            {codeCopied ? (
-              <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-              </svg>
-            )}
-            <span className="hidden sm:inline">{codeCopied ? 'Copied!' : 'Copy'}</span>
-          </button>
-
-          {/* Save dropdown */}
-          <div ref={saveMenuRef} className="relative">
-            <button
-              onClick={() => setSaveMenuOpen((v) => !v)}
-              title="Save options"
-              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-                <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="hidden sm:inline">Save</span>
-              <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {saveMenuOpen && (
-              <div className="absolute left-0 top-full mt-1 z-50 min-w-[180px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-1 animate-in fade-in slide-in-from-top-1">
-                <button
-                  onClick={() => { handleSaveFile(); setSaveMenuOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
-                >
-                  <svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div>
-                    <div className="font-medium">Save File <span className="text-zinc-400 font-normal ml-1">Ctrl+S</span></div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">
-                      Download {fs.activeFile?.split('/').pop() ?? 'current file'}
-                    </div>
-                  </div>
-                </button>
-                <div className="mx-2 my-1 border-t border-zinc-700/60" />
-                <button
-                  onClick={() => { handleSaveAll(); setSaveMenuOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
-                >
-                  <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="2" width="20" height="20" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 2v20" strokeLinecap="round" />
-                    <path d="M12 10l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div>
-                    <div className="font-medium">Save All <span className="text-emerald-400">.zip</span> <span className="text-zinc-400 font-normal ml-1">Ctrl+Shift+S</span></div>
-                    <div className="text-[10px] text-zinc-400 mt-0.5">
-                      Download entire workspace
-                    </div>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
-
-          {/* Font size controls */}
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={handleFontSizeDown}
-              title="Decrease font size"
-              className="px-1.5 py-1.5 rounded text-xs font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation leading-none"
-            >
-              A−
-            </button>
-            <button
-              onClick={handleFontSizeUp}
-              title="Increase font size"
-              className="px-1.5 py-1.5 rounded text-sm font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation leading-none"
-            >
-              A+
-            </button>
-          </div>
-
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -590,11 +495,12 @@ function AppContent() {
 
       {/* Main content: Activity bar + Explorer | Editor + Terminal */}
       <div ref={containerRef} className="flex-1 flex min-h-0">
-        {/* Activity bar — thin icon strip, full height */}
-        <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center justify-between pt-1 pb-2">
+        {/* Activity bar */}
+        <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1 pb-2">
+          {/* Top — Explorer */}
           <button
             onClick={handleToggleExplorer}
-            title={`Toggle Explorer (Ctrl+B)`}
+            title="Toggle Explorer (Ctrl+B)"
             className={`p-2 rounded transition-colors cursor-pointer ${
               explorerVisible
                 ? 'text-white bg-zinc-700/50'
@@ -605,17 +511,146 @@ function AppContent() {
               <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <button
-            onClick={() => setHelpOpen(true)}
-            title="Help & Shortcuts"
-            className="p-2 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
-            </svg>
-          </button>
+
+          <div className="flex-1" />
+
+          {/* Bottom section */}
+          <div className="flex flex-col items-center gap-0.5">
+            {/* Format */}
+            <button
+              onClick={handleFormat}
+              title="Format Document (Alt+Shift+F)"
+              className="p-2 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
+                <line x1="9" y1="10" x2="21" y2="10" strokeLinecap="round" />
+                <line x1="9" y1="14" x2="21" y2="14" strokeLinecap="round" />
+                <line x1="3" y1="18" x2="21" y2="18" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* Export / Download */}
+            <div ref={saveMenuRef} className="relative">
+              <button
+                onClick={() => { setSaveMenuOpen(v => !v); setSettingsOpen(false); }}
+                title="Export & Copy"
+                className={`p-2 rounded transition-colors cursor-pointer ${
+                  saveMenuOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
+                }`}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {saveMenuOpen && (
+                <div className="absolute left-full bottom-0 ml-2 z-50 min-w-[200px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-1">
+                  <button
+                    onClick={handleCopyCode}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                  >
+                    {codeCopied ? (
+                      <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                    )}
+                    <span className="font-medium">{codeCopied ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                  <div className="mx-2 my-1 border-t border-zinc-700/60" />
+                  <button
+                    onClick={() => { handleSaveFile(); setSaveMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                      <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div>
+                      <div className="font-medium">Save File <span className="text-zinc-400 font-normal ml-1">Ctrl+S</span></div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">
+                        Download {fs.activeFile?.split('/').pop() ?? 'current file'}
+                      </div>
+                    </div>
+                  </button>
+                  <div className="mx-2 my-1 border-t border-zinc-700/60" />
+                  <button
+                    onClick={() => { handleSaveAll(); setSaveMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="2" width="20" height="20" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M8 2v20" strokeLinecap="round" />
+                      <path d="M12 10l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div>
+                      <div className="font-medium">Save All <span className="text-emerald-400">.zip</span> <span className="text-zinc-400 font-normal ml-1">Ctrl+Shift+S</span></div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">
+                        Download entire workspace
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Settings */}
+            <div ref={settingsRef} className="relative">
+              <button
+                onClick={() => { setSettingsOpen(v => !v); setSaveMenuOpen(false); }}
+                title="Settings"
+                className={`p-2 rounded transition-colors cursor-pointer ${
+                  settingsOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
+                }`}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {settingsOpen && (
+                <div className="absolute left-full bottom-0 ml-2 z-50 min-w-[160px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-3 px-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Font Size</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleFontSizeDown}
+                      title="Decrease font size"
+                      className="px-2 py-1 rounded text-xs font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer leading-none"
+                    >
+                      A−
+                    </button>
+                    <span className="text-xs text-zinc-300 font-mono min-w-[2ch] text-center">{fontSize}</span>
+                    <button
+                      onClick={handleFontSizeUp}
+                      title="Increase font size"
+                      className="px-2 py-1 rounded text-sm font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer leading-none"
+                    >
+                      A+
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Help */}
+            <button
+              onClick={() => setHelpOpen(true)}
+              title="Help & Shortcuts"
+              className="p-2 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* File Explorer — full height */}
@@ -651,7 +686,7 @@ function AppContent() {
           {/* Editor — fills remaining space, or placeholder when no tabs open */}
           <div className="flex-1 min-h-[120px]">
             {fs.openTabs.length > 0 ? (
-              <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
+              <Editor ref={editorRef} onRun={handleRun} onFormat={() => pushToast('Document formatted')} fontSize={fontSize} fs={fs} />
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
                 <svg className="w-12 h-12 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
