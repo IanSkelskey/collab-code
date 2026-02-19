@@ -114,7 +114,10 @@ function handleExecConnection(ws) {
 
       // Support both old { source_code } and new { files } protocol
       const files = msg.files || { 'Main.java': msg.source_code };
+      const requestedMainClass = msg.mainClass || null; // e.g. "App" (from App.java)
       const javaFiles = [];
+      /** Map from simple class name → source content for package detection */
+      const sourceByClass = {};
 
       for (const [relPath, content] of Object.entries(files)) {
         // Security: prevent path traversal
@@ -123,7 +126,11 @@ function handleExecConnection(ws) {
         const dir = path.dirname(fullPath);
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(fullPath, content);
-        if (safePath.endsWith('.java')) javaFiles.push(fullPath);
+        if (safePath.endsWith('.java')) {
+          javaFiles.push(fullPath);
+          const className = path.basename(safePath, '.java');
+          sourceByClass[className] = content;
+        }
       }
 
       if (javaFiles.length === 0) {
@@ -132,7 +139,19 @@ function handleExecConnection(ws) {
         return;
       }
 
-      console.log(`[exec] Compiling ${javaFiles.length} file(s) in ${tmpDir}`);
+      // Determine the fully-qualified main class name.
+      // If the client specified a class, look up its package declaration.
+      // Otherwise fall back to "Main" for backwards compatibility.
+      function resolveMainClass(className) {
+        const src = sourceByClass[className];
+        if (!src) return className;
+        const pkgMatch = src.match(/^\s*package\s+([\w.]+)\s*;/m);
+        return pkgMatch ? pkgMatch[1] + '.' + className : className;
+      }
+
+      const mainClass = resolveMainClass(requestedMainClass || 'Main');
+
+      console.log(`[exec] Compiling ${javaFiles.length} file(s) in ${tmpDir}, main class: ${mainClass}`);
       send({ type: 'compile-start' });
 
       // --- Compile all Java files ---
@@ -151,11 +170,11 @@ function handleExecConnection(ws) {
           return;
         }
 
-        console.log(`[exec] Compilation succeeded, running`);
+        console.log(`[exec] Compilation succeeded, running ${mainClass}`);
         send({ type: 'compile-ok' });
 
         // --- Run ---
-        javaProcess = spawn('java', ['-cp', tmpDir, 'Main'], {
+        javaProcess = spawn('java', ['-cp', tmpDir, mainClass], {
           cwd: tmpDir,
           stdio: ['pipe', 'pipe', 'pipe'],
         });

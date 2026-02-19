@@ -143,6 +143,9 @@ interface TreeNodeProps {
   onDragLeaveNode: () => void;
   onDropNode: (e: React.DragEvent, node: FSNode) => void;
   onDragEnd: () => void;
+  entryPoints: Set<string>;
+  onRunFile?: (path: string) => void;
+  running?: boolean;
 }
 
 function TreeNode({
@@ -162,12 +165,16 @@ function TreeNode({
   onDragLeaveNode,
   onDropNode,
   onDragEnd,
+  entryPoints,
+  onRunFile,
+  running,
 }: TreeNodeProps) {
   const isDir = node.type === 'directory';
   const isOpen = expandedDirs.has(node.path);
   const isActive = fs.activeFile === node.path;
   const showCreate = creating && creating.parentPath === node.path;
   const isDropTarget = isDir && dragTarget === node.path;
+  const isEntryPoint = !isDir && entryPoints.has(node.path);
 
   const handleClick = () => {
     if (isDir) {
@@ -226,6 +233,23 @@ function TreeNode({
         ) : (
           <span className="truncate">{node.name}</span>
         )}
+
+        {/* Entry point play button */}
+        {isEntryPoint && !renaming && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRunFile?.(node.path);
+            }}
+            disabled={running}
+            title={`Run ${node.name.replace(/\.java$/, '')}`}
+            className="ml-auto p-0.5 rounded text-emerald-500 hover:text-emerald-400 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30 cursor-pointer shrink-0"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Children */}
@@ -247,8 +271,9 @@ function TreeNode({
           onDragOverNode={onDragOverNode}
           onDragLeaveNode={onDragLeaveNode}
           onDropNode={onDropNode}
-          onDragEnd={onDragEnd}
-        />
+          onDragEnd={onDragEnd}          entryPoints={entryPoints}
+          onRunFile={onRunFile}
+          running={running}        />
       ))}
 
       {/* Inline creation input */}
@@ -279,9 +304,12 @@ interface FileExplorerProps {
   fs: VirtualFS;
   pushToast: (label: string, onUndo: () => void) => void;
   requestConfirm: (title: string, message: string, onConfirm: () => void) => void;
+  entryPoints: Set<string>;
+  onRunFile?: (path: string) => void;
+  running?: boolean;
 }
 
-export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExplorerProps) {
+export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoints, onRunFile, running }: FileExplorerProps) {
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['~']));
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<{ parentPath: string; type: 'file' | 'directory' } | null>(null);
@@ -426,6 +454,12 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
   const getContextMenuItems = useCallback((node: FSNode) => {
     const items: { label: string; onClick: () => void; danger?: boolean }[] = [];
 
+    // Run option for entry point files
+    if (node.type === 'file' && entryPoints.has(node.path) && onRunFile) {
+      const className = node.name.replace(/\.java$/, '');
+      items.push({ label: `Run ${className}`, onClick: () => onRunFile(node.path) });
+    }
+
     if (node.type === 'directory') {
       items.push({ label: 'New File', onClick: () => handleNewFile(node.path) });
       items.push({ label: 'New Folder', onClick: () => handleNewFolder(node.path) });
@@ -441,7 +475,7 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
     }
 
     return items;
-  }, [handleNewFile, handleNewFolder, handleDelete]);
+  }, [handleNewFile, handleNewFolder, handleDelete, entryPoints, onRunFile]);
 
   // Alt+N → new file, Alt+Shift+N → new folder
   useEffect(() => {
@@ -513,6 +547,9 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
             onDragLeaveNode={onDragLeaveNode}
             onDropNode={onDropNode}
             onDragEnd={onDragEnd}
+            entryPoints={entryPoints}
+            onRunFile={onRunFile}
+            running={running}
           />
         ))}
 

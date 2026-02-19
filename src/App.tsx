@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { CollabProvider, useCollab } from './context/CollabContext';
 import { useRoom } from './hooks/useRoom';
 import { useVirtualFS } from './hooks/useVirtualFS';
@@ -54,9 +54,26 @@ function AppContent() {
     []
   );
 
+  // Regex to detect Java entry points: public static void main(String ...)
+  const MAIN_RE = /public\s+static\s+void\s+main\s*\(\s*String/;
+
+  // Compute set of VFS paths that contain a main method (reactive to file content changes)
+  const entryPoints = useMemo(() => {
+    const eps = new Set<string>();
+    for (const filePath of fs.files) {
+      if (!filePath.endsWith('.java')) continue;
+      const content = fs.readFile(filePath);
+      if (content && MAIN_RE.test(content)) {
+        eps.add(filePath);
+      }
+    }
+    return eps;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fs.files, fs.readFile]);
+
   // Interactive execution via WebSocket — runs Java on the server with
   // real-time stdin/stdout/stderr streaming, just like a real IDE.
-  const handleRun = useCallback(() => {
+  const handleRun = useCallback((explicitMainClass?: string) => {
     if (runningRef.current) return;
 
     // Send all project files to the server for multi-file compilation
@@ -65,6 +82,27 @@ function AppContent() {
     if (fileNames.length === 0 || fileNames.every(f => !allFiles[f].trim())) {
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
       return;
+    }
+
+    // Determine which class to run:
+    // 1. If an explicit class was provided (e.g. from explorer play button), use it
+    // 2. If the active file has a main method, use its class name
+    // 3. Otherwise, use the first file with a main method
+    // 4. Fall back to "Main" for backwards compatibility
+    let mainClass = explicitMainClass;
+    if (!mainClass) {
+      const activeRel = fs.activeFile?.startsWith('~/') ? fs.activeFile.slice(2) : fs.activeFile;
+      if (activeRel && activeRel.endsWith('.java') && allFiles[activeRel] && MAIN_RE.test(allFiles[activeRel])) {
+        mainClass = activeRel.split('/').pop()!.replace(/\.java$/, '');
+      } else {
+        // Find first file with a main method
+        for (const [relPath, content] of Object.entries(allFiles)) {
+          if (relPath.endsWith('.java') && MAIN_RE.test(content)) {
+            mainClass = relPath.split('/').pop()!.replace(/\.java$/, '');
+            break;
+          }
+        }
+      }
     }
 
     // Auto-show terminal
@@ -93,6 +131,10 @@ function AppContent() {
       terminalRef.current?.exitExecMode();
       executorRef.current = null;
     };
+
+    if (mainClass) {
+      terminalRef.current?.writeln(`\x1b[2mEntry point: ${mainClass}\x1b[0m`);
+    }
 
     executor.execute(allFiles, {
       onCompileStart() {
@@ -176,8 +218,8 @@ function AppContent() {
         terminalRef.current?.writeln(`\x1b[31mExecution failed: ${error}\x1b[0m`);
         finish();
       },
-    });
-  }, [fs]);
+    }, mainClass);
+  }, [fs, entryPoints]);
 
   const handleShare = useCallback(async () => {
     const url = `${window.location.origin}${window.location.pathname}#${roomId}`;
@@ -373,7 +415,7 @@ function AppContent() {
 
           {/* Run button */}
           <button
-            onClick={handleRun}
+            onClick={() => handleRun()}
             disabled={running}
             title="Run code (Ctrl+Enter)"
             className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer touch-manipulation"
@@ -561,7 +603,17 @@ function AppContent() {
         {explorerVisible && (
           <>
             <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
-              <FileExplorer fs={fs} pushToast={pushToast} requestConfirm={requestConfirm} />
+              <FileExplorer
+                fs={fs}
+                pushToast={pushToast}
+                requestConfirm={requestConfirm}
+                entryPoints={entryPoints}
+                onRunFile={(filePath) => {
+                  const className = filePath.split('/').pop()!.replace(/\.java$/, '');
+                  handleRun(className);
+                }}
+                running={running}
+              />
             </div>
             {/* Explorer resize handle */}
             <div

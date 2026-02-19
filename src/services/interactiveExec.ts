@@ -26,8 +26,9 @@ export class InteractiveExecutor {
    * All lifecycle events are delivered through the callbacks object.
    *
    * @param files - Map of relative file paths to their content (e.g., { "Main.java": "..." })
+   * @param mainClass - Simple class name to run (e.g., "App" for App.java). Defaults to "Main".
    */
-  execute(files: Record<string, string>, callbacks: ExecCallbacks): void {
+  execute(files: Record<string, string>, callbacks: ExecCallbacks, mainClass?: string): void {
     // Derive WebSocket URL — reuse the same env var used for Yjs sync
     const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4444';
     const execUrl = `${wsUrl}/exec`;
@@ -35,7 +36,7 @@ export class InteractiveExecutor {
     this.ws = new WebSocket(execUrl);
 
     this.ws.onopen = () => {
-      this.ws!.send(JSON.stringify({ type: 'exec', files }));
+      this.ws!.send(JSON.stringify({ type: 'exec', files, mainClass: mainClass || 'Main' }));
     };
 
     this.ws.onmessage = (event) => {
