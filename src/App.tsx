@@ -5,13 +5,14 @@ import { useVirtualFS } from './hooks/useVirtualFS';
 import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
 import FileExplorer from './components/FileExplorer';
+import TabBar from './components/TabBar';
 import PeerAvatars from './components/PeerAvatars';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 import JSZip from 'jszip';
 
 function AppContent() {
-  const { ydoc, peerCount, roomId, connected } = useCollab();
+  const { ydoc, peerCount, roomId, connected, awareness } = useCollab();
   const fs = useVirtualFS(ydoc);
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
@@ -235,6 +236,12 @@ function AppContent() {
   const handleToggleExplorer = useCallback(() => {
     setExplorerVisible((v) => !v);
   }, []);
+
+  // Broadcast active file to peers via awareness
+  useEffect(() => {
+    if (!awareness) return;
+    awareness.setLocalStateField('activeFile', fs.activeFile);
+  }, [awareness, fs.activeFile]);
 
   // Close save menu on outside click
   useEffect(() => {
@@ -518,11 +525,35 @@ function AppContent() {
           </>
         )}
 
-        {/* Right column: Editor + Terminal stacked */}
+        {/* Right column: TabBar + Editor + Terminal stacked */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* Editor — fills remaining space */}
+          {/* Tab bar */}
+          <TabBar fs={fs} />
+
+          {/* Editor — fills remaining space, or placeholder when no tabs open */}
           <div className="flex-1 min-h-[120px]">
-            <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
+            {fs.openTabs.length > 0 ? (
+              <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
+                <svg className="w-12 h-12 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-zinc-400">No open editors</p>
+                  <p className="text-xs text-zinc-600">
+                    Open a file from the Explorer{' '}
+                    <button
+                      onClick={handleToggleExplorer}
+                      className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                    >
+                      (Ctrl+B)
+                    </button>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Terminal bar — always visible, acts as toggle + drag handle */}

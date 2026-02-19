@@ -29,6 +29,8 @@ export interface VirtualFS {
   files: string[];
   /** Currently active file path (open in editor) */
   activeFile: string | null;
+  /** Ordered list of open tab paths */
+  openTabs: string[];
   /** Current working directory (for terminal) */
   cwd: string;
 
@@ -57,6 +59,8 @@ export interface VirtualFS {
 
   /** Set the active file (opens it in the editor) */
   openFile: (path: string) => void;
+  /** Close a tab (and switch active file if needed) */
+  closeTab: (path: string) => void;
   /** Set the current working directory */
   setCwd: (path: string) => void;
   /** Resolve a relative path against cwd */
@@ -180,6 +184,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   const [files, setFiles] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [cwd, setCwd] = useState('~');
 
   // Track if we've seeded the default file
@@ -225,10 +230,14 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
         ytext.insert(0, content.length > 0 ? content : DEFAULT_MAIN);
         fsMap.set('~/Main.java', ytext);
         setActiveFile('~/Main.java');
+        setOpenTabs(['~/Main.java']);
       } else {
         // Open the first file if none is active
         const firstFile = Array.from(fsMap.keys()).sort()[0];
-        if (firstFile) setActiveFile(firstFile);
+        if (firstFile) {
+          setActiveFile(firstFile);
+          setOpenTabs([firstFile]);
+        }
       }
     }, 1500);
 
@@ -269,11 +278,18 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   const deleteFile = useCallback((path: string) => {
     const norm = normalizePath(path);
     fsMap.delete(norm);
-    if (activeFile === norm) {
-      // Open another file
-      const remaining = Array.from(fsMap.keys()).filter(k => k !== norm).sort();
-      setActiveFile(remaining[0] ?? null);
-    }
+    setOpenTabs(prev => {
+      const next = prev.filter(t => t !== norm);
+      if (activeFile === norm) {
+        // Switch to nearest tab, or fall back to any remaining file
+        const idx = prev.indexOf(norm);
+        const nextActive = next[Math.min(idx, next.length - 1)]
+          ?? Array.from(fsMap.keys()).filter(k => k !== norm).sort()[0]
+          ?? null;
+        setActiveFile(nextActive);
+      }
+      return next;
+    });
   }, [fsMap, activeFile]);
 
   const mkdirFn = useCallback((path: string) => {
@@ -374,6 +390,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
       fsMap.set(newNorm, newText);
 
       if (activeFile === oldNorm) setActiveFile(newNorm);
+      setOpenTabs(prev => prev.map(t => t === oldNorm ? newNorm : t));
     } else {
       // It's a directory — rename all files under it
       const oldPrefix = oldNorm + '/';
@@ -392,6 +409,11 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
         if (activeFile === key) setActiveFile(newKey);
       }
 
+      setOpenTabs(prev => prev.map(t => {
+        if (t.startsWith(oldPrefix)) return newNorm + t.slice(oldNorm.length);
+        return t;
+      }));
+
       // Rename explicit dirs
       for (let i = fsDirs.length - 1; i >= 0; i--) {
         const d = fsDirs.get(i);
@@ -407,8 +429,22 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     const norm = normalizePath(path);
     if (fsMap.has(norm)) {
       setActiveFile(norm);
+      setOpenTabs(prev => prev.includes(norm) ? prev : [...prev, norm]);
     }
   }, [fsMap]);
+
+  const closeTab = useCallback((path: string) => {
+    const norm = normalizePath(path);
+    setOpenTabs(prev => {
+      const next = prev.filter(t => t !== norm);
+      if (activeFile === norm) {
+        const idx = prev.indexOf(norm);
+        const nextActive = next[Math.min(idx, next.length - 1)] ?? null;
+        setActiveFile(nextActive);
+      }
+      return next;
+    });
+  }, [activeFile]);
 
   const resolveFn = useCallback((relativePath: string): string => {
     if (relativePath.startsWith('~')) return normalizePath(relativePath);
@@ -430,6 +466,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     tree,
     files,
     activeFile,
+    openTabs,
     cwd,
     getFileText,
     readFile,
@@ -443,6 +480,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     ls: lsFn,
     rename: renameFn,
     openFile,
+    closeTab,
     setCwd,
     resolve: resolveFn,
     getAllFiles,
