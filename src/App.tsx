@@ -265,10 +265,18 @@ function AppContent() {
         e.preventDefault();
         setTerminalVisible((v) => !v);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleSaveAll();
+        } else {
+          handleSaveFile();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [handleSaveFile, handleSaveAll]);
 
   // Drag-to-resize explorer panel
   const handleExplorerDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -409,8 +417,8 @@ function AppContent() {
                     <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <div>
-                    <div className="font-medium">Save File</div>
-                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                    <div className="font-medium">Save File <span className="text-zinc-400 font-normal ml-1">Ctrl+S</span></div>
+                    <div className="text-[10px] text-zinc-400 mt-0.5">
                       Download {fs.activeFile?.split('/').pop() ?? 'current file'}
                     </div>
                   </div>
@@ -426,8 +434,8 @@ function AppContent() {
                     <path d="M12 10l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <div>
-                    <div className="font-medium">Save All <span className="text-emerald-400">.zip</span></div>
-                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                    <div className="font-medium">Save All <span className="text-emerald-400">.zip</span> <span className="text-zinc-400 font-normal ml-1">Ctrl+Shift+S</span></div>
+                    <div className="text-[10px] text-zinc-400 mt-0.5">
                       Download entire workspace
                     </div>
                   </div>
