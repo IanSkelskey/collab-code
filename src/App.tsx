@@ -261,6 +261,10 @@ function AppContent() {
         e.preventDefault();
         setExplorerVisible((v) => !v);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+        e.preventDefault();
+        setTerminalVisible((v) => !v);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -561,6 +565,7 @@ function AppContent() {
             {/* Toggle button */}
             <button
               onClick={handleToggleTerminal}
+              title="Toggle Terminal (Ctrl+`)"
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
