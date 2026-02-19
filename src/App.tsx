@@ -9,6 +9,7 @@ import TabBar from './components/TabBar';
 import PeerAvatars from './components/PeerAvatars';
 import ConfirmDialog from './components/ConfirmDialog';
 import UndoToastContainer, { useUndoToast } from './components/UndoToast';
+import HelpModal from './components/HelpModal';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 import JSZip from 'jszip';
@@ -30,6 +31,7 @@ function AppContent() {
   const [explorerWidth, setExplorerWidth] = useState(() =>
     window.innerWidth < 640 ? 160 : 200
   );
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Terminal panel state
   const [terminalVisible, setTerminalVisible] = useState(true);
@@ -542,17 +544,17 @@ function AppContent() {
               <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <a
-            href="https://github.com/IanSkelskey"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Made with ❤️ by Ian Skelskey"
-            className="text-zinc-600 hover:text-zinc-400 transition-colors"
+          <button
+            onClick={() => setHelpOpen(true)}
+            title="Help & Shortcuts"
+            className="p-2 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
             </svg>
-          </a>
+          </button>
         </div>
 
         {/* File Explorer — full height */}
@@ -664,6 +666,9 @@ function AppContent() {
 
       {/* Undo toasts */}
       <UndoToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Help modal */}
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }
