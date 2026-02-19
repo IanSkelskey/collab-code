@@ -69,7 +69,7 @@ function AppContent() {
     }
     return eps;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fs.files, fs.readFile]);
+  }, [fs.files, fs.readFile, fs.contentVersion]);
 
   // Interactive execution via WebSocket — runs Java on the server with
   // real-time stdin/stdout/stderr streaming, just like a real IDE.

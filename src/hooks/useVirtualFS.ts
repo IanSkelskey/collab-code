@@ -33,6 +33,8 @@ export interface VirtualFS {
   openTabs: string[];
   /** Current working directory (for terminal) */
   cwd: string;
+  /** Increments on any file content change (for reactive dependency tracking) */
+  contentVersion: number;
 
   /** Get Y.Text for a file (for editor binding) */
   getFileText: (path: string) => Y.Text | null;
@@ -187,6 +189,9 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [cwd, setCwd] = useState('~');
 
+  // Content version counter — bumps on any deep change (file content edits)
+  const [contentVersion, setContentVersion] = useState(0);
+
   // Track if we've seeded the default file
   const seeded = useRef(false);
 
@@ -206,9 +211,14 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     fsMap.observe(onFsChange);
     fsDirs.observe(onFsChange);
 
+    // Deep observer for content changes within files
+    const onDeepChange = () => setContentVersion(v => v + 1);
+    fsMap.observeDeep(onDeepChange);
+
     return () => {
       fsMap.unobserve(onFsChange);
       fsDirs.unobserve(onFsChange);
+      fsMap.unobserveDeep(onDeepChange);
     };
   }, [fsMap, fsDirs, refreshState]);
 
@@ -468,6 +478,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     activeFile,
     openTabs,
     cwd,
+    contentVersion,
     getFileText,
     readFile,
     writeFile,
