@@ -142,6 +142,21 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
     };
   }, [monacoEditor, awareness, ydoc, activeFile, fs]);
 
+  // Prevent external drag-and-drop (e.g. from file explorer) inserting text into the editor
+  useEffect(() => {
+    if (!monacoEditor) return;
+    const dom = monacoEditor.getDomNode();
+    if (!dom) return;
+    const preventDrop = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+    const showNoDrop = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'; };
+    dom.addEventListener('dragover', showNoDrop, true);
+    dom.addEventListener('drop', preventDrop, true);
+    return () => {
+      dom.removeEventListener('dragover', showNoDrop, true);
+      dom.removeEventListener('drop', preventDrop, true);
+    };
+  }, [monacoEditor]);
+
   return (
     <div className="h-full w-full">
       <MonacoEditor
@@ -161,6 +176,8 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, fo
           folding: window.innerWidth >= 640,
           glyphMargin: false,
           lineDecorationsWidth: window.innerWidth < 640 ? 4 : 10,
+          dragAndDrop: false,
+          dropIntoEditor: { enabled: false },
         }}
         loading={
           <div className="flex items-center justify-center h-full text-zinc-400 text-sm">

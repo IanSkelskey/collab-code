@@ -137,6 +137,12 @@ interface TreeNodeProps {
   creating: { parentPath: string; type: 'file' | 'directory' } | null;
   setCreating: (v: { parentPath: string; type: 'file' | 'directory' } | null) => void;
   onContextMenu: (e: React.MouseEvent, node: FSNode) => void;
+  dragTarget: string | null;
+  onDragStartNode: (e: React.DragEvent, node: FSNode) => void;
+  onDragOverNode: (e: React.DragEvent, node: FSNode) => void;
+  onDragLeaveNode: () => void;
+  onDropNode: (e: React.DragEvent, node: FSNode) => void;
+  onDragEnd: () => void;
 }
 
 function TreeNode({
@@ -150,11 +156,18 @@ function TreeNode({
   creating,
   setCreating,
   onContextMenu,
+  dragTarget,
+  onDragStartNode,
+  onDragOverNode,
+  onDragLeaveNode,
+  onDropNode,
+  onDragEnd,
 }: TreeNodeProps) {
   const isDir = node.type === 'directory';
   const isOpen = expandedDirs.has(node.path);
   const isActive = fs.activeFile === node.path;
   const showCreate = creating && creating.parentPath === node.path;
+  const isDropTarget = isDir && dragTarget === node.path;
 
   const handleClick = () => {
     if (isDir) {
@@ -189,10 +202,17 @@ function TreeNode({
         className={`flex items-center gap-1 px-2 py-[3px] cursor-pointer select-none text-xs
           hover:bg-zinc-700/50 transition-colors group
           ${isActive ? 'bg-zinc-700/70 text-white' : 'text-zinc-300'}
+          ${isDropTarget ? 'bg-emerald-500/20 outline outline-1 outline-emerald-500/50' : ''}
         `}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
         onClick={handleClick}
         onContextMenu={(e) => onContextMenu(e, node)}
+        draggable={node.path !== '~'}
+        onDragStart={(e) => onDragStartNode(e, node)}
+        onDragOver={(e) => onDragOverNode(e, node)}
+        onDragLeave={onDragLeaveNode}
+        onDrop={(e) => onDropNode(e, node)}
+        onDragEnd={onDragEnd}
       >
         {isDir && <ChevronIcon open={isOpen} />}
         {isDir ? <FolderIcon open={isOpen} /> : <FileIcon name={node.name} />}
@@ -222,6 +242,12 @@ function TreeNode({
           creating={creating}
           setCreating={setCreating}
           onContextMenu={onContextMenu}
+          dragTarget={dragTarget}
+          onDragStartNode={onDragStartNode}
+          onDragOverNode={onDragOverNode}
+          onDragLeaveNode={onDragLeaveNode}
+          onDropNode={onDropNode}
+          onDragEnd={onDragEnd}
         />
       ))}
 
@@ -264,6 +290,69 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
     y: number;
     node: FSNode;
   } | null>(null);
+
+  // Drag-and-drop state
+  const draggedPath = useRef<string | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
+
+  const onDragStartNode = useCallback((e: React.DragEvent, node: FSNode) => {
+    if (node.path === '~') { e.preventDefault(); return; }
+    draggedPath.current = node.path;
+    e.dataTransfer.effectAllowed = 'move';
+    // Minimal transparent drag image text
+    e.dataTransfer.setData('text/plain', node.name);
+  }, []);
+
+  const onDragOverNode = useCallback((e: React.DragEvent, node: FSNode) => {
+    if (!draggedPath.current) return;
+    const src = draggedPath.current;
+
+    // Determine the drop target directory: for files, use their parent
+    const targetDir = node.type === 'directory' ? node.path : node.path.split('/').slice(0, -1).join('/');
+
+    // Prevent dropping onto self, into own children, or same parent (no-op)
+    if (src === targetDir) return;
+    if (targetDir.startsWith(src + '/')) return;
+    const srcParent = src.split('/').slice(0, -1).join('/') || '~';
+    if (srcParent === targetDir) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragTarget(targetDir);
+  }, []);
+
+  const onDragLeaveNode = useCallback(() => {
+    setDragTarget(null);
+  }, []);
+
+  const onDropNode = useCallback((e: React.DragEvent, node: FSNode) => {
+    e.preventDefault();
+    setDragTarget(null);
+    const src = draggedPath.current;
+    draggedPath.current = null;
+    if (!src) return;
+
+    const targetDir = node.type === 'directory' ? node.path : node.path.split('/').slice(0, -1).join('/');
+
+    // Safety checks
+    if (src === targetDir) return;
+    if (targetDir.startsWith(src + '/')) return;
+
+    const name = src.split('/').pop()!;
+    const newPath = targetDir + '/' + name;
+
+    if (fs.exists(newPath)) return; // Would overwrite — bail
+
+    fs.rename(src, newPath);
+
+    // Auto-expand the target directory
+    setExpandedDirs(prev => new Set(prev).add(targetDir));
+  }, [fs]);
+
+  const onDragEnd = useCallback(() => {
+    draggedPath.current = null;
+    setDragTarget(null);
+  }, []);
 
   const toggleDir = useCallback((path: string) => {
     setExpandedDirs((prev) => {
@@ -402,6 +491,12 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
             creating={creating}
             setCreating={setCreating}
             onContextMenu={handleContextMenu}
+            dragTarget={dragTarget}
+            onDragStartNode={onDragStartNode}
+            onDragOverNode={onDragOverNode}
+            onDragLeaveNode={onDragLeaveNode}
+            onDropNode={onDropNode}
+            onDragEnd={onDragEnd}
           />
         ))}
 

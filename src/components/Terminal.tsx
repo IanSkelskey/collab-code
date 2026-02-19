@@ -135,6 +135,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       term.writeln('  \x1b[1;32mmkdir\x1b[0m  — create directory');
       term.writeln('  \x1b[1;32mtouch\x1b[0m  — create file');
       term.writeln('  \x1b[1;32mrm\x1b[0m     — remove file or directory');
+      term.writeln('  \x1b[1;32mmv\x1b[0m     — move / rename');
       term.writeln('  \x1b[1;32mcat\x1b[0m    — print file contents');
       term.writeln('  \x1b[1;32mpwd\x1b[0m    — print working directory');
       term.writeln('  \x1b[1;32mclear\x1b[0m  — clear terminal');
@@ -376,6 +377,44 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
               }
             }
             writePrompt();
+          } else if (cmd === 'mv') {
+            if (!vfs) {
+              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
+            } else {
+              const mvParts = arg.split(/\s+/);
+              if (mvParts.length < 2) {
+                term.writeln('\x1b[31mmv: usage: mv <source> <dest>\x1b[0m');
+              } else {
+                const src = vfs.resolve(mvParts[0]);
+                const dest = vfs.resolve(mvParts.slice(1).join(' '));
+
+                if (!vfs.exists(src)) {
+                  term.writeln(`\x1b[31mmv: ${mvParts[0]}: No such file or directory\x1b[0m`);
+                } else if (src === '~') {
+                  term.writeln('\x1b[31mmv: cannot move root directory\x1b[0m');
+                } else if (vfs.isDirectory(dest)) {
+                  // Move into existing directory
+                  const name = src.split('/').pop()!;
+                  const newPath = dest + '/' + name;
+                  if (vfs.exists(newPath)) {
+                    term.writeln(`\x1b[31mmv: ${newPath.split('/').pop()}: already exists in target\x1b[0m`);
+                  } else {
+                    vfs.rename(src, newPath);
+                  }
+                } else {
+                  // Rename / move to new path — check parent exists
+                  const destParent = dest.split('/').slice(0, -1).join('/') || '~';
+                  if (!vfs.isDirectory(destParent)) {
+                    term.writeln(`\x1b[31mmv: ${mvParts.slice(1).join(' ')}: No such directory\x1b[0m`);
+                  } else if (vfs.exists(dest)) {
+                    term.writeln(`\x1b[31mmv: ${mvParts.slice(1).join(' ')}: Already exists\x1b[0m`);
+                  } else {
+                    vfs.rename(src, dest);
+                  }
+                }
+              }
+            }
+            writePrompt();
           } else if (cmd === 'cat') {
             if (!vfs) {
               term.writeln('\x1b[31mFilesystem not available\x1b[0m');
@@ -412,6 +451,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             term.writeln('  \x1b[1;32mmkdir\x1b[0m  — create directory');
             term.writeln('  \x1b[1;32mtouch\x1b[0m  — create file');
             term.writeln('  \x1b[1;32mrm\x1b[0m     — remove file or dir');
+            term.writeln('  \x1b[1;32mmv\x1b[0m     — move / rename');
             term.writeln('  \x1b[1;32mcat\x1b[0m    — print file contents');
             term.writeln('  \x1b[1;32mpwd\x1b[0m    — print working directory');
             term.writeln('  \x1b[1;32mclear\x1b[0m  — clear terminal');
