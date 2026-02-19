@@ -669,12 +669,14 @@ function AppContent() {
                 running={running}
               />
             </div>
-            {/* Explorer resize handle */}
+            {/* Explorer resize handle — wide touch target, pill indicator */}
             <div
               onMouseDown={handleExplorerDragStart}
               onTouchStart={handleExplorerDragStart}
-              className="w-[3px] shrink-0 cursor-col-resize bg-zinc-700/50 hover:bg-emerald-400 transition-colors"
-            />
+              className="w-3 shrink-0 cursor-col-resize flex items-center justify-center group touch-none border-r border-zinc-700/50"
+            >
+              <div className="h-10 w-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+            </div>
           </>
         )}
 
