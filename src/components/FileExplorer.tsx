@@ -527,7 +527,38 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden py-1"
+        onDragOver={(e) => {
+          if (!draggedPath.current) return;
+          const src = draggedPath.current;
+          // Only allow drop-to-root if file isn't already at root
+          const srcParent = src.split('/').slice(0, -1).join('/') || '~';
+          if (srcParent === '~') return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          setDragTarget('~');
+        }}
+        onDragLeave={(e) => {
+          // Only clear if we actually left the container (not entering a child)
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDragTarget(null);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const src = draggedPath.current;
+          draggedPath.current = null;
+          setDragTarget(null);
+          if (!src) return;
+          const srcParent = src.split('/').slice(0, -1).join('/') || '~';
+          if (srcParent === '~') return;
+          const name = src.split('/').pop()!;
+          const newPath = '~/' + name;
+          if (fs.exists(newPath)) return;
+          fs.rename(src, newPath);
+        }}
+      >
         {fs.tree.children?.map((child) => (
           <TreeNode
             key={child.path}
@@ -582,6 +613,13 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
               }}
               onCancel={() => setCreating(null)}
             />
+          </div>
+        )}
+
+        {/* Root drop zone — visible hint when dragging a nested file toward root */}
+        {dragTarget === '~' && (
+          <div className="mx-2 mt-1 border border-dashed border-emerald-500/50 rounded bg-emerald-500/10 px-2 py-2 text-[10px] text-emerald-400 text-center pointer-events-none">
+            Drop here to move to root
           </div>
         )}
       </div>
