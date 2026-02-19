@@ -52,6 +52,11 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     const requestConfirmRef = useRef(requestConfirm);
     useEffect(() => { requestConfirmRef.current = requestConfirm; }, [requestConfirm]);
 
+    // Command history
+    const commandHistory = useRef<string[]>([]);
+    const historyIndex = useRef(-1);
+    const savedInput = useRef('');
+
     // Exec mode refs — active while a Java process is running
     const execStdinCallback = useRef<((data: string) => void) | null>(null);
     const execKillCallback = useRef<(() => void) | null>(null);
@@ -175,11 +180,62 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         }
 
         // ── Normal command mode ──
+
+        // Arrow keys arrive as escape sequences
+        if (data === '\x1b[A' || data === '\x1b[B') {
+          const history = commandHistory.current;
+          if (history.length === 0) return;
+
+          if (data === '\x1b[A') {
+            // Up — go back in history
+            if (historyIndex.current === -1) {
+              // Save whatever the user was typing
+              savedInput.current = inputBuffer.current;
+              historyIndex.current = history.length - 1;
+            } else if (historyIndex.current > 0) {
+              historyIndex.current--;
+            } else {
+              return; // Already at oldest
+            }
+          } else {
+            // Down — go forward in history
+            if (historyIndex.current === -1) return; // Nothing to navigate
+            if (historyIndex.current < history.length - 1) {
+              historyIndex.current++;
+            } else {
+              // Past newest — restore saved input
+              historyIndex.current = -1;
+            }
+          }
+
+          // Erase the current input on screen
+          const eraseLen = inputBuffer.current.length;
+          if (eraseLen > 0) term.write('\b \b'.repeat(eraseLen));
+
+          // Replace with history entry or saved input
+          const replacement = historyIndex.current === -1
+            ? savedInput.current
+            : history[historyIndex.current];
+          inputBuffer.current = replacement;
+          term.write(replacement);
+          return;
+        }
+
         if (code === 13) {
           // Enter
           term.write('\r\n');
           const raw = inputBuffer.current.trim();
           inputBuffer.current = '';
+
+          // Push to history (skip duplicates of the last entry)
+          if (raw && raw !== commandHistory.current[commandHistory.current.length - 1]) {
+            commandHistory.current.push(raw);
+            // Cap at 100 entries
+            if (commandHistory.current.length > 100) commandHistory.current.shift();
+          }
+          historyIndex.current = -1;
+          savedInput.current = '';
+
           const parts = raw.split(/\s+/);
           const cmd = parts[0]?.toLowerCase() ?? '';
           const arg = parts.slice(1).join(' ');
@@ -374,6 +430,8 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             inputBuffer.current = inputBuffer.current.slice(0, -1);
             term.write('\b \b');
           }
+        } else if (code === 27) {
+          // Escape sequence — ignore (Left/Right/etc already handled above)
         } else if (code >= 32) {
           // Printable chars
           inputBuffer.current += data;
