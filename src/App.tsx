@@ -8,6 +8,7 @@ import FileExplorer from './components/FileExplorer';
 import PeerAvatars from './components/PeerAvatars';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
+import JSZip from 'jszip';
 
 function AppContent() {
   const { ydoc, peerCount, roomId, connected } = useCollab();
@@ -17,6 +18,8 @@ function AppContent() {
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
   const runningRef = useRef(false);
   const executorRef = useRef<InteractiveExecutor | null>(null);
@@ -196,6 +199,27 @@ function AppContent() {
     URL.revokeObjectURL(url);
   }, [fs.activeFile]);
 
+  const handleSaveAll = useCallback(async () => {
+    const allFiles = fs.getAllFiles();
+    const fileNames = Object.keys(allFiles);
+    if (fileNames.length === 0) return;
+
+    const zip = new JSZip();
+    for (const [relPath, content] of Object.entries(allFiles)) {
+      zip.file(relPath, content);
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `collab-code-${roomId}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [fs, roomId]);
+
   const handleToggleTerminal = useCallback(() => {
     setTerminalVisible((v) => !v);
   }, []);
@@ -210,6 +234,17 @@ function AppContent() {
 
   const handleToggleExplorer = useCallback(() => {
     setExplorerVisible((v) => !v);
+  }, []);
+
+  // Close save menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
+        setSaveMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   // Ctrl+B keyboard shortcut to toggle explorer
@@ -334,19 +369,61 @@ function AppContent() {
             <span className="hidden sm:inline">{codeCopied ? 'Copied!' : 'Copy'}</span>
           </button>
 
-          {/* Save file button */}
-          <button
-            onClick={handleSaveFile}
-            title="Save code to file"
-            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="hidden sm:inline">Save</span>
-          </button>
+          {/* Save dropdown */}
+          <div ref={saveMenuRef} className="relative">
+            <button
+              onClick={() => setSaveMenuOpen((v) => !v)}
+              title="Save options"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="hidden sm:inline">Save</span>
+              <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {saveMenuOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 min-w-[180px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-1 animate-in fade-in slide-in-from-top-1">
+                <button
+                  onClick={() => { handleSaveFile(); setSaveMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div>
+                    <div className="font-medium">Save File</div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      Download {fs.activeFile?.split('/').pop() ?? 'current file'}
+                    </div>
+                  </div>
+                </button>
+                <div className="mx-2 my-1 border-t border-zinc-700/60" />
+                <button
+                  onClick={() => { handleSaveAll(); setSaveMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="2" width="20" height="20" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 2v20" strokeLinecap="round" />
+                    <path d="M12 10l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div>
+                    <div className="font-medium">Save All <span className="text-emerald-400">.zip</span></div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      Download entire workspace
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
 
