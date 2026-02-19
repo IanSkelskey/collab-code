@@ -484,92 +484,92 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Main content: Activity bar + Explorer + Editor + Terminal */}
-      <div ref={containerRef} className="flex-1 flex flex-col min-h-0">
-        {/* Top section: Activity bar + Explorer + Editor side by side */}
-        <div className="flex-1 flex min-h-[120px]">
-          {/* Activity bar — thin icon strip */}
-          <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1">
-            <button
-              onClick={handleToggleExplorer}
-              title={`Toggle Explorer (Ctrl+B)`}
-              className={`p-2 rounded transition-colors cursor-pointer ${
-                explorerVisible
-                  ? 'text-white bg-zinc-700/50'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
-
-          {/* File Explorer */}
-          {explorerVisible && (
-            <>
-              <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
-                <FileExplorer fs={fs} />
-              </div>
-              {/* Explorer resize handle */}
-              <div
-                onMouseDown={handleExplorerDragStart}
-                onTouchStart={handleExplorerDragStart}
-                className="w-[3px] shrink-0 cursor-col-resize bg-zinc-700/50 hover:bg-emerald-400 transition-colors"
-              />
-            </>
-          )}
-
-          {/* Editor — fills remaining space */}
-          <div className="flex-1 min-w-0">
-            <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
-          </div>
-        </div>
-
-        {/* Terminal bar — always visible, acts as toggle + drag handle */}
-        <div className="shrink-0 bg-[#161b22] border-t border-zinc-700/50 flex items-center">
-          {/* Toggle button */}
+      {/* Main content: Activity bar + Explorer | Editor + Terminal */}
+      <div ref={containerRef} className="flex-1 flex min-h-0">
+        {/* Activity bar — thin icon strip, full height */}
+        <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1">
           <button
-            onClick={handleToggleTerminal}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
+            onClick={handleToggleExplorer}
+            title={`Toggle Explorer (Ctrl+B)`}
+            className={`p-2 rounded transition-colors cursor-pointer ${
+              explorerVisible
+                ? 'text-white bg-zinc-700/50'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="4 17 10 11 4 5" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="19" x2="20" y2="19" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Terminal
-            <svg
-              className={`w-3 h-3 transition-transform ${terminalVisible ? 'rotate-0' : 'rotate-180'}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+        </div>
 
-          {/* Drag handle — only interactive when terminal is visible */}
+        {/* File Explorer — full height */}
+        {explorerVisible && (
+          <>
+            <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
+              <FileExplorer fs={fs} />
+            </div>
+            {/* Explorer resize handle */}
+            <div
+              onMouseDown={handleExplorerDragStart}
+              onTouchStart={handleExplorerDragStart}
+              className="w-[3px] shrink-0 cursor-col-resize bg-zinc-700/50 hover:bg-emerald-400 transition-colors"
+            />
+          </>
+        )}
+
+        {/* Right column: Editor + Terminal stacked */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          {/* Editor — fills remaining space */}
+          <div className="flex-1 min-h-[120px]">
+            <Editor ref={editorRef} onRun={handleRun} fontSize={fontSize} fs={fs} />
+          </div>
+
+          {/* Terminal bar — always visible, acts as toggle + drag handle */}
+          <div className="shrink-0 bg-[#161b22] border-t border-zinc-700/50 flex items-center">
+            {/* Toggle button */}
+            <button
+              onClick={handleToggleTerminal}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="4 17 10 11 4 5" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="12" y1="19" x2="20" y2="19" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Terminal
+              <svg
+                className={`w-3 h-3 transition-transform ${terminalVisible ? 'rotate-0' : 'rotate-180'}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* Drag handle — only interactive when terminal is visible */}
+            {terminalVisible && (
+              <div
+                onMouseDown={handleDragStart}
+                onTouchStart={handleDragStart}
+                className="flex-1 h-full cursor-row-resize flex items-center justify-center group py-1"
+              >
+                <div className="w-10 h-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+              </div>
+            )}
+          </div>
+
+          {/* Terminal panel */}
           {terminalVisible && (
             <div
-              onMouseDown={handleDragStart}
-              onTouchStart={handleDragStart}
-              className="flex-1 h-full cursor-row-resize flex items-center justify-center group py-1"
+              style={{ height: terminalHeight }}
+              className="shrink-0 bg-[#1a1a2e] overflow-hidden"
             >
-              <div className="w-10 h-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+              <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} />
             </div>
           )}
         </div>
-
-        {/* Terminal panel */}
-        {terminalVisible && (
-          <div
-            style={{ height: terminalHeight }}
-            className="shrink-0 bg-[#1a1a2e] overflow-hidden"
-          >
-            <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} />
-          </div>
-        )}
       </div>
     </div>
   );
