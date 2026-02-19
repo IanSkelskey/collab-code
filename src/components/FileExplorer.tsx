@@ -443,6 +443,22 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
     return items;
   }, [handleNewFile, handleNewFolder, handleDelete]);
 
+  // Alt+N → new file, Alt+Shift+N → new folder
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleNewFolder('~');
+        } else {
+          handleNewFile('~');
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleNewFile, handleNewFolder]);
+
   return (
     <div className="h-full flex flex-col bg-[#0d1117] border-r border-zinc-700/50">
       {/* Header */}
@@ -453,8 +469,8 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => handleNewFile('~')}
-            title="New File"
-            className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+            title="New File (Alt+N)"
+            className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
@@ -464,8 +480,8 @@ export default function FileExplorer({ fs, pushToast, requestConfirm }: FileExpl
           </button>
           <button
             onClick={() => handleNewFolder('~')}
-            title="New Folder"
-            className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+            title="New Folder (Alt+Shift+N)"
+            className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />

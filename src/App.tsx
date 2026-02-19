@@ -290,6 +290,11 @@ function AppContent() {
           handleSaveFile();
         }
       }
+      if (e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        // Ensure explorer is visible for the inline input
+        setExplorerVisible(true);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -523,7 +528,7 @@ function AppContent() {
       {/* Main content: Activity bar + Explorer | Editor + Terminal */}
       <div ref={containerRef} className="flex-1 flex min-h-0">
         {/* Activity bar — thin icon strip, full height */}
-        <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1">
+        <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center justify-between pt-1 pb-2">
           <button
             onClick={handleToggleExplorer}
             title={`Toggle Explorer (Ctrl+B)`}
@@ -537,6 +542,17 @@ function AppContent() {
               <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          <a
+            href="https://github.com/IanSkelskey"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Made with ❤️ by Ian Skelskey"
+            className="text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </a>
         </div>
 
         {/* File Explorer — full height */}

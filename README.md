@@ -5,13 +5,18 @@ A collaborative Java development environment for real-time pair programming. Sha
 ## Features
 
 - **Real-time collaborative editing** — Multiple users edit the same code simultaneously with live cursors and selections powered by [Yjs](https://github.com/yjs/yjs) CRDTs
-- **WebSocket sync** — Reliable real-time collaboration through a lightweight y-websocket relay server (works on campus WiFi / NAT)
-- **Java execution** — Compile and run Java code via [Judge0 CE](https://ce.judge0.com) through the relay server (free, no signup)
+- **Multi-file workspace** — Full virtual filesystem with file explorer, tab bar, and directory support — all synced across peers
+- **Drag-and-drop file management** — Move files and folders visually in the explorer, or use the `mv` command in the terminal
+- **Peer presence indicators** — See who's editing which file via colored avatar dots on tabs and live cursor labels in the editor
+- **Interactive Java execution** — Compile and run multi-file Java projects with real-time stdin/stdout streaming via WebSocket
 - **Inline diagnostics** — Compiler errors and warnings display as red/yellow underlines in the editor with hover tooltips
-- **Integrated terminal** — Resizable, hideable xterm.js terminal panel for viewing compilation output, runtime results, and errors
-- **Offline persistence** — Code is saved locally in IndexedDB and syncs on reconnect
+- **Integrated terminal** — Resizable, hideable xterm.js terminal with a full set of shell commands (`ls`, `cd`, `mkdir`, `touch`, `rm`, `mv`, `cat`, `pwd`) and command history (Up/Down arrow)
+- **Keyboard shortcuts** — `Ctrl+Enter` run, `Ctrl+S` save file, `Ctrl+Shift+S` save all as .zip, `Alt+N` new file, `Alt+Shift+N` new folder, `Ctrl+B` toggle explorer, `` Ctrl+` `` toggle terminal
+- **Save & export** — Download the current file or the entire workspace as a `.zip` via a dropdown menu
+- **Destructive action safety** — Undo toast for single-file deletions (5 s window) and confirmation dialog for non-empty directory deletions
+- **Offline persistence** — Files are saved locally in IndexedDB and sync on reconnect
 - **One-click sharing** — Room ID is embedded in the URL hash. Click "Share" to copy the invite link
-- **Copy & save** — Copy code to clipboard or download as a `.java` file
+- **Responsive design** — Adapts to mobile and desktop with resizable panels, collapsible explorer, and touch support
 
 ## Tech Stack
 
@@ -21,11 +26,12 @@ A collaborative Java development environment for real-time pair programming. Sha
 | Build tool | Vite 6 |
 | Code editor | Monaco Editor (`@monaco-editor/react`) |
 | Collaboration | Yjs + y-websocket + y-indexeddb + y-monaco |
-| Java execution | Judge0 CE (proxied through relay server) |
+| Java execution | Interactive via WebSocket (server-side `javac`/`java`), Judge0 CE fallback |
 | Terminal UI | xterm.js (`@xterm/xterm`) |
 | Styling | Tailwind CSS v4 |
+| Zip export | JSZip |
 | Frontend hosting | GitHub Pages via GitHub Actions |
-| Relay server | Node.js on Render (free tier) |
+| Relay server | Node.js on Render (Docker, free tier) |
 
 ## Architecture
 
@@ -34,20 +40,15 @@ A collaborative Java development environment for real-time pair programming. Sha
 │   Browser A  │◄────────────────────►│                      │
 ├──────────────┤                      │   Render Server      │
 │   Browser B  │◄────────────────────►│   (y-websocket +     │
-├──────────────┤                      │    Judge0 proxy)     │
-│   Browser C  │◄────────────────────►│                      │
-└──────────────┘                      └──────────┬───────────┘
-                                                 │ https
-                                          ┌──────▼──────┐
-                                          │  Judge0 CE  │
-                                          │  (compile   │
-                                          │   & run)    │
-                                          └─────────────┘
+├──────────────┤                      │    interactive Java   │
+│   Browser C  │◄────────────────────►│    execution)        │
+└──────────────┘                      └──────────────────────┘
 ```
 
 All browsers connect to a single lightweight relay server that:
 1. **Syncs Yjs documents** between peers via WebSocket (y-websocket)
-2. **Proxies code execution** requests to Judge0 CE
+2. **Executes Java interactively** — compiles multi-file projects with `javac` and streams stdin/stdout/stderr in real time over a dedicated `/exec` WebSocket endpoint
+3. **Syncs output files** — files created or modified by the Java program are sent back to the workspace
 
 ## Getting Started
 
@@ -80,11 +81,33 @@ Open two browser tabs to the same URL (e.g. `http://localhost:5173/collab-code/#
 
 | Command | Description |
 |---|---|
-| `run` | Compile and execute the Java code |
+| `run` | Compile and execute the Java project |
+| `ls [dir]` | List files in current or specified directory |
+| `cd <dir>` | Change working directory |
+| `mkdir <dir>` | Create a directory |
+| `touch <file>` | Create an empty file |
+| `rm <file>` | Remove a file (with undo toast) |
+| `rm -r <dir>` | Remove a directory recursively (with confirmation) |
+| `mv <src> <dest>` | Move or rename a file/directory |
+| `cat <file>` | Print file contents |
+| `pwd` | Print working directory |
 | `clear` | Clear the terminal |
+| `reset` | Clear room data and reload |
 | `help` | Show available commands |
 
-You can also click the **Run** button in the toolbar.
+**Tip:** Use Up/Down arrow keys to navigate command history.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+Enter` | Run code |
+| `Ctrl+S` | Download current file |
+| `Ctrl+Shift+S` | Download workspace as .zip |
+| `Alt+N` | New file |
+| `Alt+Shift+N` | New folder |
+| `Ctrl+B` | Toggle file explorer |
+| `` Ctrl+` `` | Toggle terminal |
 
 ## Deployment
 
@@ -100,13 +123,13 @@ VITE_WS_URL=wss://your-server.onrender.com
 
 ### Relay Server (Render)
 
-The `server/` directory contains a standalone Node.js server with its own `package.json`. Deploy to [Render](https://render.com) using the included `render.yaml` blueprint:
+The `server/` directory contains a standalone Node.js server with its own `package.json` and `Dockerfile`. Deploy to [Render](https://render.com) using the included `render.yaml` blueprint:
 
 1. Push the repo to GitHub
 2. In Render, create a new **Blueprint** pointing to the repo
 3. Render reads `render.yaml` and deploys the server automatically
 
-The server runs on the free tier with no additional configuration needed.
+The Docker image includes a JDK so Java compilation and execution happen on the server.
 
 ## Environment Variables
 
@@ -114,11 +137,12 @@ The server runs on the free tier with no additional configuration needed.
 |---|---|---|
 | `VITE_WS_URL` | WebSocket URL for the relay server | `ws://localhost:4444` |
 | `PORT` | Relay server port (server-side) | `4444` |
-| `JUDGE0_HOST` | Judge0 CE hostname (server-side) | `ce.judge0.com` |
+| `HOST` | Relay server bind address (server-side) | `0.0.0.0` |
+| `JUDGE0_HOST` | Judge0 CE hostname — fallback execution (server-side) | `ce.judge0.com` |
 
 ## Limitations
 
-- **Java execution requires internet** — Code is proxied to Judge0 CE for compilation and execution
+- **Java execution requires the server** — Code is compiled and run on the relay server (or proxied to Judge0 CE as fallback)
 - **Render free tier** — The relay server spins down after inactivity; first connection after idle takes ~30s
 - **Peer limit** — Optimized for 2–10 concurrent collaborators per room
 - **No persistent rooms** — If all peers disconnect, the document only survives in each peer's local IndexedDB
