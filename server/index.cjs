@@ -154,8 +154,15 @@ function handleExecConnection(ws) {
       console.log(`[exec] Compiling ${javaFiles.length} file(s) in ${tmpDir}, main class: ${mainClass}`);
       send({ type: 'compile-start' });
 
-      // --- Compile all Java files ---
-      const javac = spawn('javac', javaFiles);
+      // Separate output directory for compiled .class files.
+      // Using -d ensures classes are placed according to their package
+      // declaration, not their source directory — so dir/Two.java with
+      // no package produces __out__/Two.class (not __out__/dir/Two.class).
+      const outDir = path.join(tmpDir, '__out__');
+      fs.mkdirSync(outDir, { recursive: true });
+
+      // --- Compile all Java files into __out__ ---
+      const javac = spawn('javac', ['-d', outDir, ...javaFiles]);
       let compileErr = '';
 
       javac.stderr.on('data', (data) => {
@@ -173,8 +180,8 @@ function handleExecConnection(ws) {
         console.log(`[exec] Compilation succeeded, running ${mainClass}`);
         send({ type: 'compile-ok' });
 
-        // --- Run ---
-        javaProcess = spawn('java', ['-cp', tmpDir, mainClass], {
+        // --- Run from __out__, with cwd = tmpDir so file I/O is relative to project root ---
+        javaProcess = spawn('java', ['-cp', outDir, mainClass], {
           cwd: tmpDir,
           stdio: ['pipe', 'pipe', 'pipe'],
         });
@@ -207,6 +214,8 @@ function handleExecConnection(ws) {
                 const fullPath = path.join(dir, entry.name);
                 const relPath = rel ? rel + '/' + entry.name : entry.name;
                 if (entry.isDirectory()) {
+                  // Skip the __out__ build directory
+                  if (entry.name === '__out__') continue;
                   scanDir(fullPath, relPath);
                 } else if (!entry.name.endsWith('.class')) {
                   // Skip .class files and large/binary files
