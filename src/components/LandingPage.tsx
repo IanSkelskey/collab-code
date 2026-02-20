@@ -30,6 +30,7 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
         <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
         <h1 className="text-base font-semibold tracking-tight text-zinc-100">
           Collab Code
+          <span className="text-xs text-zinc-400 font-normal ml-1.5">v{__APP_VERSION__}</span>
         </h1>
       </header>
 
@@ -46,6 +47,7 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
               Collab Code
             </h2>
+            <span className="text-xs text-zinc-500 font-mono -mt-2">v{__APP_VERSION__}</span>
             <p className="text-sm sm:text-base text-zinc-400 max-w-md leading-relaxed">
               A minimal, collaborative Java IDE built for tutors and students.
               No installs, no accounts&mdash;just share a link and start
