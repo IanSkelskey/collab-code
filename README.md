@@ -1,5 +1,10 @@
 # Collab Code — Collaborative Java IDE
 
+**Version 1.0.0-beta**
+
+[![Client](https://img.shields.io/github/deployments/IanSkelskey/collab-code/github-pages?style=for-the-badge&label=Client&logo=github&logoColor=white&color=34d399)](https://github.com/IanSkelskey/collab-code/deployments/github-pages)
+[![Server](https://img.shields.io/github/deployments/IanSkelskey/collab-code/master%20-%20collab-code-sync?style=for-the-badge&label=Server&logo=node.js&logoColor=white&color=34d399)](https://github.com/IanSkelskey/collab-code/deployments/master%20-%20collab-code-sync)
+
 A collaborative Java development environment for real-time pair programming. Share a link, code together with live cursors, and execute Java — all from the browser. Built for classroom/campus use with a lightweight WebSocket relay server.
 
 ## Features

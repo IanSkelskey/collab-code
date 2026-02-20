@@ -97,8 +97,9 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         </div>
 
         {/* Footer / Signature */}
-        <div className="px-5 py-3 border-t border-zinc-700/60 text-center">
-          <span className="text-[11px] text-zinc-500">
+        <div className="px-5 py-3 border-t border-zinc-700/60 text-center space-y-1">
+          <div className="text-xs text-zinc-400 font-mono">v1.0.0-beta</div>
+          <span className="text-xs text-zinc-400">
             Made with <span className="text-red-400">❤️</span> by{' '}
             <a
               href="https://github.com/IanSkelskey"

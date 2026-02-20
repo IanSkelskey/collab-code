@@ -431,6 +431,7 @@ function AppContent() {
           <h1 className="text-sm sm:text-base font-semibold tracking-tight">
             <span className="text-emerald-400">&lt;/&gt;</span>{' '}
             <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
+            <span className="text-[10px] text-zinc-400 font-normal ml-1.5 hidden sm:inline">1.0.0-beta</span>
           </h1>
 
           <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
