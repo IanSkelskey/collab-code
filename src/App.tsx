@@ -60,8 +60,9 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     []
   );
 
-  // Warn before tab close / navigation while in a room
+  // Warn before tab close / navigation while in a room (skip in dev to avoid Vite HMR false triggers)
   useEffect(() => {
+    if (import.meta.env.DEV) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
