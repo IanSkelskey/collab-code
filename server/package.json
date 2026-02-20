@@ -1,6 +1,6 @@
 {
   "name": "collab-code-sync",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "private": true,
   "description": "Yjs WebSocket sync server for Collab Code",
   "main": "index.cjs",
