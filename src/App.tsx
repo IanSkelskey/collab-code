@@ -10,11 +10,12 @@ import PeerAvatars from './components/PeerAvatars';
 import ConfirmDialog from './components/ConfirmDialog';
 import UndoToastContainer, { useUndoToast } from './components/UndoToast';
 import HelpModal from './components/HelpModal';
+import LandingPage from './components/LandingPage';
 import { InteractiveExecutor } from './services/interactiveExec';
 import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
 import JSZip from 'jszip';
 
-function AppContent() {
+function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   const { ydoc, peerCount, roomId, connected, awareness } = useCollab();
   const fs = useVirtualFS(ydoc);
   const terminalRef = useRef<TerminalHandle>(null);
@@ -46,15 +47,27 @@ function AppContent() {
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
+    confirmLabel?: string;
+    secondaryLabel?: string;
     onConfirm: () => void;
+    onSecondary?: () => void;
   } | null>(null);
 
   const requestConfirm = useCallback(
-    (title: string, message: string, onConfirm: () => void) => {
-      setConfirmDialog({ title, message, onConfirm });
+    (title: string, message: string, onConfirm: () => void, confirmLabel?: string) => {
+      setConfirmDialog({ title, message, onConfirm, confirmLabel });
     },
     []
   );
+
+  // Warn before tab close / navigation while in a room
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   // Regex to detect Java entry points: public static void main(String ...)
   const MAIN_RE = /public\s+static\s+void\s+main\s*\(\s*String/;
@@ -427,14 +440,27 @@ function AppContent() {
       {/* Toolbar */}
       <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Logo / Title */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Logo / Title — click to return to landing page */}
+          <button
+            onClick={() => {
+              setConfirmDialog({
+                title: 'Leave workspace?',
+                message: 'Your work is only stored in each peer\'s browser. If all peers leave, unsaved work may be lost.',
+                confirmLabel: 'Leave',
+                secondaryLabel: 'Download & Leave',
+                onConfirm: onExitRoom,
+                onSecondary: () => { handleSaveAll().then(onExitRoom); },
+              });
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            title="Back to home"
+          >
             <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
             <h1 className="text-sm sm:text-base font-semibold tracking-tight">
               <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
               <span className="text-xs text-zinc-400 font-normal ml-1.5 hidden sm:inline">1.0.0-beta</span>
             </h1>
-          </div>
+          </button>
 
           <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
 
@@ -764,6 +790,9 @@ function AppContent() {
         <ConfirmDialog
           title={confirmDialog.title}
           message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          secondaryLabel={confirmDialog.secondaryLabel}
+          onSecondary={confirmDialog.onSecondary}
           onConfirm={() => {
             confirmDialog.onConfirm();
             setConfirmDialog(null);
@@ -782,11 +811,26 @@ function AppContent() {
 }
 
 export default function App() {
-  const roomId = useRoom();
+  const initialRoom = useRoom();
+  const [roomId, setRoomId] = useState<string | null>(initialRoom);
+
+  const handleEnterRoom = useCallback((id: string) => {
+    window.location.hash = id;
+    setRoomId(id);
+  }, []);
+
+  const handleExitRoom = useCallback(() => {
+    window.location.hash = '';
+    setRoomId(null);
+  }, []);
+
+  if (!roomId) {
+    return <LandingPage onEnterRoom={handleEnterRoom} />;
+  }
 
   return (
     <CollabProvider roomId={roomId}>
-      <AppContent />
+      <AppContent onExitRoom={handleExitRoom} />
     </CollabProvider>
   );
 }

@@ -4,16 +4,20 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel?: string;
+  secondaryLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  onSecondary?: () => void;
 }
 
 export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Delete',
+  secondaryLabel,
   onConfirm,
   onCancel,
+  onSecondary,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +54,14 @@ export default function ConfirmDialog({
           >
             Cancel
           </button>
+          {onSecondary && secondaryLabel && (
+            <button
+              onClick={onSecondary}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-colors cursor-pointer"
+            >
+              {secondaryLabel}
+            </button>
+          )}
           <button
             onClick={onConfirm}
             className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-500 rounded-md transition-colors cursor-pointer"
