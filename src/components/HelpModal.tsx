@@ -134,7 +134,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             </svg>
             Report a Bug or Request a Feature
           </a>
-          <div className="text-xs text-zinc-400 font-mono">v1.0.0-beta</div>
+          <div className="text-xs text-zinc-400 font-mono">v{__APP_VERSION__}</div>
           <span className="text-xs text-zinc-400">
             Made with <span className="text-red-400">❤️</span> by{' '}
             <a
