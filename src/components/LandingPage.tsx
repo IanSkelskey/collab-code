@@ -30,7 +30,7 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
         <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
         <h1 className="text-base font-semibold tracking-tight text-zinc-100">
           Collab Code
-          <span className="text-xs text-zinc-400 font-normal ml-1.5">v{__APP_VERSION__}</span>
+          <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5">v{__APP_VERSION__}</span>
         </h1>
       </header>
 

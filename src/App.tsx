@@ -459,7 +459,7 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
             <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
             <h1 className="text-sm sm:text-base font-semibold tracking-tight">
               <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
-              <span className="text-xs text-zinc-400 font-normal ml-1.5 hidden sm:inline">v{__APP_VERSION__}</span>
+              <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5 hidden sm:inline">v{__APP_VERSION__}</span>
             </h1>
           </button>
 
