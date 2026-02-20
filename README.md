@@ -1,9 +1,17 @@
-# Collab Code — Collaborative Java IDE
+<p align="center">
+  <img src="public/logo.svg" alt="Collab Code Logo" width="96" />
+</p>
 
-**Version 1.0.0-beta**
+<h1 align="center">Collab Code — Collaborative Java IDE</h1>
 
-[![Client](https://img.shields.io/github/deployments/IanSkelskey/collab-code/github-pages?style=for-the-badge&label=Client&logo=github&logoColor=white&color=34d399)](https://github.com/IanSkelskey/collab-code/deployments/github-pages)
-[![Server](https://img.shields.io/github/deployments/IanSkelskey/collab-code/master%20-%20collab-code-sync?style=for-the-badge&label=Server&logo=node.js&logoColor=white&color=34d399)](https://github.com/IanSkelskey/collab-code/deployments/master%20-%20collab-code-sync)
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.0--beta-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/IanSkelskey/collab-code/deployments/github-pages"><img src="https://img.shields.io/github/deployments/IanSkelskey/collab-code/github-pages?style=for-the-badge&label=Client&logo=github&logoColor=white&color=059669" alt="Client" /></a>
+  <a href="https://github.com/IanSkelskey/collab-code/deployments/master%20-%20collab-code-sync"><img src="https://img.shields.io/github/deployments/IanSkelskey/collab-code/master%20-%20collab-code-sync?style=for-the-badge&label=Server&logo=node.js&logoColor=white&color=059669" alt="Server" /></a>
+</p>
 
 A collaborative Java development environment for real-time pair programming. Share a link, code together with live cursors, and execute Java — all from the browser. Built for classroom/campus use with a lightweight WebSocket relay server.
 

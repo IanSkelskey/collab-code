@@ -428,11 +428,13 @@ function AppContent() {
       <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Logo / Title */}
-          <h1 className="text-sm sm:text-base font-semibold tracking-tight">
-            <span className="text-emerald-400">&lt;/&gt;</span>{' '}
-            <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
-            <span className="text-[10px] text-zinc-400 font-normal ml-1.5 hidden sm:inline">1.0.0-beta</span>
-          </h1>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
+            <h1 className="text-sm sm:text-base font-semibold tracking-tight">
+              <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
+              <span className="text-xs text-zinc-400 font-normal ml-1.5 hidden sm:inline">1.0.0-beta</span>
+            </h1>
+          </div>
 
           <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
 
@@ -692,10 +694,7 @@ function AppContent() {
               <Editor ref={editorRef} onRun={handleRun} onFormat={() => pushToast('Document formatted')} fontSize={fontSize} fs={fs} />
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
-                <svg className="w-12 h-12 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-                  <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
                 <div className="text-center space-y-1">
                   <p className="text-sm font-medium text-zinc-400">No open editors</p>
                   <p className="text-xs text-zinc-600">
