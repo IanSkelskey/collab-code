@@ -100,9 +100,17 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     setProvider(syncProvider);
     setAwareness(syncProvider.awareness);
 
+    // Clean up awareness on tab close/refresh so stale peers don't linger
+    const handleUnload = () => {
+      syncProvider.awareness.setLocalState(null);
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleUnload);
       syncProvider.off('status', handleStatus);
       syncProvider.awareness.off('change', updatePeers);
+      syncProvider.awareness.setLocalState(null);
       syncProvider.destroy();
       idb.destroy();
     };

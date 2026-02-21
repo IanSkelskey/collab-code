@@ -74,6 +74,10 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
   // Track the file path currently bound to the editor
   const boundFileRef = useRef<string | null>(null);
 
+  // Keep a stable ref for fs to avoid re-triggering the binding effect
+  const fsRef = useRef(fs);
+  useEffect(() => { fsRef.current = fs; }, [fs]);
+
   // Store all diagnostic markers across files so we can re-apply on file switch
   const allMarkersRef = useRef<DiagnosticMarker[]>([]);
 
@@ -188,8 +192,9 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     let ytext: import('yjs').Text;
     let filePath: string | null = null;
 
-    if (fs && activeFile && fs.getFileText(activeFile)) {
-      ytext = fs.getFileText(activeFile)!;
+    const currentFs = fsRef.current;
+    if (currentFs && activeFile && currentFs.getFileText(activeFile)) {
+      ytext = currentFs.getFileText(activeFile)!;
       filePath = activeFile;
     } else {
       // Legacy fallback — single file mode
@@ -227,7 +232,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
       bindingRef.current = null;
       boundFileRef.current = null;
     };
-  }, [monacoEditor, awareness, ydoc, activeFile, fs]);
+  }, [monacoEditor, awareness, ydoc, activeFile]);
 
   // Prevent external drag-and-drop (e.g. from file explorer) inserting text into the editor
   useEffect(() => {
