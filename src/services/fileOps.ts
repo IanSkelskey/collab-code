@@ -1,5 +1,18 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
 
+// ── Name validation ──
+
+const INVALID_NAME_CHARS = /[/\\:*?"<>|]/;
+
+/** Validate a file or folder name. Returns an error message, or null if valid. */
+export function validateFileName(name: string): string | null {
+  if (!name || !name.trim()) return 'Name cannot be empty';
+  if (name === '.' || name === '..') return 'Invalid name';
+  if (INVALID_NAME_CHARS.test(name)) return 'Name contains invalid characters: / \\ : * ? " < > |';
+  if (name !== name.trim()) return 'Name cannot start or end with a space';
+  return null;
+}
+
 /**
  * Delete a single file with an undo toast.
  * `afterUndo` is called after restoring the file (e.g. to re-open it in the editor).

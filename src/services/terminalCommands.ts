@@ -1,6 +1,6 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { primaryLanguage } from '../config/languages';
-import { deleteFileWithUndo, deleteDirWithConfirm } from './fileOps';
+import { deleteFileWithUndo, deleteDirWithConfirm, validateFileName } from './fileOps';
 
 // ── Types ──
 
@@ -122,7 +122,11 @@ const commands: Record<string, CommandDef> = {
         ctx.term.writeln('\x1b[31mmkdir: missing operand\x1b[0m');
       } else {
         const target = vfs.resolve(ctx.arg);
-        if (vfs.exists(target)) {
+        const name = target.split('/').pop()!;
+        const nameError = validateFileName(name);
+        if (nameError) {
+          ctx.term.writeln(`\x1b[31mmkdir: ${ctx.arg}: ${nameError}\x1b[0m`);
+        } else if (vfs.exists(target)) {
           ctx.term.writeln(`\x1b[31mmkdir: ${ctx.arg}: Already exists\x1b[0m`);
         } else {
           vfs.mkdir(target);
@@ -142,7 +146,13 @@ const commands: Record<string, CommandDef> = {
         ctx.term.writeln('\x1b[31mtouch: missing operand\x1b[0m');
       } else {
         const target = vfs.resolve(ctx.arg);
-        if (!vfs.isFile(target)) {
+        const name = target.split('/').pop()!;
+        const nameError = validateFileName(name);
+        if (nameError) {
+          ctx.term.writeln(`\x1b[31mtouch: ${ctx.arg}: ${nameError}\x1b[0m`);
+        } else if (vfs.isFile(target)) {
+          ctx.term.writeln(`\x1b[31mtouch: ${ctx.arg}: File already exists\x1b[0m`);
+        } else {
           vfs.writeFile(target, '');
         }
       }
@@ -217,6 +227,48 @@ const commands: Record<string, CommandDef> = {
             ctx.term.writeln(`\x1b[31mmv: ${mvParts.slice(1).join(' ')}: Already exists\x1b[0m`);
           } else {
             vfs.rename(src, dest);
+          }
+        }
+      }
+      ctx.writePrompt();
+    },
+  },
+
+  cp: {
+    help: 'copy file',
+    run(ctx) {
+      const vfs = requireVfs(ctx);
+      if (!vfs) { ctx.writePrompt(); return; }
+
+      const parts = ctx.arg.split(/\s+/);
+      if (parts.length < 2) {
+        ctx.term.writeln('\x1b[31mcp: usage: cp <source> <dest>\x1b[0m');
+      } else {
+        const src = vfs.resolve(parts[0]);
+        const dest = vfs.resolve(parts.slice(1).join(' '));
+
+        if (!vfs.isFile(src)) {
+          ctx.term.writeln(`\x1b[31mcp: ${parts[0]}: No such file\x1b[0m`);
+        } else if (vfs.isDirectory(dest)) {
+          const name = src.split('/').pop()!;
+          const newPath = dest + '/' + name;
+          if (vfs.exists(newPath)) {
+            ctx.term.writeln(`\x1b[31mcp: ${name}: already exists in target\x1b[0m`);
+          } else {
+            const content = vfs.readFile(src) ?? '';
+            vfs.writeFile(newPath, content);
+          }
+        } else {
+          if (vfs.exists(dest)) {
+            ctx.term.writeln(`\x1b[31mcp: ${parts.slice(1).join(' ')}: Already exists\x1b[0m`);
+          } else {
+            const destParent = dest.split('/').slice(0, -1).join('/') || '~';
+            if (!vfs.isDirectory(destParent)) {
+              ctx.term.writeln(`\x1b[31mcp: ${parts.slice(1).join(' ')}: No such directory\x1b[0m`);
+            } else {
+              const content = vfs.readFile(src) ?? '';
+              vfs.writeFile(dest, content);
+            }
           }
         }
       }

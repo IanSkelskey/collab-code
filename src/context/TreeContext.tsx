@@ -19,6 +19,7 @@ export interface TreeContextValue {
   entryPoints: Set<string>;
   onRunFile?: (path: string) => void;
   running?: boolean;
+  pushToast: (label: string, onUndo?: () => void) => void;
 }
 
 const TreeContext = createContext<TreeContextValue | null>(null);

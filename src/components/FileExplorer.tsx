@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
 import { getLanguageForFile } from '../config/languages';
-import { deleteFileWithUndo, deleteDirWithConfirm } from '../services/fileOps';
+import { deleteFileWithUndo, deleteDirWithConfirm, validateFileName } from '../services/fileOps';
 import { FilePlusIcon, FolderPlusIcon } from './Icons';
 import TreeContext from '../context/TreeContext';
 import TreeNode, { FolderIcon, FileIcon, InlineInput } from './TreeNode';
@@ -53,7 +53,7 @@ function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
 
 interface FileExplorerProps {
   fs: VirtualFS;
-  pushToast: (label: string, onUndo: () => void) => void;
+  pushToast: (label: string, onUndo?: () => void) => void;
   requestConfirm: (title: string, message: string, onConfirm: () => void) => void;
   entryPoints: Set<string>;
   onRunFile?: (path: string) => void;
@@ -227,10 +227,11 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
     entryPoints,
     onRunFile,
     running,
+    pushToast,
   }), [
     fs, expandedDirs, toggleDir, renaming, creating,
     handleContextMenu, dragTarget, onDragStartNode, onDragOverNode,
-    onDragLeaveNode, onDropNode, onDragEnd, entryPoints, onRunFile, running,
+    onDragLeaveNode, onDropNode, onDragEnd, entryPoints, onRunFile, running, pushToast,
   ]);
 
   return (
@@ -313,6 +314,12 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
             )}
             <InlineInput
               defaultValue=""
+              validate={(name) => {
+                const nameError = validateFileName(name);
+                if (nameError) return nameError;
+                if (fs.exists('~/' + name)) return `"${name}" already exists`;
+                return null;
+              }}
               onSubmit={(name) => {
                 const newPath = '~/' + name;
                 if (creating.type === 'file') {

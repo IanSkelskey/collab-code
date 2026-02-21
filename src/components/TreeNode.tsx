@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { FSNode } from '../hooks/useVirtualFS';
 import { useTreeContext } from '../context/TreeContext';
 import { getLanguageForFile } from '../config/languages';
+import { validateFileName } from '../services/fileOps';
 import {
   ChevronRightIcon, FolderClosedIcon, FolderOpenIcon,
   FileDocIcon, PlayIcon,
@@ -68,31 +70,51 @@ export function InlineInput({
   defaultValue,
   onSubmit,
   onCancel,
+  validate,
 }: {
   defaultValue: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
+  validate?: (value: string) => string | null;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
+  const trySubmit = (val: string) => {
+    if (!val || val === defaultValue) { onCancel(); return; }
+    if (validate) {
+      const err = validate(val);
+      if (err) { setError(err); return; }
+    }
+    onSubmit(val);
+  };
+
   return (
-    <input
-      defaultValue={defaultValue}
-      autoFocus
-      ref={(el) => el?.select()}
-      className="bg-zinc-800 text-zinc-100 text-xs px-1 py-0.5 rounded border border-zinc-600 outline-none focus:border-emerald-400 w-full max-w-[160px]"
-      onBlur={(e) => {
-        const val = e.target.value.trim();
-        if (val && val !== defaultValue) onSubmit(val);
-        else onCancel();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          const val = (e.target as HTMLInputElement).value.trim();
-          if (val && val !== defaultValue) onSubmit(val);
-          else onCancel();
-        }
-        if (e.key === 'Escape') onCancel();
-      }}
-    />
+    <div className="flex flex-col w-full max-w-[160px]">
+      <input
+        defaultValue={defaultValue}
+        autoFocus
+        ref={(el) => el?.select()}
+        className={`bg-zinc-800 text-zinc-100 text-xs px-1 py-0.5 rounded border outline-none w-full ${
+          error ? 'border-red-500 focus:border-red-400' : 'border-zinc-600 focus:border-emerald-400'
+        }`}
+        onBlur={(e) => {
+          const val = e.target.value.trim();
+          if (!val || val === defaultValue || (validate && validate(val))) { onCancel(); return; }
+          onSubmit(val);
+        }}
+        onChange={() => { if (error) setError(null); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            trySubmit((e.target as HTMLInputElement).value.trim());
+          }
+          if (e.key === 'Escape') onCancel();
+        }}
+      />
+      {error && (
+        <span className="text-[10px] text-red-400 mt-0.5 leading-tight">{error}</span>
+      )}
+    </div>
   );
 }
 
@@ -122,6 +144,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
     entryPoints,
     onRunFile,
     running,
+    pushToast,
   } = useTreeContext();
 
   const isDir = node.type === 'directory';
@@ -139,11 +162,29 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
     }
   };
 
+  const validateRename = (newName: string): string | null => {
+    const nameError = validateFileName(newName);
+    if (nameError) return nameError;
+    const parentPath = node.path.split('/').slice(0, -1).join('/');
+    const newPath = parentPath + '/' + newName;
+    if (fs.exists(newPath)) return `"${newName}" already exists`;
+    return null;
+  };
+
   const handleRename = (newName: string) => {
     const parentPath = node.path.split('/').slice(0, -1).join('/');
     const newPath = parentPath + '/' + newName;
     fs.rename(node.path, newPath);
     setRenaming(null);
+  };
+
+  const validateCreate = (name: string): string | null => {
+    const nameError = validateFileName(name);
+    if (nameError) return nameError;
+    if (!creating) return null;
+    const newPath = creating.parentPath + '/' + name;
+    if (fs.exists(newPath)) return `"${name}" already exists`;
+    return null;
   };
 
   const handleCreate = (name: string) => {
@@ -184,6 +225,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
             defaultValue={node.name}
             onSubmit={handleRename}
             onCancel={() => setRenaming(null)}
+            validate={validateRename}
           />
         ) : (
           <span className="truncate">{node.name}</span>
@@ -222,6 +264,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
             defaultValue=""
             onSubmit={handleCreate}
             onCancel={() => setCreating(null)}
+            validate={validateCreate}
           />
         </div>
       )}
