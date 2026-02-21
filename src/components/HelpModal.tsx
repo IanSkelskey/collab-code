@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { primaryLanguage } from '../config/languages';
 import { HelpCircleIcon, CloseIcon, InfoCircleIcon } from './Icons';
+import ModalOverlay from './ModalOverlay';
 
 interface HelpModalProps {
   onClose: () => void;
@@ -32,23 +33,8 @@ type Tab = 'shortcuts' | 'tips';
 export default function HelpModal({ onClose }: HelpModalProps) {
   const [tab, setTab] = useState<Tab>('shortcuts');
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  const handleBackdrop = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
   return (
-    <div
-      onClick={handleBackdrop}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
-    >
+    <ModalOverlay onClose={onClose}>
       <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[420px] max-w-[92vw] max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header with tabs */}
         <div className="px-4 sm:px-5 pt-3 sm:pt-4 border-b border-zinc-700/60">
@@ -139,6 +125,6 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           </span>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

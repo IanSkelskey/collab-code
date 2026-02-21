@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import ModalOverlay from './ModalOverlay';
 
 interface ConfirmDialogProps {
   title: string;
@@ -19,30 +20,18 @@ export default function ConfirmDialog({
   onCancel,
   onSecondary,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Focus trap & Escape to cancel
+  // Enter to confirm
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
       if (e.key === 'Enter') onConfirm();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onCancel, onConfirm]);
-
-  // Close on backdrop click
-  const handleBackdrop = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onCancel();
-  };
+  }, [onConfirm]);
 
   return (
-    <div
-      onClick={handleBackdrop}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
-    >
+    <ModalOverlay onClose={onCancel}>
       <div
-        ref={dialogRef}
         className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[340px] max-w-[90vw] p-4"
       >
         <h3 className="text-sm font-semibold text-zinc-100 mb-1">{title}</h3>
@@ -70,6 +59,6 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
