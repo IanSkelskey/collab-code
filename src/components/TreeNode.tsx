@@ -43,9 +43,7 @@ export function FileIcon({ name }: { name: string }) {
   const symbol = lang ? langSymbol[lang.id] : undefined;
 
   return (
-    <svg className={`w-4 h-4 shrink-0 ${color}`} viewBox="0 0 24 24" fill="none" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    <FileDocIcon className={`w-4 h-4 shrink-0 ${color}`}>
       {symbol && (
         <text
           x="12"
@@ -60,7 +58,7 @@ export function FileIcon({ name }: { name: string }) {
           {symbol}
         </text>
       )}
-    </svg>
+    </FileDocIcon>
   );
 }
 
