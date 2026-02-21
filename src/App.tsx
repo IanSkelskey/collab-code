@@ -16,6 +16,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import UndoToastContainer, { useUndoToast } from './components/UndoToast';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
+import SearchPanel from './components/SearchPanel';
 import { getLanguageForFile } from './config/languages';
 
 function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
@@ -33,6 +34,7 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   const [terminalVisible, setTerminalVisible] = useState(true);
   const [terminalHeight, setTerminalHeight] = useState(250);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
 
   // Undo toast + confirm dialog state
   const { toasts, pushToast, dismissToast } = useUndoToast();
@@ -89,6 +91,7 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   useKeyboardShortcuts({
     setExplorerVisible,
     setTerminalVisible,
+    setSearchVisible,
     handleSaveFile,
     handleSaveAll,
   });
@@ -112,8 +115,30 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     pushToast('Document formatted');
   }, [pushToast]);
 
-  const handleToggleExplorer = useCallback(() => setExplorerVisible(v => !v), []);
+  const handleToggleExplorer = useCallback(() => {
+    setExplorerVisible(v => {
+      if (!v) setSearchVisible(false);
+      return !v;
+    });
+  }, []);
   const handleToggleTerminal = useCallback(() => setTerminalVisible(v => !v), []);
+  const handleToggleSearch = useCallback(() => {
+    setSearchVisible(v => {
+      if (!v) setExplorerVisible(false);
+      return !v;
+    });
+  }, []);
+
+  const handleSearchNavigateTo = useCallback((file: string, line: number, col: number) => {
+    if (fs.activeFile === file) {
+      editorRef.current?.revealLine(line, col);
+    } else {
+      fs.openFile(file);
+      setTimeout(() => {
+        editorRef.current?.revealLine(line, col);
+      }, 100);
+    }
+  }, [fs]);
 
   const handleFontSizeUp = useCallback(() => {
     setFontSize(s => { const next = Math.min(s + 2, 28); pushToast(`Font size: ${next}`); return next; });
@@ -143,10 +168,12 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         {/* Activity bar */}
         <ActivityBar
           explorerVisible={explorerVisible}
+          searchVisible={searchVisible}
           codeCopied={codeCopied}
           fontSize={fontSize}
           activeFileName={fs.activeFile?.split('/').pop() ?? null}
           onToggleExplorer={handleToggleExplorer}
+          onToggleSearch={handleToggleSearch}
           onFormat={handleFormat}
           onCopyCode={handleCopyCode}
           onSaveFile={handleSaveFile}
@@ -157,10 +184,13 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         />
 
         {/* File Explorer — full height */}
-        {explorerVisible && (
+        {(explorerVisible || searchVisible) && (
           <>
             <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
-              <FileExplorer
+              {searchVisible ? (
+                <SearchPanel fs={fs} onNavigateTo={handleSearchNavigateTo} />
+              ) : (
+                <FileExplorer
                 fs={fs}
                 pushToast={pushToast}
                 requestConfirm={requestConfirm}
@@ -172,6 +202,7 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
                 }}
                 running={running}
               />
+              )}
             </div>
             {/* Explorer resize handle */}
             <div

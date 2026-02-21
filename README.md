@@ -24,7 +24,7 @@ A collaborative Java development environment for real-time pair programming. Sha
 - **Interactive Java execution** — Compile and run multi-file Java projects with real-time stdin/stdout streaming via WebSocket
 - **Inline diagnostics** — Compiler errors and warnings display as red/yellow underlines in the editor with hover tooltips
 - **Integrated terminal** — Resizable, hideable xterm.js terminal with a full set of shell commands (`ls`, `cd`, `mkdir`, `touch`, `rm`, `mv`, `cat`, `pwd`) and command history (Up/Down arrow)
-- **Keyboard shortcuts** — `Ctrl+Enter` run, `Ctrl+S` save file, `Ctrl+Shift+S` save all as .zip, `Alt+N` new file, `Alt+Shift+N` new folder, `Ctrl+B` toggle explorer, `` Ctrl+` `` toggle terminal
+- **Keyboard shortcuts** — `Ctrl+Enter` run, `Ctrl+S` save file, `Ctrl+Shift+S` save all as .zip, `Ctrl+Shift+F` search workspace, `Alt+N` new file, `Alt+Shift+N` new folder, `Ctrl+B` toggle explorer, `` Ctrl+` `` toggle terminal
 - **Save & export** — Download the current file or the entire workspace as a `.zip` via a dropdown menu
 - **Destructive action safety** — Undo toast for single-file deletions (5 s window) and confirmation dialog for non-empty directory deletions
 - **Offline persistence** — Files are saved locally in IndexedDB and sync on reconnect
@@ -117,6 +117,7 @@ Open two browser tabs to the same URL (e.g. `http://localhost:5173/collab-code/#
 | `Ctrl+Enter` | Run code |
 | `Ctrl+S` | Download current file |
 | `Ctrl+Shift+S` | Download workspace as .zip |
+| `Ctrl+Shift+F` | Search workspace |
 | `Alt+N` | New file |
 | `Alt+Shift+N` | New folder |
 | `Ctrl+B` | Toggle file explorer |

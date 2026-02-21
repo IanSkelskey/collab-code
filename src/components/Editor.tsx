@@ -12,6 +12,7 @@ export interface EditorHandle {
   setMarkers: (markers: DiagnosticMarker[]) => void;
   clearMarkers: () => void;
   format: () => void;
+  revealLine: (line: number, col: number) => void;
 }
 
 interface EditorProps {
@@ -109,6 +110,12 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     },
     format: () => {
       monacoEditor?.getAction('editor.action.formatDocument')?.run();
+    },
+    revealLine: (line: number, col: number) => {
+      if (!monacoEditor) return;
+      monacoEditor.revealLineInCenter(line);
+      monacoEditor.setPosition({ lineNumber: line, column: col });
+      monacoEditor.focus();
     },
   }), [monacoEditor, activeFile, applyMarkersForFile]);
 

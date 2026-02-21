@@ -11,6 +11,7 @@ const shortcuts: { keys: string; desc: string }[] = [
   { keys: 'Ctrl + Enter', desc: 'Run code' },
   { keys: 'Ctrl + S', desc: 'Download current file' },
   { keys: 'Ctrl + Shift + S', desc: 'Download workspace as .zip' },
+  { keys: 'Ctrl + Shift + F', desc: 'Search workspace' },
   { keys: 'Alt + N', desc: 'New file' },
   { keys: 'Alt + Shift + N', desc: 'New folder' },
   { keys: 'Alt + Shift + F', desc: 'Format document' },

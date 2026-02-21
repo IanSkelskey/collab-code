@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 interface UseKeyboardShortcutsOptions {
   setExplorerVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setTerminalVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setSearchVisible: React.Dispatch<React.SetStateAction<boolean>>;
   handleSaveFile: () => void;
   handleSaveAll: () => Promise<void>;
 }
@@ -10,6 +11,7 @@ interface UseKeyboardShortcutsOptions {
 export function useKeyboardShortcuts({
   setExplorerVisible,
   setTerminalVisible,
+  setSearchVisible,
   handleSaveFile,
   handleSaveAll,
 }: UseKeyboardShortcutsOptions) {
@@ -17,11 +19,21 @@ export function useKeyboardShortcuts({
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
-        setExplorerVisible(v => !v);
+        setExplorerVisible(v => {
+          if (!v) setSearchVisible(false);
+          return !v;
+        });
       }
       if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault();
         setTerminalVisible(v => !v);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setSearchVisible(v => {
+          if (!v) setExplorerVisible(false);
+          return !v;
+        });
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -38,5 +50,5 @@ export function useKeyboardShortcuts({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setExplorerVisible, setTerminalVisible, handleSaveFile, handleSaveAll]);
+  }, [setExplorerVisible, setTerminalVisible, setSearchVisible, handleSaveFile, handleSaveAll]);
 }

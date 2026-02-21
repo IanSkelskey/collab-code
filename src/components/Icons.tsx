@@ -170,6 +170,35 @@ export function ExplorerFolderIcon(props: IconProps) {
   );
 }
 
+export function SearchIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ReplaceIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M5 9h14" strokeLinecap="round" />
+      <path d="M15 5l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ReplaceAllIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M5 7h14" strokeLinecap="round" />
+      <path d="M15 3l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 17h14" strokeLinecap="round" />
+      <path d="M15 13l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── Toolbar actions ──
 
 export function FormatIcon(props: IconProps) {

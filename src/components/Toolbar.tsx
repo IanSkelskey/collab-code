@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import PeerAvatars from './PeerAvatars';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import {
-  SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon,
+  SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
   FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon,
 } from './Icons';
@@ -129,10 +129,12 @@ export default function Toolbar({
 
 export interface ActivityBarProps {
   explorerVisible: boolean;
+  searchVisible: boolean;
   codeCopied: boolean;
   fontSize: number;
   activeFileName: string | null;
   onToggleExplorer: () => void;
+  onToggleSearch: () => void;
   onFormat: () => void;
   onCopyCode: () => void;
   onSaveFile: () => void;
@@ -144,10 +146,12 @@ export interface ActivityBarProps {
 
 export function ActivityBar({
   explorerVisible,
+  searchVisible,
   codeCopied,
   fontSize,
   activeFileName,
   onToggleExplorer,
+  onToggleSearch,
   onFormat,
   onCopyCode,
   onSaveFile,
@@ -187,6 +191,19 @@ export function ActivityBar({
         }`}
       >
         <ExplorerFolderIcon className="w-5 h-5" />
+      </button>
+
+      {/* Search */}
+      <button
+        onClick={onToggleSearch}
+        title="Search Files (Ctrl+Shift+F)"
+        className={`p-2 rounded transition-colors cursor-pointer ${
+          searchVisible
+            ? 'text-white bg-zinc-700/50'
+            : 'text-zinc-500 hover:text-zinc-300'
+        }`}
+      >
+        <SearchIcon className="w-5 h-5" />
       </button>
 
       <div className="flex-1" />
