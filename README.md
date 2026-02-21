@@ -5,7 +5,7 @@
 <h1 align="center">Collab Code — Collaborative Java IDE</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta--2-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta" />
+  <img src="https://img.shields.io/badge/version-1.0.0--beta--3-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta" />
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ A collaborative Java development environment for real-time pair programming. Sha
 | Build tool | Vite 6 |
 | Code editor | Monaco Editor (`@monaco-editor/react`) |
 | Collaboration | Yjs + y-websocket + y-indexeddb + y-monaco |
-| Java execution | Interactive via WebSocket (server-side `javac`/`java`), Judge0 CE fallback |
+| Java execution | Interactive via WebSocket (server-side `javac`/`java`) |
 | Terminal UI | xterm.js (`@xterm/xterm`) |
 | Styling | Tailwind CSS v4 |
 | Zip export | JSZip |
@@ -126,7 +126,7 @@ Open two browser tabs to the same URL (e.g. `http://localhost:5173/collab-code/#
 
 ### Frontend (GitHub Pages)
 
-Push to `main` and the included GitHub Actions workflow builds and deploys to GitHub Pages automatically. Make sure GitHub Pages is configured to deploy from **GitHub Actions** in your repo settings.
+Tag a release with a `v*` prefix (e.g. `v1.0.0-beta-3`) and the included GitHub Actions workflow builds and deploys to GitHub Pages automatically. Make sure GitHub Pages is configured to deploy from **GitHub Actions** in your repo settings.
 
 Set `VITE_WS_URL` in your `.env` to point to the deployed relay server:
 
@@ -151,11 +151,10 @@ The Docker image includes a JDK so Java compilation and execution happen on the 
 | `VITE_WS_URL` | WebSocket URL for the relay server | `ws://localhost:4444` |
 | `PORT` | Relay server port (server-side) | `4444` |
 | `HOST` | Relay server bind address (server-side) | `0.0.0.0` |
-| `JUDGE0_HOST` | Judge0 CE hostname — fallback execution (server-side) | `ce.judge0.com` |
 
 ## Limitations
 
-- **Java execution requires the server** — Code is compiled and run on the relay server (or proxied to Judge0 CE as fallback)
+- **Java execution requires the server** — Code is compiled and run on the relay server via WebSocket
 - **Render free tier** — The relay server spins down after inactivity; first connection after idle takes ~30s
 - **Peer limit** — Optimized for 2–10 concurrent collaborators per room
 - **No persistent rooms** — If all peers disconnect, the document only survives in each peer's local IndexedDB
