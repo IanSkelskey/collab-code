@@ -74,15 +74,30 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
   // Track the file path currently bound to the editor
   const boundFileRef = useRef<string | null>(null);
 
+  // Store all diagnostic markers across files so we can re-apply on file switch
+  const allMarkersRef = useRef<DiagnosticMarker[]>([]);
+
+  const activeFile = fs?.activeFile ?? null;
+
+  const applyMarkersForFile = useCallback((filePath: string | null) => {
+    const monaco = monacoRef.current;
+    const model = monacoEditor?.getModel();
+    if (!monaco || !model) return;
+    const fileName = filePath?.split('/').pop();
+    const markers = fileName
+      ? allMarkersRef.current.filter(m => !m.file || m.file === fileName)
+      : allMarkersRef.current;
+    monaco.editor.setModelMarkers(model, MARKER_OWNER, markers);
+  }, [monacoEditor]);
+
   useImperativeHandle(ref, () => ({
     getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
     setMarkers: (markers: DiagnosticMarker[]) => {
-      const monaco = monacoRef.current;
-      const model = monacoEditor?.getModel();
-      if (!monaco || !model) return;
-      monaco.editor.setModelMarkers(model, MARKER_OWNER, markers);
+      allMarkersRef.current = markers;
+      applyMarkersForFile(activeFile);
     },
     clearMarkers: () => {
+      allMarkersRef.current = [];
       const monaco = monacoRef.current;
       const model = monacoEditor?.getModel();
       if (!monaco || !model) return;
@@ -91,7 +106,14 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     format: () => {
       monacoEditor?.getAction('editor.action.formatDocument')?.run();
     },
-  }), [monacoEditor]);
+  }), [monacoEditor, activeFile, applyMarkersForFile]);
+
+  // Re-apply markers when switching files
+  useEffect(() => {
+    if (allMarkersRef.current.length > 0) {
+      applyMarkersForFile(activeFile);
+    }
+  }, [activeFile, applyMarkersForFile]);
 
   const handleMount: OnMount = useCallback((ed, monaco) => {
     setMonacoEditor(ed);
@@ -158,7 +180,6 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
   }, [monacoEditor, fontSize]);
 
   // Bind to the active file's Y.Text (or fall back to legacy Y.Text('code'))
-  const activeFile = fs?.activeFile ?? null;
 
   useEffect(() => {
     if (!monacoEditor || !awareness) return;

@@ -36,6 +36,8 @@ export interface VirtualFS {
   cwd: string;
   /** Increments on any file content change (for reactive dependency tracking) */
   contentVersion: number;
+  /** True until the filesystem has been seeded/synced */
+  loading: boolean;
 
   /** Get Y.Text for a file (for editor binding) */
   getFileText: (path: string) => Y.Text | null;
@@ -64,6 +66,12 @@ export interface VirtualFS {
   openFile: (path: string) => void;
   /** Close a tab (and switch active file if needed) */
   closeTab: (path: string) => void;
+  /** Close all tabs */
+  closeAllTabs: () => void;
+  /** Close all tabs except the given one */
+  closeOtherTabs: (path: string) => void;
+  /** Close all tabs to the right of the given one */
+  closeTabsToRight: (path: string) => void;
   /** Set the current working directory */
   setCwd: (path: string) => void;
   /** Resolve a relative path against cwd */
@@ -184,6 +192,9 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   // Content version counter — bumps on any deep change (file content edits)
   const [contentVersion, setContentVersion] = useState(0);
 
+  // Loading state — true until the filesystem has been seeded
+  const [loading, setLoading] = useState(true);
+
   // Track if we've seeded the default file
   const seeded = useRef(false);
 
@@ -222,6 +233,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     const timer = setTimeout(() => {
       if (seeded.current) return;
       seeded.current = true;
+      setLoading(false);
 
       if (fsMap.size === 0) {
         // Check if there's existing code in the old Y.Text('code')
@@ -246,6 +258,21 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
 
     return () => clearTimeout(timer);
   }, [fsMap, ydoc]);
+
+  // Also mark loading=false early if we detect files arriving from sync before the timeout
+  useEffect(() => {
+    if (!loading) return;
+    if (files.length > 0 && !seeded.current) {
+      seeded.current = true;
+      setLoading(false);
+      // Open the first file
+      const firstFile = files[0];
+      if (firstFile && !activeFile) {
+        setActiveFile(firstFile);
+        setOpenTabs([firstFile]);
+      }
+    }
+  }, [files, loading, activeFile]);
 
   // ── Build tree ──
 
@@ -449,6 +476,30 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     });
   }, [activeFile]);
 
+  const closeAllTabs = useCallback(() => {
+    setOpenTabs([]);
+    setActiveFile(null);
+  }, []);
+
+  const closeOtherTabs = useCallback((path: string) => {
+    const norm = normalizePath(path);
+    setOpenTabs(prev => prev.filter(t => t === norm));
+    setActiveFile(norm);
+  }, []);
+
+  const closeTabsToRight = useCallback((path: string) => {
+    const norm = normalizePath(path);
+    setOpenTabs(prev => {
+      const idx = prev.indexOf(norm);
+      if (idx < 0) return prev;
+      const next = prev.slice(0, idx + 1);
+      if (activeFile && !next.includes(activeFile)) {
+        setActiveFile(norm);
+      }
+      return next;
+    });
+  }, [activeFile]);
+
   const resolveFn = useCallback((relativePath: string): string => {
     if (relativePath.startsWith('~')) return normalizePath(relativePath);
     const combined = cwd + '/' + relativePath;
@@ -472,6 +523,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     openTabs,
     cwd,
     contentVersion,
+    loading,
     getFileText,
     readFile,
     writeFile,
@@ -485,6 +537,9 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     rename: renameFn,
     openFile,
     closeTab,
+    closeAllTabs,
+    closeOtherTabs,
+    closeTabsToRight,
     setCwd,
     resolve: resolveFn,
     getAllFiles,

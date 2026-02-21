@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { getIconColor } from '../config/languages';
 import usePeers from '../hooks/usePeers';
@@ -8,16 +8,31 @@ interface TabBarProps {
   fs: VirtualFS;
 }
 
+interface CtxMenu {
+  x: number;
+  y: number;
+  path: string;
+}
+
 export default function TabBar({ fs }: TabBarProps) {
   const { openTabs, activeFile } = fs;
   const { peersByFile } = usePeers();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
+  const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
 
   // Scroll active tab into view when it changes
   useEffect(() => {
     activeTabRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [activeFile]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const handleClick = () => setCtxMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [ctxMenu]);
 
   const handleClose = useCallback((e: React.MouseEvent, path: string) => {
     e.stopPropagation();
@@ -31,6 +46,11 @@ export default function TabBar({ fs }: TabBarProps) {
       fs.closeTab(path);
     }
   }, [fs]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY, path });
+  }, []);
 
   if (openTabs.length === 0) return null;
 
@@ -50,6 +70,7 @@ export default function TabBar({ fs }: TabBarProps) {
             ref={isActive ? activeTabRef : undefined}
             onClick={() => fs.openFile(path)}
             onAuxClick={(e) => handleAuxClick(e, path)}
+            onContextMenu={(e) => handleContextMenu(e, path)}
             title={path.replace('~/', '')}
             className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-r border-zinc-700/30 shrink-0 transition-colors cursor-pointer select-none
               ${isActive
@@ -103,6 +124,33 @@ export default function TabBar({ fs }: TabBarProps) {
           </button>
         );
       })}
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <div
+          className="fixed z-50 bg-[#1e1e2e] border border-zinc-700 rounded shadow-xl py-1 text-xs text-zinc-300 min-w-[160px]"
+          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          onClick={() => setCtxMenu(null)}
+        >
+          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeTab(ctxMenu.path)}>
+            Close
+          </button>
+          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeOtherTabs(ctxMenu.path)}>
+            Close Others
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer"
+            onClick={() => fs.closeTabsToRight(ctxMenu.path)}
+            disabled={openTabs.indexOf(ctxMenu.path) === openTabs.length - 1}
+          >
+            Close to the Right
+          </button>
+          <div className="border-t border-zinc-700 my-1" />
+          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeAllTabs()}>
+            Close All
+          </button>
+        </div>
+      )}
     </div>
   );
 }

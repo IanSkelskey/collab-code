@@ -103,11 +103,7 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
 
         const parseDiagnostics = primaryLanguage.parseDiagnostics;
         if (parseDiagnostics) {
-          const allMarkers = parseDiagnostics(compileOutput);
-          const activeFileName = fs.activeFile?.split('/').pop();
-          const markers = activeFileName
-            ? allMarkers.filter(m => !m.file || m.file === activeFileName)
-            : allMarkers;
+          const markers = parseDiagnostics(compileOutput);
           if (markers.length > 0) editorRef.current?.setMarkers(markers);
         }
 
@@ -142,12 +138,8 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
 
         const parseRuntimeErrors = primaryLanguage.parseRuntimeErrors;
         if (parseRuntimeErrors) {
-          const allRtMarkers = parseRuntimeErrors(runtimeStderr);
-          const activeRtFile = fs.activeFile?.split('/').pop();
-          const rtMarkers = activeRtFile
-            ? allRtMarkers.filter(m => !m.file || m.file === activeRtFile)
-            : allRtMarkers;
-          if (rtMarkers.length > 0) editorRef.current?.setMarkers(rtMarkers);
+          const markers = parseRuntimeErrors(runtimeStderr);
+          if (markers.length > 0) editorRef.current?.setMarkers(markers);
         }
 
         finish();

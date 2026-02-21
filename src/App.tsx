@@ -191,6 +191,11 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
           <div className="flex-1 min-h-[120px]">
             {fs.openTabs.length > 0 ? (
               <Editor ref={editorRef} onRun={handleRun} onFormat={() => pushToast('Document formatted')} fontSize={fontSize} fs={fs} />
+            ) : fs.loading ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-zinc-500 select-none">
+                <div className="w-6 h-6 border-2 border-zinc-600 border-t-emerald-400 rounded-full animate-spin" />
+                <p className="text-xs text-zinc-500">Loading workspace…</p>
+              </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
                 <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
