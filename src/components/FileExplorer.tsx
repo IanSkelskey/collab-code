@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
 import { getLanguageForFile } from '../config/languages';
 import { deleteFileWithUndo, deleteDirWithConfirm } from '../services/fileOps';
+import { FilePlusIcon, FolderPlusIcon } from './Icons';
 import TreeContext from '../context/TreeContext';
 import TreeNode, { FolderIcon, FileIcon, InlineInput } from './TreeNode';
 
@@ -245,22 +246,14 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
             title="New File (Alt+N)"
             className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="11" x2="12" y2="17" strokeLinecap="round" />
-              <line x1="9" y1="14" x2="15" y2="14" strokeLinecap="round" />
-            </svg>
+            <FilePlusIcon className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => handleNewFolder('~')}
             title="New Folder (Alt+Shift+N)"
             className="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="12" y1="11" x2="12" y2="17" strokeLinecap="round" />
-              <line x1="9" y1="14" x2="15" y2="14" strokeLinecap="round" />
-            </svg>
+            <FolderPlusIcon className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

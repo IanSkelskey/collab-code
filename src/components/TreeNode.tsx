@@ -1,36 +1,26 @@
 import type { FSNode } from '../hooks/useVirtualFS';
 import { useTreeContext } from '../context/TreeContext';
 import { getLanguageForFile } from '../config/languages';
+import {
+  ChevronRightIcon, FolderClosedIcon, FolderOpenIcon,
+  FileDocIcon, PlayIcon,
+} from './Icons';
 
 // ── Icons ──
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
-    <svg
+    <ChevronRightIcon
       className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polyline points="9 6 15 12 9 18" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    />
   );
 }
 
 export function FolderIcon({ open }: { open: boolean }) {
   if (open) {
-    return (
-      <svg className="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 19a2 2 0 002-2V9a2 2 0 00-2-2h-7.93a2 2 0 01-1.66-.9l-.82-1.2A2 2 0 007.93 4H4a2 2 0 00-2 2v11a2 2 0 002 2h16z" />
-      </svg>
-    );
+    return <FolderOpenIcon className="w-4 h-4 shrink-0 text-amber-400" />;
   }
-  return (
-    <svg className="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <FolderClosedIcon className="w-4 h-4 shrink-0 text-amber-400" />;
 }
 
 const langSymbol: Record<string, string> = {
@@ -211,9 +201,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
             title={`Run ${getLanguageForFile(node.name)?.extractEntryPointName?.(node.name) ?? node.name}`}
             className="ml-auto p-0.5 rounded text-emerald-500 hover:text-emerald-400 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30 cursor-pointer shrink-0"
           >
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            <PlayIcon className="w-3 h-3" />
           </button>
         )}
       </div>

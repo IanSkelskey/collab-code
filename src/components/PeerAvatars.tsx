@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useCollab } from '../context/CollabContext';
 import usePeers from '../hooks/usePeers';
+import { PencilIcon } from './Icons';
 
 export default function PeerAvatars() {
   const { userName, userColor, setUserName } = useCollab();
@@ -53,9 +54,7 @@ export default function PeerAvatars() {
               {/* Pencil icon overlay on hover (own avatar only) */}
               {isMe && !editing && (
                 <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <PencilIcon className="w-3 h-3 text-white" />
                 </div>
               )}
             </div>

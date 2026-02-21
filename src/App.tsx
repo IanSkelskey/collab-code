@@ -6,6 +6,7 @@ import { useExecution } from './hooks/useExecution';
 import { useDragResize } from './hooks/useDragResize';
 import { useFileExport } from './hooks/useFileExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { TerminalIcon, ChevronDownIcon } from './components/Icons';
 import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
 import FileExplorer from './components/FileExplorer';
@@ -211,14 +212,9 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
               title="Toggle Terminal (Ctrl+`)"
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="4 17 10 11 4 5" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="12" y1="19" x2="20" y2="19" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <TerminalIcon className="w-3.5 h-3.5" strokeWidth={2} />
               Terminal
-              <svg className={`w-3 h-3 transition-transform ${terminalVisible ? 'rotate-0' : 'rotate-180'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <ChevronDownIcon className={`w-3 h-3 transition-transform ${terminalVisible ? 'rotate-0' : 'rotate-180'}`} />
             </button>
             {terminalVisible && (
               <div

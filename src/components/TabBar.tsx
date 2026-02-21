@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { getIconColor } from '../config/languages';
 import usePeers from '../hooks/usePeers';
+import { CloseIcon } from './Icons';
 
 interface TabBarProps {
   fs: VirtualFS;
@@ -97,9 +98,7 @@ export default function TabBar({ fs }: TabBarProps) {
                 ${isActive ? 'opacity-60 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'}
               `}
             >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <CloseIcon className="w-3 h-3" />
             </span>
           </button>
         );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { primaryLanguage } from '../config/languages';
+import { HelpCircleIcon, CloseIcon, InfoCircleIcon } from './Icons';
 
 interface HelpModalProps {
   onClose: () => void;
@@ -53,21 +54,14 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         <div className="px-4 sm:px-5 pt-3 sm:pt-4 border-b border-zinc-700/60">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-              <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
-              </svg>
+              <HelpCircleIcon className="w-4 h-4 text-emerald-400" strokeWidth={2} />
               Help
             </h2>
             <button
               onClick={onClose}
               className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer p-1 -m-1"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" />
-                <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
-              </svg>
+              <CloseIcon className="w-4 h-4" />
             </button>
           </div>
           <div className="flex gap-4">
@@ -128,11 +122,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 hover:bg-zinc-600 transition-colors"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" strokeLinecap="round" />
-              <line x1="12" y1="16" x2="12.01" y2="16" strokeLinecap="round" />
-            </svg>
+            <InfoCircleIcon className="w-3.5 h-3.5" />
             Report a Bug or Request a Feature
           </a>
           <div className="text-xs text-zinc-400 font-mono">v{__APP_VERSION__}</div>

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { primaryLanguage } from '../config/languages';
+import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -103,27 +104,15 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
           {/* Brief feature highlights */}
           <div className="grid grid-cols-3 gap-4 text-center w-full max-w-sm pt-2">
             <div className="flex flex-col items-center gap-1.5">
-              <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 00-3-3.87" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <UsersIcon className="w-5 h-5 text-emerald-400" />
               <span className="text-[11px] text-zinc-500">Real-time collaboration</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polyline points="4 17 10 11 4 5" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="12" y1="19" x2="20" y2="19" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <TerminalIcon className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />
               <span className="text-[11px] text-zinc-500">Run code in-browser</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="8" y1="21" x2="16" y2="21" strokeLinecap="round" />
-                <line x1="12" y1="17" x2="12" y2="21" strokeLinecap="round" />
-              </svg>
+              <MonitorIcon className="w-5 h-5 text-emerald-400" />
               <span className="text-[11px] text-zinc-500">No setup needed</span>
             </div>
           </div>
