@@ -1,5 +1,6 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { primaryLanguage } from '../config/languages';
+import { deleteFileWithUndo, deleteDirWithConfirm } from './fileOps';
 
 // ── Types ──
 
@@ -169,44 +170,12 @@ const commands: Record<string, CommandDef> = {
       const recursive = flags.includes('r');
 
       if (vfs.isFile(target)) {
-        const content = vfs.readFile(target) ?? '';
-        vfs.deleteFile(target);
-        const name = target.split('/').pop() ?? target;
-        ctx.pushToast?.(
-          `Deleted ${name}`,
-          () => { vfs.writeFile(target, content); }
-        );
+        deleteFileWithUndo(vfs, target, ctx.pushToast);
       } else if (vfs.isDirectory(target)) {
         if (!recursive) {
           ctx.term.writeln(`\x1b[31mrm: ${targetArg}: is a directory (use rm -r)\x1b[0m`);
         } else {
-          const allFiles = vfs.files.filter(f => f.startsWith(target + '/'));
-          if (allFiles.length === 0) {
-            vfs.rmdir(target);
-          } else {
-            const dirName = target.split('/').pop() ?? target;
-            ctx.requestConfirm?.(
-              `Delete "${dirName}"?`,
-              `This will permanently delete ${allFiles.length} file${allFiles.length > 1 ? 's' : ''} inside this directory.`,
-              () => {
-                const snapshot: Record<string, string> = {};
-                for (const f of allFiles) {
-                  snapshot[f] = vfs.readFile(f) ?? '';
-                }
-                for (const f of allFiles) vfs.deleteFile(f);
-                vfs.rmdir(target);
-                ctx.pushToast?.(
-                  `Deleted ${dirName}/`,
-                  () => {
-                    vfs.mkdir(target);
-                    for (const [p, c] of Object.entries(snapshot)) {
-                      vfs.writeFile(p, c);
-                    }
-                  }
-                );
-              }
-            );
-          }
+          deleteDirWithConfirm(vfs, target, ctx.pushToast, ctx.requestConfirm);
         }
       } else {
         ctx.term.writeln(`\x1b[31mrm: ${targetArg}: No such file or directory\x1b[0m`);

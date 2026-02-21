@@ -1,14 +1,7 @@
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import type { VirtualFS } from '../hooks/useVirtualFS';
-import { useCollab } from '../context/CollabContext';
 import { getIconColor } from '../config/languages';
-
-/** Peer info attached to a tab */
-interface PeerOnFile {
-  name: string;
-  color: string;
-  clientId: number;
-}
+import usePeers from '../hooks/usePeers';
 
 interface TabBarProps {
   fs: VirtualFS;
@@ -16,39 +9,9 @@ interface TabBarProps {
 
 export default function TabBar({ fs }: TabBarProps) {
   const { openTabs, activeFile } = fs;
-  const { awareness } = useCollab();
+  const { peersByFile } = usePeers();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
-
-  // Track which peers are on which files
-  const [peersByFile, setPeersByFile] = useState<Map<string, PeerOnFile[]>>(new Map());
-
-  useEffect(() => {
-    if (!awareness) return;
-
-    const update = () => {
-      const map = new Map<string, PeerOnFile[]>();
-      const localId = awareness.clientID;
-
-      awareness.getStates().forEach((state, clientId) => {
-        // Skip self
-        if (clientId === localId) return;
-        const file = state.activeFile as string | undefined;
-        const user = state.user as { name: string; color: string } | undefined;
-        if (!file || !user) return;
-
-        const list = map.get(file) ?? [];
-        list.push({ name: user.name, color: user.color, clientId });
-        map.set(file, list);
-      });
-
-      setPeersByFile(map);
-    };
-
-    awareness.on('change', update);
-    update();
-    return () => { awareness.off('change', update); };
-  }, [awareness]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {

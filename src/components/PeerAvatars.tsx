@@ -1,38 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useCollab } from '../context/CollabContext';
-import type { PeerState } from '../types';
+import usePeers from '../hooks/usePeers';
 
 export default function PeerAvatars() {
-  const { awareness, userName, userColor, setUserName } = useCollab();
-  const [peers, setPeers] = useState<PeerState[]>([]);
+  const { userName, userColor, setUserName } = useCollab();
+  const { peers } = usePeers();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!awareness) return;
-
-    const update = () => {
-      const states: PeerState[] = [];
-      awareness.getStates().forEach((state, clientId) => {
-        if (state.user) {
-          states.push({
-            name: state.user.name,
-            color: state.user.color,
-            clientId,
-          });
-        }
-      });
-      setPeers(states);
-    };
-
-    awareness.on('change', update);
-    update();
-
-    return () => {
-      awareness.off('change', update);
-    };
-  }, [awareness]);
 
   useEffect(() => {
     if (editing) {

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
 import { getLanguageForFile } from '../config/languages';
+import { deleteFileWithUndo, deleteDirWithConfirm } from '../services/fileOps';
 import TreeContext from '../context/TreeContext';
 import TreeNode, { FolderIcon, FileIcon, InlineInput } from './TreeNode';
 
@@ -158,45 +159,9 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
 
   const handleDelete = useCallback((node: FSNode) => {
     if (node.type === 'file') {
-      // Snapshot content for undo
-      const content = fs.readFile(node.path) ?? '';
-      fs.deleteFile(node.path);
-      const name = node.path.split('/').pop() ?? node.path;
-      pushToast(`Deleted ${name}`, () => {
-        fs.writeFile(node.path, content);
-        fs.openFile(node.path);
-      });
+      deleteFileWithUndo(fs, node.path, pushToast, () => fs.openFile(node.path));
     } else {
-      // Directory — check if non-empty
-      const childFiles = fs.files.filter(f => f.startsWith(node.path + '/'));
-      if (childFiles.length === 0) {
-        // Empty directory — delete immediately
-        fs.rmdir(node.path);
-      } else {
-        // Non-empty — show confirmation
-        const dirName = node.path.split('/').pop() ?? node.path;
-        requestConfirm(
-          `Delete "${dirName}"?`,
-          `This will permanently delete ${childFiles.length} file${childFiles.length > 1 ? 's' : ''} inside this directory.`,
-          () => {
-            // Snapshot all files for undo
-            const snapshot: Record<string, string> = {};
-            for (const f of childFiles) {
-              snapshot[f] = fs.readFile(f) ?? '';
-            }
-            // Delete all files then directory
-            for (const f of childFiles) fs.deleteFile(f);
-            fs.rmdir(node.path);
-            pushToast(`Deleted ${dirName}/`, () => {
-              // Restore directory and all files
-              fs.mkdir(node.path);
-              for (const [path, content] of Object.entries(snapshot)) {
-                fs.writeFile(path, content);
-              }
-            });
-          }
-        );
-      }
+      deleteDirWithConfirm(fs, node.path, pushToast, requestConfirm);
     }
   }, [fs, pushToast, requestConfirm]);
 
