@@ -2,7 +2,6 @@
  * Lightweight Yjs WebSocket + interactive Java execution server for Collab Code.
  *
  * - Relays Yjs document updates and awareness between clients via WebSocket
- * - Proxies batch code execution to Judge0 CE (fallback, /execute endpoint)
  * - Runs Java interactively on the server with streaming stdin/stdout/stderr
  *   via a dedicated WebSocket endpoint (/exec)
  *
@@ -12,7 +11,6 @@
  */
 
 const http = require('http');
-const https = require('https');
 const { URL } = require('url');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
@@ -23,16 +21,6 @@ const { setupWSConnection } = require('y-websocket/bin/utils');
 
 const PORT = parseInt(process.env.PORT || '4444', 10);
 const HOST = process.env.HOST || '0.0.0.0';
-
-// Judge0 CE public instance — free, no API key required (fallback).
-const JUDGE0_HOST = process.env.JUDGE0_HOST || 'ce.judge0.com';
-const LANGUAGE_IDS = {
-  java: 91,
-  python: 92,
-  javascript: 97,
-  c: 75,
-  cpp: 76,
-};
 
 // Execution limits
 const EXEC_TIMEOUT_MS = 30000;   // 30 seconds
@@ -46,7 +34,7 @@ try {
   javaAvailable = true;
   console.log('[exec] Java compiler (javac) is available — interactive execution enabled');
 } catch {
-  console.log('[exec] Java compiler (javac) NOT found — interactive execution disabled, using Judge0 fallback');
+  console.log('[exec] Java compiler (javac) NOT found — interactive execution disabled');
 }
 
 // ---------------------------------------------------------------------------
@@ -288,101 +276,7 @@ function handleExecConnection(ws) {
   });
 }
 
-// ---------------------------------------------------------------------------
-//  Judge0 batch execution (kept as fallback)
-// ---------------------------------------------------------------------------
-function httpsRequest(method, url, jsonBody) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const data = jsonBody ? JSON.stringify(jsonBody) : null;
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || 443,
-      path: parsed.pathname + parsed.search,
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000,
-    };
-    if (data) options.headers['Content-Length'] = Buffer.byteLength(data);
 
-    const req = https.request(options, (res) => {
-      const chunks = [];
-      res.on('data', (chunk) => chunks.push(chunk));
-      res.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        resolve({ statusCode: res.statusCode, body });
-      });
-    });
-
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    if (data) req.write(data);
-    req.end();
-  });
-}
-
-async function executeCode(body) {
-  const { language, source_code, stdin } = body;
-  const languageId = LANGUAGE_IDS[language] || LANGUAGE_IDS.java;
-  console.log(`[exec] Submitting ${language} (id=${languageId}) to Judge0`);
-
-  try {
-    const judge0Url = `https://${JUDGE0_HOST}/submissions?base64_encoded=false&wait=true`;
-    const { statusCode, body: respBody } = await httpsRequest('POST', judge0Url, {
-      language_id: languageId,
-      source_code,
-      stdin: stdin || '',
-    });
-
-    console.log(`[exec] Judge0 responded with ${statusCode}`);
-
-    if (statusCode >= 200 && statusCode < 300) {
-      const j = JSON.parse(respBody);
-      const result = {
-        language: language || 'java',
-        version: '',
-        run: {
-          stdout: j.stdout || '',
-          stderr: j.stderr || '',
-          code: j.status?.id === 3 ? 0 : (j.status?.id || 1),
-          signal: null,
-          output: (j.stdout || '') + (j.stderr || ''),
-        },
-      };
-      if (j.compile_output) {
-        result.compile = {
-          stdout: '',
-          stderr: j.compile_output,
-          code: j.status?.id === 6 ? 1 : 0,
-          signal: null,
-          output: j.compile_output,
-        };
-      }
-      if (j.message) {
-        result.run.stderr = j.message + (result.run.stderr ? '\n' + result.run.stderr : '');
-        result.run.output = result.run.stderr + result.run.stdout;
-      }
-      return { status: 200, data: result };
-    }
-
-    return { status: statusCode, data: { error: respBody } };
-  } catch (err) {
-    console.log(`[exec] Judge0 failed: ${err.message}`);
-    return { status: 502, data: { error: `Execution backend unavailable: ${err.message}` } };
-  }
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', (c) => chunks.push(c));
-    req.on('end', () => {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }
-      catch (e) { reject(e); }
-    });
-    req.on('error', reject);
-  });
-}
 
 // ---------------------------------------------------------------------------
 //  HTTP server
@@ -395,20 +289,6 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
-    return;
-  }
-
-  // POST /execute — batch execution via Judge0 (fallback)
-  if (req.method === 'POST' && req.url === '/execute') {
-    try {
-      const body = await readBody(req);
-      const result = await executeCode(body);
-      res.writeHead(result.status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result.data));
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid request body' }));
-    }
     return;
   }
 
@@ -461,5 +341,4 @@ server.listen(PORT, HOST, () => {
   console.log(`[collab-code] Server running on ${HOST}:${PORT}`);
   console.log(`[collab-code] Yjs sync: ws://${HOST}:${PORT}/<room>`);
   console.log(`[collab-code] Interactive exec: ws://${HOST}:${PORT}/exec`);
-  console.log(`[collab-code] Judge0 fallback: POST http://${HOST}:${PORT}/execute`);
 });

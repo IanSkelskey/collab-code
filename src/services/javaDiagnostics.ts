@@ -32,7 +32,7 @@ export interface DiagnosticMarker {
 }
 
 /**
- * Parse javac / Judge0 compile output into an array of diagnostic markers.
+ * Parse javac compile output into an array of diagnostic markers.
  */
 export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] {
   if (!compileOutput) return [];
