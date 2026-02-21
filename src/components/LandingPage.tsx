@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { primaryLanguage } from '../config/languages';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -49,14 +50,14 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
             </h2>
             <span className="text-xs text-zinc-500 font-mono -mt-2">v{__APP_VERSION__}</span>
             <p className="text-sm sm:text-base text-zinc-400 max-w-md leading-relaxed">
-              A minimal, collaborative Java IDE built for tutors and students.
+              A minimal, collaborative {primaryLanguage.label} IDE built for tutors and students.
               No installs, no accounts&mdash;just share a link and start
               coding together in real time.
             </p>
             
             {/* Language note */}
             <p className="text-xs text-zinc-500 text-center italic">
-                Currently only supports Java&mdash;more languages coming soon.
+                Currently only supports {primaryLanguage.label}&mdash;more languages coming soon.
             </p>
           </div>
 

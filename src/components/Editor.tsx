@@ -3,7 +3,8 @@ import MonacoEditor, { type OnMount, type Monaco } from '@monaco-editor/react';
 import { MonacoBinding } from 'y-monaco';
 import type { editor } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
-import type { DiagnosticMarker } from '../services/javaDiagnostics';
+import { getMonacoLanguage, primaryLanguage, languages } from '../config/languages';
+import type { DiagnosticMarker } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 
 export interface EditorHandle {
@@ -57,22 +58,6 @@ function formatBraceCode(text: string, tabSize: number): string {
 
 const registeredFormatters = new Set<string>();
 
-/** Derive Monaco language from file extension */
-function languageForFile(path: string): string {
-  if (path.endsWith('.java')) return 'java';
-  if (path.endsWith('.py')) return 'python';
-  if (path.endsWith('.js') || path.endsWith('.mjs')) return 'javascript';
-  if (path.endsWith('.ts') || path.endsWith('.tsx')) return 'typescript';
-  if (path.endsWith('.json')) return 'json';
-  if (path.endsWith('.xml')) return 'xml';
-  if (path.endsWith('.html')) return 'html';
-  if (path.endsWith('.css')) return 'css';
-  if (path.endsWith('.md')) return 'markdown';
-  if (path.endsWith('.c') || path.endsWith('.h')) return 'c';
-  if (path.endsWith('.cpp') || path.endsWith('.hpp')) return 'cpp';
-  return 'plaintext';
-}
-
 const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, onFormat, fontSize = 14, fs }, ref) {
   const { ydoc, awareness } = useCollab();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
@@ -113,10 +98,10 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     monacoRef.current = monaco;
 
     // Register formatting providers for languages without built-in formatters
-    for (const lang of ['java', 'c', 'cpp']) {
-      if (!registeredFormatters.has(lang)) {
-        registeredFormatters.add(lang);
-        monaco.languages.registerDocumentFormattingEditProvider(lang, {
+    for (const lang of languages) {
+      if (lang.braceFormatted && !registeredFormatters.has(lang.monacoLanguage)) {
+        registeredFormatters.add(lang.monacoLanguage);
+        monaco.languages.registerDocumentFormattingEditProvider(lang.monacoLanguage, {
           provideDocumentFormattingEdits(model: editor.ITextModel) {
             const formatted = formatBraceCode(model.getValue(), model.getOptions().tabSize);
             return [{ range: model.getFullModelRange(), text: formatted }];
@@ -203,8 +188,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     // Set language based on file extension
     const model = monacoEditor.getModel();
     if (model && filePath) {
-      const lang = languageForFile(filePath);
-      monacoRef.current?.editor.setModelLanguage(model, lang);
+      monacoRef.current?.editor.setModelLanguage(model, getMonacoLanguage(filePath));
     }
 
     // Create new binding
@@ -242,7 +226,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
   return (
     <div className="h-full w-full">
       <MonacoEditor
-        defaultLanguage="java"
+        defaultLanguage={primaryLanguage.monacoLanguage}
         theme="vs-dark"
         onMount={handleMount}
         options={{

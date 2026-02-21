@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
+import { primaryLanguage } from '../config/languages';
 
 // ── Types ──
 
@@ -170,15 +171,6 @@ function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
 
 // ── Default file ──
 
-const DEFAULT_MAIN = `public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello, Collab Code!");
-    }
-}
-`;
-
-// ── Hook ──
-
 export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
@@ -236,11 +228,12 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
         const oldCode = ydoc.getText('code');
         const content = oldCode.toString();
 
+        const defaultFile = primaryLanguage.defaultFile!;
         const ytext = new Y.Text();
-        ytext.insert(0, content.length > 0 ? content : DEFAULT_MAIN);
-        fsMap.set('~/Main.java', ytext);
-        setActiveFile('~/Main.java');
-        setOpenTabs(['~/Main.java']);
+        ytext.insert(0, content.length > 0 ? content : defaultFile.content);
+        fsMap.set(`~/${defaultFile.name}`, ytext);
+        setActiveFile(`~/${defaultFile.name}`);
+        setOpenTabs([`~/${defaultFile.name}`]);
       } else {
         // Open the first file if none is active
         const firstFile = Array.from(fsMap.keys()).sort()[0];

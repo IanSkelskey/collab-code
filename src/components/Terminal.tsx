@@ -9,6 +9,7 @@ import { Terminal as XTerminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import { primaryLanguage } from '../config/languages';
 
 export interface TerminalHandle {
   write: (text: string) => void;
@@ -122,11 +123,15 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       const narrow = window.innerWidth < 480;
       if (narrow) {
         term.writeln('\x1b[1;36m── Collab Code ──\x1b[0m');
-        term.writeln('\x1b[1;33mJava IDE Terminal\x1b[0m');
+        term.writeln(`\x1b[1;33m${primaryLanguage.label} IDE Terminal\x1b[0m`);
       } else {
-        term.writeln('\x1b[1;36m╔══════════════════════════════════════╗\x1b[0m');
-        term.writeln('\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — Java IDE Terminal    \x1b[1;36m║\x1b[0m');
-        term.writeln('\x1b[1;36m╚══════════════════════════════════════╝\x1b[0m');
+        const termLabel = `${primaryLanguage.label} IDE Terminal`;
+        const innerText = `   Collab Code — ${termLabel}`;
+        const boxWidth = Math.max(38, innerText.length + 4);
+        const rightPad = ' '.repeat(boxWidth - innerText.length);
+        term.writeln(`\x1b[1;36m╔${'═'.repeat(boxWidth)}╗\x1b[0m`);
+        term.writeln(`\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — ${termLabel}${rightPad}\x1b[1;36m║\x1b[0m`);
+        term.writeln(`\x1b[1;36m╚${'═'.repeat(boxWidth)}╝\x1b[0m`);
       }
       term.writeln('');
       term.writeln('  \x1b[1;32mrun\x1b[0m    — compile & execute');

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { primaryLanguage } from '../config/languages';
 
 interface HelpModalProps {
   onClose: () => void;
@@ -22,7 +23,7 @@ const tips: string[] = [
   'Right-click files and folders for rename, delete, and more.',
   'Deleted files show an undo toast — click it within 5 seconds to restore.',
   'Use the terminal for quick file operations: ls, cd, mkdir, touch, rm, mv, cat.',
-  'Java files can be run directly with Ctrl+Enter or the Run button.',
+  `${primaryLanguage.label} files can be run directly with Ctrl+Enter or the Run button.`,
 ];
 
 type Tab = 'shortcuts' | 'tips';

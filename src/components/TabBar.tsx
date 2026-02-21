@@ -1,20 +1,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { useCollab } from '../context/CollabContext';
-
-// ── File icon color by extension ──
-
-function iconColorForFile(name: string): string {
-  if (name.endsWith('.java')) return 'text-orange-400';
-  if (name.endsWith('.py')) return 'text-blue-400';
-  if (name.endsWith('.js') || name.endsWith('.mjs')) return 'text-yellow-400';
-  if (name.endsWith('.ts') || name.endsWith('.tsx')) return 'text-blue-400';
-  if (name.endsWith('.json')) return 'text-amber-300';
-  if (name.endsWith('.md')) return 'text-zinc-300';
-  if (name.endsWith('.html')) return 'text-red-400';
-  if (name.endsWith('.css')) return 'text-purple-400';
-  return 'text-zinc-400';
-}
+import { getIconColor } from '../config/languages';
 
 /** Peer info attached to a tab */
 interface PeerOnFile {
@@ -113,7 +100,7 @@ export default function TabBar({ fs }: TabBarProps) {
             )}
 
             {/* File icon dot */}
-            <span className={`w-2 h-2 rounded-full shrink-0 ${iconColorForFile(name)}`}
+            <span className={`w-2 h-2 rounded-full shrink-0 ${getIconColor(name)}`}
               style={{ backgroundColor: 'currentColor', opacity: isActive ? 1 : 0.6 }}
             />
 

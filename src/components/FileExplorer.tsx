@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
+import { getLanguageForFile } from '../config/languages';
 
 // ── Icons ──
 
@@ -32,13 +33,46 @@ function FolderIcon({ open }: { open: boolean }) {
   );
 }
 
+/** Map language IDs to a short symbol rendered inside the file icon */
+const langSymbol: Record<string, string> = {
+  java: 'J',
+  python: 'Py',
+  javascript: 'JS',
+  typescript: 'TS',
+  json: '{ }',
+  html: '<>',
+  css: '#',
+  markdown: 'M',
+  c: 'C',
+  cpp: 'C+',
+  xml: '<>',
+};
+
 function FileIcon({ name }: { name: string }) {
-  const isJava = name.endsWith('.java');
-  const color = isJava ? 'text-orange-400' : 'text-zinc-400';
+  const lang = getLanguageForFile(name);
+  const color = lang?.iconColor ?? 'text-zinc-400';
+  const symbol = lang ? langSymbol[lang.id] : undefined;
+
   return (
-    <svg className={`w-4 h-4 shrink-0 ${color}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className={`w-4 h-4 shrink-0 ${color}`} viewBox="0 0 24 24" fill="none" strokeWidth="2">
+      {/* File shape */}
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Language symbol overlay */}
+      {symbol && (
+        <text
+          x="12"
+          y="17"
+          textAnchor="middle"
+          fill="currentColor"
+          fontSize={symbol.length > 2 ? '6' : '7.5'}
+          fontWeight="bold"
+          fontFamily="monospace"
+          stroke="none"
+        >
+          {symbol}
+        </text>
+      )}
     </svg>
   );
 }
@@ -242,7 +276,7 @@ function TreeNode({
               onRunFile?.(node.path);
             }}
             disabled={running}
-            title={`Run ${node.name.replace(/\.java$/, '')}`}
+            title={`Run ${getLanguageForFile(node.name)?.extractEntryPointName?.(node.name) ?? node.name}`}
             className="ml-auto p-0.5 rounded text-emerald-500 hover:text-emerald-400 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30 cursor-pointer shrink-0"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
@@ -285,7 +319,7 @@ function TreeNode({
           {creating!.type === 'directory' ? (
             <FolderIcon open={false} />
           ) : (
-            <FileIcon name=".java" />
+            <FileIcon name="" />
           )}
           <InlineInput
             defaultValue=""
@@ -456,8 +490,9 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
 
     // Run option for entry point files
     if (node.type === 'file' && entryPoints.has(node.path) && onRunFile) {
-      const className = node.name.replace(/\.java$/, '');
-      items.push({ label: `Run ${className}`, onClick: () => onRunFile(node.path) });
+      const lang = getLanguageForFile(node.name);
+      const entryName = lang?.extractEntryPointName?.(node.name) ?? node.name;
+      items.push({ label: `Run ${entryName}`, onClick: () => onRunFile(node.path) });
     }
 
     if (node.type === 'directory') {
@@ -597,7 +632,7 @@ export default function FileExplorer({ fs, pushToast, requestConfirm, entryPoint
             {creating.type === 'directory' ? (
               <FolderIcon open={false} />
             ) : (
-              <FileIcon name=".java" />
+              <FileIcon name="" />
             )}
             <InlineInput
               defaultValue=""

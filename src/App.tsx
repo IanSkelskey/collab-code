@@ -12,7 +12,7 @@ import UndoToastContainer, { useUndoToast } from './components/UndoToast';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import { InteractiveExecutor } from './services/interactiveExec';
-import { parseJavaDiagnostics, parseJavaRuntimeErrors } from './services/javaDiagnostics';
+import { primaryLanguage, getLanguageForFile, getMimeType } from './config/languages';
 import JSZip from 'jszip';
 
 function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
@@ -70,16 +70,14 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  // Regex to detect Java entry points: public static void main(String ...)
-  const MAIN_RE = /public\s+static\s+void\s+main\s*\(\s*String/;
-
-  // Compute set of VFS paths that contain a main method (reactive to file content changes)
+  // Compute set of VFS paths that contain an entry point (reactive to file content changes)
   const entryPoints = useMemo(() => {
     const eps = new Set<string>();
     for (const filePath of fs.files) {
-      if (!filePath.endsWith('.java')) continue;
+      const lang = getLanguageForFile(filePath);
+      if (!lang?.entryPointPattern) continue;
       const content = fs.readFile(filePath);
-      if (content && MAIN_RE.test(content)) {
+      if (content && lang.entryPointPattern.test(content)) {
         eps.add(filePath);
       }
     }
@@ -108,13 +106,15 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     let mainClass = explicitMainClass;
     if (!mainClass) {
       const activeRel = fs.activeFile?.startsWith('~/') ? fs.activeFile.slice(2) : fs.activeFile;
-      if (activeRel && activeRel.endsWith('.java') && allFiles[activeRel] && MAIN_RE.test(allFiles[activeRel])) {
-        mainClass = activeRel.split('/').pop()!.replace(/\.java$/, '');
+      const activeLang = activeRel ? getLanguageForFile(activeRel) : undefined;
+      if (activeRel && activeLang?.entryPointPattern && allFiles[activeRel] && activeLang.entryPointPattern.test(allFiles[activeRel])) {
+        mainClass = activeLang.extractEntryPointName?.(activeRel) ?? activeRel.split('/').pop()!;
       } else {
-        // Find first file with a main method
+        // Find first file with an entry point
         for (const [relPath, content] of Object.entries(allFiles)) {
-          if (relPath.endsWith('.java') && MAIN_RE.test(content)) {
-            mainClass = relPath.split('/').pop()!.replace(/\.java$/, '');
+          const lang = getLanguageForFile(relPath);
+          if (lang?.entryPointPattern?.test(content)) {
+            mainClass = lang.extractEntryPointName?.(relPath) ?? relPath.split('/').pop()!;
             break;
           }
         }
@@ -165,12 +165,15 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         });
 
         // Set inline diagnostics in the editor (filter to active file)
-        const allMarkers = parseJavaDiagnostics(compileOutput);
-        const activeFileName = fs.activeFile?.split('/').pop();
-        const markers = activeFileName
-          ? allMarkers.filter(m => !m.file || m.file === activeFileName)
-          : allMarkers;
-        if (markers.length > 0) editorRef.current?.setMarkers(markers);
+        const parseDiagnostics = primaryLanguage.parseDiagnostics;
+        if (parseDiagnostics) {
+          const allMarkers = parseDiagnostics(compileOutput);
+          const activeFileName = fs.activeFile?.split('/').pop();
+          const markers = activeFileName
+            ? allMarkers.filter(m => !m.file || m.file === activeFileName)
+            : allMarkers;
+          if (markers.length > 0) editorRef.current?.setMarkers(markers);
+        }
 
         finish();
       },
@@ -205,12 +208,15 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         }
 
         // Set runtime error markers if any (filter to active file)
-        const allRtMarkers = parseJavaRuntimeErrors(runtimeStderr);
-        const activeRtFile = fs.activeFile?.split('/').pop();
-        const rtMarkers = activeRtFile
-          ? allRtMarkers.filter(m => !m.file || m.file === activeRtFile)
-          : allRtMarkers;
-        if (rtMarkers.length > 0) editorRef.current?.setMarkers(rtMarkers);
+        const parseRuntimeErrors = primaryLanguage.parseRuntimeErrors;
+        if (parseRuntimeErrors) {
+          const allRtMarkers = parseRuntimeErrors(runtimeStderr);
+          const activeRtFile = fs.activeFile?.split('/').pop();
+          const rtMarkers = activeRtFile
+            ? allRtMarkers.filter(m => !m.file || m.file === activeRtFile)
+            : allRtMarkers;
+          if (rtMarkers.length > 0) editorRef.current?.setMarkers(rtMarkers);
+        }
 
         finish();
       },
@@ -271,12 +277,11 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   const handleSaveFile = useCallback(() => {
     const code = editorRef.current?.getCode() ?? '';
     if (!code.trim()) return;
-    const blob = new Blob([code], { type: 'text/x-java' });
+    const activeName = fs.activeFile?.split('/').pop() ?? primaryLanguage.defaultFile!.name;
+    const blob = new Blob([code], { type: getMimeType(activeName) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    // Use active filename or default to Main.java
-    const activeName = fs.activeFile?.split('/').pop() ?? 'Main.java';
     a.download = activeName;
     document.body.appendChild(a);
     a.click();
@@ -693,7 +698,8 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
                 requestConfirm={requestConfirm}
                 entryPoints={entryPoints}
                 onRunFile={(filePath) => {
-                  const className = filePath.split('/').pop()!.replace(/\.java$/, '');
+                  const lang = getLanguageForFile(filePath);
+                  const className = lang?.extractEntryPointName?.(filePath) ?? filePath.split('/').pop()!;
                   handleRun(className);
                 }}
                 running={running}
