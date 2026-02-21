@@ -135,6 +135,7 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         onExitRoom={onExitRoom}
         onSaveAll={handleSaveAll}
         onConfirmLeave={(opts) => setConfirmDialog(opts)}
+        fs={fs}
       />
 
       {/* Main content: Activity bar + Explorer | Editor + Terminal */}

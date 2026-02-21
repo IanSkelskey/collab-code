@@ -19,17 +19,15 @@ export default function usePeers() {
         const user = state.user as { name: string; color: string } | undefined;
         if (!user) return;
 
-        const peer: PeerState = { name: user.name, color: user.color, clientId };
+        const file = state.activeFile as string | undefined;
+        const peer: PeerState = { name: user.name, color: user.color, clientId, activeFile: file };
         all.push(peer);
 
         // Build per-file map (excluding self)
-        if (clientId !== localId) {
-          const file = state.activeFile as string | undefined;
-          if (file) {
-            const list = byFile.get(file) ?? [];
-            list.push(peer);
-            byFile.set(file, list);
-          }
+        if (clientId !== localId && file) {
+          const list = byFile.get(file) ?? [];
+          list.push(peer);
+          byFile.set(file, list);
         }
       });
 

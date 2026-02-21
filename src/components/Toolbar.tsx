@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PeerAvatars from './PeerAvatars';
+import type { VirtualFS } from '../hooks/useVirtualFS';
 import {
   SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
@@ -14,6 +15,7 @@ interface ToolbarProps {
   onRun: () => void;
   onExitRoom: () => void;
   onSaveAll: () => Promise<void>;
+  fs?: VirtualFS;
   onConfirmLeave: (opts: {
     title: string;
     message: string;
@@ -33,6 +35,7 @@ export default function Toolbar({
   onExitRoom,
   onSaveAll,
   onConfirmLeave,
+  fs,
 }: ToolbarProps) {
   const [copied, setCopied] = useState(false);
 
@@ -91,7 +94,7 @@ export default function Toolbar({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <PeerAvatars />
+          <PeerAvatars fs={fs} />
 
           <div
             className={`w-2 h-2 rounded-full shrink-0 ${

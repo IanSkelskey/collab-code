@@ -33,7 +33,9 @@ interface CollabContextValue {
   connected: boolean;
   userName: string;
   userColor: string;
+  peerColors: readonly string[];
   setUserName: (name: string) => void;
+  setUserColor: (color: string) => void;
 }
 
 const CollabContext = createContext<CollabContextValue | null>(null);
@@ -58,14 +60,18 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const [userName, setUserName] = useState(() => {
     return localStorage.getItem('collab-code-username') || getRandomName();
   });
-  const [userColor] = useState(
-    () => PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)]
-  );
+  const [userColor, setUserColor] = useState(() => {
+    return localStorage.getItem('collab-code-color') || PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)];
+  });
 
-  // Persist username to localStorage
+  // Persist username and color to localStorage
   useEffect(() => {
     localStorage.setItem('collab-code-username', userName);
   }, [userName]);
+
+  useEffect(() => {
+    localStorage.setItem('collab-code-color', userColor);
+  }, [userColor]);
 
   // Create provider — only depends on roomId
   useEffect(() => {
@@ -120,7 +126,9 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     connected,
     userName,
     userColor,
+    peerColors: PEER_COLORS,
     setUserName,
+    setUserColor,
   };
 
   return (
