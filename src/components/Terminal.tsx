@@ -9,19 +9,13 @@ import { Terminal as XTerminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import type { VirtualFS } from '../hooks/useVirtualFS';
-import { primaryLanguage } from '../config/languages';
+import { executeCommand, printWelcome } from '../services/terminalCommands';
 
 export interface TerminalHandle {
   write: (text: string) => void;
   writeln: (text: string) => void;
   clear: () => void;
-  /**
-   * Enter interactive execution mode.
-   * While in exec mode, typed text is buffered locally and sent as stdin
-   * one line at a time when Enter is pressed.  Ctrl+C triggers onKill.
-   */
   enterExecMode: (onStdin: (data: string) => void, onKill: () => void) => void;
-  /** Leave execution mode and return to the normal command prompt. */
   exitExecMode: () => void;
 }
 
@@ -119,34 +113,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         try { fit.fit(); } catch { /* container not ready */ }
       });
 
-      // Welcome message — compact for mobile
-      const narrow = window.innerWidth < 480;
-      if (narrow) {
-        term.writeln('\x1b[1;36m── Collab Code ──\x1b[0m');
-        term.writeln(`\x1b[1;33m${primaryLanguage.label} IDE Terminal\x1b[0m`);
-      } else {
-        const termLabel = `${primaryLanguage.label} IDE Terminal`;
-        const innerText = `   Collab Code — ${termLabel}`;
-        const boxWidth = Math.max(38, innerText.length + 4);
-        const rightPad = ' '.repeat(boxWidth - innerText.length);
-        term.writeln(`\x1b[1;36m╔${'═'.repeat(boxWidth)}╗\x1b[0m`);
-        term.writeln(`\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — ${termLabel}${rightPad}\x1b[1;36m║\x1b[0m`);
-        term.writeln(`\x1b[1;36m╚${'═'.repeat(boxWidth)}╝\x1b[0m`);
-      }
-      term.writeln('');
-      term.writeln('  \x1b[1;32mrun\x1b[0m    — compile & execute');
-      term.writeln('  \x1b[1;32mls\x1b[0m     — list files');
-      term.writeln('  \x1b[1;32mcd\x1b[0m     — change directory');
-      term.writeln('  \x1b[1;32mmkdir\x1b[0m  — create directory');
-      term.writeln('  \x1b[1;32mtouch\x1b[0m  — create file');
-      term.writeln('  \x1b[1;32mrm\x1b[0m     — remove file or directory');
-      term.writeln('  \x1b[1;32mmv\x1b[0m     — move / rename');
-      term.writeln('  \x1b[1;32mcat\x1b[0m    — print file contents');
-      term.writeln('  \x1b[1;32mpwd\x1b[0m    — print working directory');
-      term.writeln('  \x1b[1;32mclear\x1b[0m  — clear terminal');
-      term.writeln('  \x1b[1;32mreset\x1b[0m  — clear data & reload');
-      term.writeln('  \x1b[1;32mhelp\x1b[0m   — show commands');
-      term.writeln('');
+      printWelcome(term);
       writePrompt();
 
       // Handle user input
@@ -245,230 +212,16 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           const parts = raw.split(/\s+/);
           const cmd = parts[0]?.toLowerCase() ?? '';
           const arg = parts.slice(1).join(' ');
-          const vfs = fsRef.current;
 
-          if (cmd === 'run') {
-            onRunRef.current?.();
-          } else if (cmd === 'clear') {
-            term.clear();
-            writePrompt();
-          } else if (cmd === 'ls') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else {
-              const target = arg ? vfs.resolve(arg) : vfs.cwd;
-              if (!vfs.isDirectory(target)) {
-                term.writeln(`\x1b[31mls: ${arg || target}: No such directory\x1b[0m`);
-              } else {
-                const entries = vfs.ls(target);
-                for (const entry of entries) {
-                  if (entry.endsWith('/')) {
-                    term.writeln(`\x1b[1;34m${entry.slice(0, -1)}/\x1b[0m`);
-                  } else {
-                    term.writeln(entry);
-                  }
-                }
-                if (entries.length === 0) {
-                  term.writeln('\x1b[2m(empty)\x1b[0m');
-                }
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'cd') {
-            let newCwd: string | undefined;
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else if (!arg || arg === '~') {
-              vfs.setCwd('~');
-              newCwd = '~';
-            } else {
-              const target = vfs.resolve(arg);
-              if (vfs.isDirectory(target)) {
-                vfs.setCwd(target);
-                newCwd = target;
-              } else {
-                term.writeln(`\x1b[31mcd: ${arg}: No such directory\x1b[0m`);
-              }
-            }
-            writePrompt(newCwd);
-          } else if (cmd === 'pwd') {
-            term.writeln(vfs?.cwd ?? '~');
-            writePrompt();
-          } else if (cmd === 'mkdir') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else if (!arg) {
-              term.writeln('\x1b[31mmkdir: missing operand\x1b[0m');
-            } else {
-              const target = vfs.resolve(arg);
-              if (vfs.exists(target)) {
-                term.writeln(`\x1b[31mmkdir: ${arg}: Already exists\x1b[0m`);
-              } else {
-                vfs.mkdir(target);
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'touch') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else if (!arg) {
-              term.writeln('\x1b[31mtouch: missing operand\x1b[0m');
-            } else {
-              const target = vfs.resolve(arg);
-              if (!vfs.isFile(target)) {
-                vfs.writeFile(target, '');
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'rm') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else if (!arg) {
-              term.writeln('\x1b[31mrm: missing operand\x1b[0m');
-            } else {
-              // Support -r / -rf flags
-              const flagMatch = arg.match(/^(-\S+)\s+(.+)/);
-              const flags = flagMatch ? flagMatch[1] : '';
-              const targetArg = flagMatch ? flagMatch[2] : arg;
-              const target = vfs.resolve(targetArg);
-              const recursive = flags.includes('r');
-
-              if (vfs.isFile(target)) {
-                // Single file — delete with undo toast
-                const content = vfs.readFile(target) ?? '';
-                vfs.deleteFile(target);
-                const name = target.split('/').pop() ?? target;
-                pushToastRef.current?.(
-                  `Deleted ${name}`,
-                  () => { vfs.writeFile(target, content); }
-                );
-              } else if (vfs.isDirectory(target)) {
-                if (!recursive) {
-                  term.writeln(`\x1b[31mrm: ${targetArg}: is a directory (use rm -r)\x1b[0m`);
-                } else {
-                  const allFiles = vfs.files.filter(f => f.startsWith(target + '/'));
-                  if (allFiles.length === 0) {
-                    // Empty dir — just remove
-                    vfs.rmdir(target);
-                  } else {
-                    // Non-empty dir — confirm first
-                    const dirName = target.split('/').pop() ?? target;
-                    requestConfirmRef.current?.(
-                      `Delete "${dirName}"?`,
-                      `This will permanently delete ${allFiles.length} file${allFiles.length > 1 ? 's' : ''} inside this directory.`,
-                      () => {
-                        // Snapshot for undo
-                        const snapshot: Record<string, string> = {};
-                        for (const f of allFiles) {
-                          snapshot[f] = vfs.readFile(f) ?? '';
-                        }
-                        for (const f of allFiles) vfs.deleteFile(f);
-                        vfs.rmdir(target);
-                        pushToastRef.current?.(
-                          `Deleted ${dirName}/`,
-                          () => {
-                            vfs.mkdir(target);
-                            for (const [p, c] of Object.entries(snapshot)) {
-                              vfs.writeFile(p, c);
-                            }
-                          }
-                        );
-                      }
-                    );
-                  }
-                }
-              } else {
-                term.writeln(`\x1b[31mrm: ${targetArg}: No such file or directory\x1b[0m`);
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'mv') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else {
-              const mvParts = arg.split(/\s+/);
-              if (mvParts.length < 2) {
-                term.writeln('\x1b[31mmv: usage: mv <source> <dest>\x1b[0m');
-              } else {
-                const src = vfs.resolve(mvParts[0]);
-                const dest = vfs.resolve(mvParts.slice(1).join(' '));
-
-                if (!vfs.exists(src)) {
-                  term.writeln(`\x1b[31mmv: ${mvParts[0]}: No such file or directory\x1b[0m`);
-                } else if (src === '~') {
-                  term.writeln('\x1b[31mmv: cannot move root directory\x1b[0m');
-                } else if (vfs.isDirectory(dest)) {
-                  // Move into existing directory
-                  const name = src.split('/').pop()!;
-                  const newPath = dest + '/' + name;
-                  if (vfs.exists(newPath)) {
-                    term.writeln(`\x1b[31mmv: ${newPath.split('/').pop()}: already exists in target\x1b[0m`);
-                  } else {
-                    vfs.rename(src, newPath);
-                  }
-                } else {
-                  // Rename / move to new path — check parent exists
-                  const destParent = dest.split('/').slice(0, -1).join('/') || '~';
-                  if (!vfs.isDirectory(destParent)) {
-                    term.writeln(`\x1b[31mmv: ${mvParts.slice(1).join(' ')}: No such directory\x1b[0m`);
-                  } else if (vfs.exists(dest)) {
-                    term.writeln(`\x1b[31mmv: ${mvParts.slice(1).join(' ')}: Already exists\x1b[0m`);
-                  } else {
-                    vfs.rename(src, dest);
-                  }
-                }
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'cat') {
-            if (!vfs) {
-              term.writeln('\x1b[31mFilesystem not available\x1b[0m');
-            } else if (!arg) {
-              term.writeln('\x1b[31mcat: missing operand\x1b[0m');
-            } else {
-              const target = vfs.resolve(arg);
-              const content = vfs.readFile(target);
-              if (content === null) {
-                term.writeln(`\x1b[31mcat: ${arg}: No such file\x1b[0m`);
-              } else {
-                if (content) {
-                  content.split('\n').forEach(line => term.writeln(line));
-                }
-              }
-            }
-            writePrompt();
-          } else if (cmd === 'reset') {
-            term.writeln('\x1b[33mClearing room data...\x1b[0m');
-            (async () => {
-              const dbNames = await indexedDB.databases?.() ?? [];
-              for (const db of dbNames) {
-                if (db.name && db.name.startsWith('collab-code-')) {
-                  indexedDB.deleteDatabase(db.name);
-                }
-              }
-              term.writeln('\x1b[32mDone. Reloading...\x1b[0m');
-              setTimeout(() => window.location.reload(), 500);
-            })();
-          } else if (cmd === 'help') {
-            term.writeln('  \x1b[1;32mrun\x1b[0m    — compile & execute');
-            term.writeln('  \x1b[1;32mls\x1b[0m     — list files');
-            term.writeln('  \x1b[1;32mcd\x1b[0m     — change directory');
-            term.writeln('  \x1b[1;32mmkdir\x1b[0m  — create directory');
-            term.writeln('  \x1b[1;32mtouch\x1b[0m  — create file');
-            term.writeln('  \x1b[1;32mrm\x1b[0m     — remove file or dir');
-            term.writeln('  \x1b[1;32mmv\x1b[0m     — move / rename');
-            term.writeln('  \x1b[1;32mcat\x1b[0m    — print file contents');
-            term.writeln('  \x1b[1;32mpwd\x1b[0m    — print working directory');
-            term.writeln('  \x1b[1;32mclear\x1b[0m  — clear terminal');
-            term.writeln('  \x1b[1;32mreset\x1b[0m  — clear data & reload');
-            term.writeln('  \x1b[1;32mhelp\x1b[0m   — show commands');
-            writePrompt();
-          } else if (cmd) {
-            term.writeln(`\x1b[31mUnknown command: ${cmd}\x1b[0m`);
-            writePrompt();
-          } else {
-            writePrompt();
-          }
+          executeCommand(cmd, {
+            term,
+            arg,
+            vfs: fsRef.current,
+            writePrompt,
+            onRun: onRunRef.current,
+            pushToast: pushToastRef.current,
+            requestConfirm: requestConfirmRef.current,
+          });
         } else if (code === 127) {
           // Backspace
           if (inputBuffer.current.length > 0) {
