@@ -144,7 +144,6 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
     entryPoints,
     onRunFile,
     running,
-    pushToast,
   } = useTreeContext();
 
   const isDir = node.type === 'directory';
