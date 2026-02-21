@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { primaryLanguage } from '../config/languages';
-import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
+import { UsersIcon, TerminalIcon, MonitorIcon, HeartIcon, InfoCircleIcon } from './Icons';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -117,11 +117,38 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
             </div>
           </div>
 
+          {/* Get Involved section */}
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <div className="text-xs text-zinc-400 text-center">
+              <span className="font-semibold text-pink-400">Get Involved</span> &mdash; Support, suggest, or contribute!
+            </div>
+            <div className="flex gap-2">
+              <a
+                href="https://github.com/sponsors/IanSkelskey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 border border-zinc-600 hover:border-pink-500/50 hover:text-pink-300 transition-colors"
+              >
+                <HeartIcon className="w-3.5 h-3.5 text-pink-500" />
+                Sponsor
+              </a>
+              <a
+                href="https://github.com/IanSkelskey/collab-code/issues/new/choose"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
+              >
+                <InfoCircleIcon className="w-3.5 h-3.5 text-emerald-400" />
+                Request Bugfix / Feature
+              </a>
+            </div>
+          </div>
+
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="shrink-0 text-center py-3 text-[11px] text-zinc-600 border-t border-zinc-800/50 space-y-1">
+      <footer className="shrink-0 flex flex-col items-center gap-2 py-3 text-[11px] text-zinc-600 border-t border-zinc-800/50">
         <div>Built for CS educators &amp; students</div>
         <div className="text-zinc-500">
           Made with <span className="text-red-400">&#10084;&#65039;</span> by{' '}

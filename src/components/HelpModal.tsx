@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { primaryLanguage } from '../config/languages';
-import { HelpCircleIcon, CloseIcon, InfoCircleIcon } from './Icons';
+import { HelpCircleIcon, CloseIcon, InfoCircleIcon, HeartIcon, MonitorIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 
 interface HelpModalProps {
@@ -29,7 +29,7 @@ const tips: string[] = [
   `${primaryLanguage.label} files can be run directly with Ctrl+Enter or the Run button.`,
 ];
 
-type Tab = 'shortcuts' | 'tips';
+type Tab = 'shortcuts' | 'tips' | 'involved';
 
 export default function HelpModal({ onClose }: HelpModalProps) {
   const [tab, setTab] = useState<Tab>('shortcuts');
@@ -72,6 +72,16 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             >
               Tips
             </button>
+            <button
+              onClick={() => setTab('involved')}
+              className={`pb-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
+                tab === 'involved'
+                  ? 'text-pink-400 border-pink-400'
+                  : 'text-zinc-500 border-transparent hover:text-pink-300'
+              }`}
+            >
+              Get Involved
+            </button>
           </div>
         </div>
 
@@ -99,19 +109,49 @@ export default function HelpModal({ onClose }: HelpModalProps) {
               ))}
             </ul>
           )}
+          {tab === 'involved' && (
+            <div className="flex flex-col items-center pt-3">
+              <div className="mb-2 text-xs text-zinc-400 text-center">
+                <span className="font-semibold text-pink-400">Get Involved</span> &mdash; Support, suggest, or contribute!
+              </div>
+              <div className="flex gap-2 mt-1">
+                <a
+                  href="https://github.com/sponsors/IanSkelskey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 border border-zinc-600 hover:border-pink-500/50 hover:text-pink-300 transition-colors"
+                  style={{ minWidth: 120, justifyContent: 'center' }}
+                >
+                  <HeartIcon className="w-3.5 h-3.5 text-pink-500" />
+                  Sponsor
+                </a>
+                <a
+                  href="https://github.com/IanSkelskey/collab-code/issues/new/choose"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
+                  style={{ minWidth: 110, justifyContent: 'center' }}
+                >
+                  <InfoCircleIcon className="w-3.5 h-3.5 text-emerald-400" />
+                  Request Bugfix / Feature
+                </a>
+                <a
+                  href="https://github.com/IanSkelskey/collab-code"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-blue-400/50 hover:text-blue-300 transition-colors"
+                  style={{ minWidth: 100, justifyContent: 'center' }}
+                >
+                  <MonitorIcon className="w-3.5 h-3.5 text-blue-400" />
+                  Contribute
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-zinc-700/60 flex flex-col items-center gap-1.5 sm:gap-2">
-          <a
-            href="https://github.com/IanSkelskey/collab-code/issues/new/choose"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 hover:bg-zinc-600 transition-colors"
-          >
-            <InfoCircleIcon className="w-3.5 h-3.5" />
-            Report a Bug or Request a Feature
-          </a>
           <div className="text-xs text-zinc-400 font-mono">v{__APP_VERSION__}</div>
           <span className="text-xs text-zinc-400">
             Made with <span className="text-red-400">❤️</span> by{' '}
