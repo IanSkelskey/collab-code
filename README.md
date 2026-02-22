@@ -5,7 +5,7 @@
 <h1 align="center">Collab Code — Collaborative Java IDE</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta--3-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta" />
+  <img src="https://img.shields.io/badge/version-1.0.0--beta--4-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta" />
 </p>
 
 <p align="center">
