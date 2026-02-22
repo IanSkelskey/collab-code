@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { primaryLanguage } from '../config/languages';
-import { UsersIcon, TerminalIcon, MonitorIcon, HeartIcon, InfoCircleIcon } from './Icons';
+import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
+import GetInvolvedActions from './GetInvolvedActions';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -118,30 +119,11 @@ export default function LandingPage({ onEnterRoom }: LandingPageProps) {
           </div>
 
           {/* Get Involved section */}
-          <div className="mt-8 flex flex-col items-center gap-2">
+          <div className="mt-8 flex flex-col items-center gap-2 w-full max-w-sm">
             <div className="text-xs text-zinc-400 text-center">
               <span className="font-semibold text-pink-400">Get Involved</span> &mdash; Support, suggest, or contribute!
             </div>
-            <div className="flex gap-2">
-              <a
-                href="https://github.com/sponsors/IanSkelskey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 border border-zinc-600 hover:border-pink-500/50 hover:text-pink-300 transition-colors"
-              >
-                <HeartIcon className="w-3.5 h-3.5 text-pink-500" />
-                Sponsor
-              </a>
-              <a
-                href="https://github.com/IanSkelskey/collab-code/issues/new/choose"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-emerald-400/50 hover:text-emerald-300 transition-colors"
-              >
-                <InfoCircleIcon className="w-3.5 h-3.5 text-emerald-400" />
-                Request Bugfix / Feature
-              </a>
-            </div>
+            <GetInvolvedActions />
           </div>
 
         </div>
