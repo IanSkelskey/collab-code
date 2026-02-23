@@ -37,6 +37,7 @@ const langSymbol: Record<string, string> = {
   c: 'C',
   cpp: 'C+',
   xml: '<>',
+  sql: 'S',
 };
 
 export function FileIcon({ name }: { name: string }) {

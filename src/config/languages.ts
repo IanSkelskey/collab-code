@@ -130,6 +130,14 @@ const languages: LanguageConfig[] = [
     mimeType: 'text/x-c++src',
     braceFormatted: true,
   },
+  {
+    id: `sql`,
+    label: 'SQL',
+    extensions: ['.sql'],
+    monacoLanguage: 'sql',
+    iconColor: 'text-green-400',
+    mimeType: 'text/x-sql',
+  }
 ];
 
 // Build lookup map for O(1) extension-based access
