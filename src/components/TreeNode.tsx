@@ -7,6 +7,7 @@ import {
   ChevronRightIcon, FolderClosedIcon, FolderOpenIcon,
   FileDocIcon, PlayIcon,
 } from './Icons';
+import { iconsByName } from './fileIcons';
 
 // ── Icons ──
 
@@ -25,44 +26,17 @@ export function FolderIcon({ open }: { open: boolean }) {
   return <FolderClosedIcon className="w-4 h-4 shrink-0 text-amber-400" />;
 }
 
-const langSymbol: Record<string, string> = {
-  java: 'J',
-  python: 'Py',
-  javascript: 'JS',
-  typescript: 'TS',
-  json: '{ }',
-  html: '<>',
-  css: '#',
-  markdown: 'M',
-  c: 'C',
-  cpp: 'C+',
-  xml: '<>',
-  sql: 'S',
-};
 
 export function FileIcon({ name }: { name: string }) {
   const lang = getLanguageForFile(name);
   const color = lang?.iconColor ?? 'text-zinc-400';
-  const symbol = lang ? langSymbol[lang.id] : undefined;
+  const iconKey = lang?.iconName ?? lang?.id;
+  const IconComp = iconKey ? iconsByName[iconKey] : undefined;
 
-  return (
-    <FileDocIcon className={`w-4 h-4 shrink-0 ${color}`}>
-      {symbol && (
-        <text
-          x="12"
-          y="17"
-          textAnchor="middle"
-          fill="currentColor"
-          fontSize={symbol.length > 2 ? '6' : '7.5'}
-          fontWeight="bold"
-          fontFamily="monospace"
-          stroke="none"
-        >
-          {symbol}
-        </text>
-      )}
-    </FileDocIcon>
-  );
+  if (IconComp) {
+    return <IconComp className={`w-4 h-4 shrink-0 ${color}`} />;
+  }
+  return <FileDocIcon className={`w-4 h-4 shrink-0 ${color}`} />;
 }
 
 // ── Inline rename/create input ──

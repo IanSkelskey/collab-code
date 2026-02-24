@@ -11,6 +11,8 @@ export interface LanguageConfig {
   monacoLanguage: string;
   /** Tailwind CSS color class for file icons (e.g. 'text-orange-400') */
   iconColor: string;
+  /** Optional icon mapping key (resolved to an icon component elsewhere) */
+  iconName?: string;
   /** MIME type for file downloads */
   mimeType: string;
   /** Default file to create for new workspaces (only for primary/runnable languages) */
@@ -36,6 +38,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.java'],
     monacoLanguage: 'java',
     iconColor: 'text-orange-400',
+    iconName: 'java',
     mimeType: 'text/x-java',
     defaultFile: {
       name: 'Main.java',
@@ -54,6 +57,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.py'],
     monacoLanguage: 'python',
     iconColor: 'text-blue-400',
+    iconName: 'python',
     mimeType: 'text/x-python',
   },
   {
@@ -62,6 +66,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.js', '.mjs'],
     monacoLanguage: 'javascript',
     iconColor: 'text-yellow-400',
+    iconName: 'js',
     mimeType: 'text/javascript',
   },
   {
@@ -70,6 +75,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.ts', '.tsx'],
     monacoLanguage: 'typescript',
     iconColor: 'text-blue-400',
+    iconName: 'ts',
     mimeType: 'text/typescript',
   },
   {
@@ -78,6 +84,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.json'],
     monacoLanguage: 'json',
     iconColor: 'text-amber-300',
+    iconName: 'json',
     mimeType: 'application/json',
   },
   {
@@ -94,6 +101,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.html'],
     monacoLanguage: 'html',
     iconColor: 'text-red-400',
+    iconName: 'html',
     mimeType: 'text/html',
   },
   {
@@ -102,6 +110,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.css'],
     monacoLanguage: 'css',
     iconColor: 'text-purple-400',
+    iconName: 'css',
     mimeType: 'text/css',
   },
   {
@@ -110,6 +119,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.md'],
     monacoLanguage: 'markdown',
     iconColor: 'text-zinc-300',
+    iconName: 'markdown',
     mimeType: 'text/markdown',
   },
   {
@@ -118,6 +128,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.c', '.h'],
     monacoLanguage: 'c',
     iconColor: 'text-zinc-400',
+    iconName: 'c',
     mimeType: 'text/x-csrc',
     braceFormatted: true,
   },
@@ -127,6 +138,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.cpp', '.hpp'],
     monacoLanguage: 'cpp',
     iconColor: 'text-zinc-400',
+    iconName: 'cpp',
     mimeType: 'text/x-c++src',
     braceFormatted: true,
   },
@@ -136,6 +148,7 @@ const languages: LanguageConfig[] = [
     extensions: ['.sql'],
     monacoLanguage: 'sql',
     iconColor: 'text-green-400',
+    iconName: 'sql',
     mimeType: 'text/x-sql',
   }
 ];
