@@ -18,6 +18,7 @@ import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
 import { getLanguageForFile } from './config/languages';
+import { importDataTransfer } from './services/importDrop';
 
 function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   const { ydoc, peerCount, roomId, connected, awareness } = useCollab();
@@ -35,6 +36,8 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
   const [terminalHeight, setTerminalHeight] = useState(250);
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [osDragActive, setOsDragActive] = useState(false);
+  const dragCounter = useRef(0);
 
   // Undo toast + confirm dialog state
   const { toasts, pushToast, dismissToast } = useUndoToast();
@@ -148,8 +151,44 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     setFontSize(s => { const next = Math.max(s - 2, 8); pushToast(`Font size: ${next}`); return next; });
   }, [pushToast]);
 
+  // OS drag-and-drop import (files/folders)
+  const onOsDragEnter = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragCounter.current++;
+    setOsDragActive(true);
+  }, []);
+
+  const onOsDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const onOsDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setOsDragActive(false);
+  }, []);
+
+  const onOsDrop = useCallback(async (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    dragCounter.current = 0;
+    setOsDragActive(false);
+    const count = await importDataTransfer(fs, e.dataTransfer, '~');
+    if (count > 0) {
+      pushToast(count === 1 ? 'Imported 1 file' : `Imported ${count} files`);
+    }
+  }, [fs, pushToast]);
+
   return (
-    <div className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-hidden">
+    <div
+      className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-hidden"
+      onDragEnter={onOsDragEnter}
+      onDragOver={onOsDragOver}
+      onDragLeave={onOsDragLeave}
+      onDrop={onOsDrop}
+    >
       {/* Top header toolbar */}
       <Toolbar
         roomId={roomId}
@@ -288,6 +327,16 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
 
       <UndoToastContainer toasts={toasts} onDismiss={dismissToast} />
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+
+      {/* OS Drop overlay */}
+      {osDragActive && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="mx-4 max-w-md w-full border-2 border-dashed border-emerald-400/60 bg-[#0d1117]/80 rounded-lg px-6 py-8 text-center">
+            <p className="text-sm text-emerald-300 font-medium">Drop files or folders to import</p>
+            <p className="text-[11px] text-zinc-400 mt-1">They’ll be added under ~/</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
