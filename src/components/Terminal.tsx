@@ -120,14 +120,44 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
 
       // Guard: prevent backspace/delete from erasing the prompt when input is empty
       term.attachCustomKeyEventHandler((e) => {
-        if (execStdinCallback.current) return true; // exec mode handles its own guards
+        if (execStdinCallback.current) {
+          if (e.type !== 'keydown') return true;
+          if (e.key === 'Backspace' && execCursorPos.current === 0) return false;
+          return true;
+        }
         if (e.type !== 'keydown') return true;
-        if (e.key === 'Backspace' && cursorPos.current === 0 && !e.ctrlKey) return false;
+        if (e.key === 'Backspace' && cursorPos.current === 0) return false;
         if (e.key === 'Delete' && cursorPos.current >= inputBuffer.current.length) return false;
         return true;
       });
 
       // ── Input helpers ──
+
+      /** Delete the word before the cursor in a buffer and update the terminal. */
+      function deleteWordBack(
+        bufRef: { current: string },
+        posRef: { current: number },
+      ) {
+        const buf = bufRef.current;
+        const pos = posRef.current;
+        if (pos === 0) return;
+
+        let i = pos;
+        // Skip spaces
+        while (i > 0 && buf[i - 1] === ' ') i--;
+        // Skip word chars
+        while (i > 0 && buf[i - 1] !== ' ') i--;
+
+        const deleted = pos - i;
+        if (deleted === 0) return;
+
+        bufRef.current = buf.slice(0, i) + buf.slice(pos);
+        posRef.current = i;
+
+        // Move cursor back, redraw tail, erase leftover, reposition
+        const tail = bufRef.current.slice(i);
+        term.write('\b'.repeat(deleted) + tail + ' '.repeat(deleted) + `\x1b[${tail.length + deleted}D`);
+      }
 
       /** Insert text into a buffer ref at a cursor position ref and update the terminal. */
       function insertAtCursor(
@@ -198,6 +228,11 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             execLineBuffer.current = '';
             execCursorPos.current = 0;
             execStdinCallback.current(line);
+            return;
+          }
+          if (code === 8) {
+            // Ctrl+Backspace — delete word
+            deleteWordBack(execLineBuffer, execCursorPos);
             return;
           }
           if (code === 127) {
@@ -437,6 +472,9 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             pushToast: pushToastRef.current,
             requestConfirm: requestConfirmRef.current,
           });
+        } else if (code === 8) {
+          // Ctrl+Backspace — delete word
+          deleteWordBack(inputBuffer, cursorPos);
         } else if (code === 127) {
           // Backspace
           if (cursorPos.current > 0) {
