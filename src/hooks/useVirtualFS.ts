@@ -210,9 +210,77 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   useEffect(() => {
     refreshState();
 
-    const onFsChange = () => refreshState();
+    const onFsChange = (event: Y.YMapEvent<Y.Text>) => {
+      refreshState();
+
+      // Detect renames (delete + add in same event) and update open tabs
+      const deleted: string[] = [];
+      const added: string[] = [];
+      event.changes.keys.forEach((change, key) => {
+        if (change.action === 'delete') deleted.push(key);
+        else if (change.action === 'add') added.push(key);
+      });
+
+      if (deleted.length > 0 && added.length > 0) {
+        // Build a mapping from old paths to new paths for renames
+        const renameMap = new Map<string, string>();
+
+        // Single file rename: 1 delete + 1 add
+        if (deleted.length === 1 && added.length === 1) {
+          renameMap.set(deleted[0], added[0]);
+        } else {
+          // Directory rename: match by suffix (files share a common prefix change)
+          for (const oldKey of deleted) {
+            for (const newKey of added) {
+              const oldParts = oldKey.split('/');
+              const newParts = newKey.split('/');
+              if (oldParts[oldParts.length - 1] === newParts[newParts.length - 1]) {
+                renameMap.set(oldKey, newKey);
+                break;
+              }
+            }
+          }
+        }
+
+        if (renameMap.size > 0) {
+          setOpenTabs(prev => prev.map(t => renameMap.get(t) ?? t));
+          setActiveFile(prev => prev ? (renameMap.get(prev) ?? prev) : prev);
+        }
+
+        // Only close tabs for files that were deleted without being renamed
+        const pureDeletes = deleted.filter(d => !renameMap.has(d));
+        if (pureDeletes.length > 0) {
+          const removed = new Set(pureDeletes);
+          setOpenTabs(prev => {
+            const next = prev.filter(t => !removed.has(t));
+            if (next.length < prev.length) {
+              setActiveFile(current => {
+                if (current && removed.has(current)) return next[0] ?? null;
+                return current;
+              });
+            }
+            return next;
+          });
+        }
+      } else if (deleted.length > 0) {
+        // Pure deletion (no adds) — close tabs for deleted files
+        const removed = new Set(deleted);
+        setOpenTabs(prev => {
+          const next = prev.filter(t => !removed.has(t));
+          if (next.length < prev.length) {
+            setActiveFile(current => {
+              if (current && removed.has(current)) return next[0] ?? null;
+              return current;
+            });
+          }
+          return next;
+        });
+      }
+    };
     fsMap.observe(onFsChange);
-    fsDirs.observe(onFsChange);
+
+    const onDirsChange = () => refreshState();
+    fsDirs.observe(onDirsChange);
 
     // Deep observer for content changes within files
     const onDeepChange = () => setContentVersion(v => v + 1);
@@ -220,7 +288,7 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
 
     return () => {
       fsMap.unobserve(onFsChange);
-      fsDirs.unobserve(onFsChange);
+      fsDirs.unobserve(onDirsChange);
       fsMap.unobserveDeep(onDeepChange);
     };
   }, [fsMap, fsDirs, refreshState]);
@@ -409,51 +477,61 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     const oldNorm = normalizePath(oldPath);
     const newNorm = normalizePath(newPath);
 
-    if (fsMap.has(oldNorm)) {
-      // It's a file — copy content to new path
-      const oldText = fsMap.get(oldNorm)!;
-      const content = oldText.toString();
-      fsMap.delete(oldNorm);
+    ydoc.transact(() => {
+      if (fsMap.has(oldNorm)) {
+        // It's a file — copy content to new path
+        const oldText = fsMap.get(oldNorm)!;
+        const content = oldText.toString();
+        fsMap.delete(oldNorm);
 
-      const newText = new Y.Text();
-      if (content) newText.insert(0, content);
-      fsMap.set(newNorm, newText);
+        const newText = new Y.Text();
+        if (content) newText.insert(0, content);
+        fsMap.set(newNorm, newText);
+      } else {
+        // It's a directory — rename all files under it
+        const oldPrefix = oldNorm + '/';
+        const keysToMove = Array.from(fsMap.keys()).filter(k => k.startsWith(oldPrefix));
 
+        for (const key of keysToMove) {
+          const oldText = fsMap.get(key)!;
+          const content = oldText.toString();
+          fsMap.delete(key);
+
+          const newKey = newNorm + key.slice(oldNorm.length);
+          const newText = new Y.Text();
+          if (content) newText.insert(0, content);
+          fsMap.set(newKey, newText);
+        }
+
+        // Rename explicit dirs
+        for (let i = fsDirs.length - 1; i >= 0; i--) {
+          const d = fsDirs.get(i);
+          if (d === oldNorm || d.startsWith(oldPrefix)) {
+            fsDirs.delete(i, 1);
+            fsDirs.push([newNorm + d.slice(oldNorm.length)]);
+          }
+        }
+      }
+    });
+
+    // Update local tab/active state after transaction
+    if (fsMap.has(newNorm) && !fsMap.has(oldNorm)) {
+      // Single file rename
       if (activeFile === oldNorm) setActiveFile(newNorm);
       setOpenTabs(prev => prev.map(t => t === oldNorm ? newNorm : t));
     } else {
-      // It's a directory — rename all files under it
+      // Directory rename
       const oldPrefix = oldNorm + '/';
-      const keysToMove = Array.from(fsMap.keys()).filter(k => k.startsWith(oldPrefix));
-
-      for (const key of keysToMove) {
-        const oldText = fsMap.get(key)!;
-        const content = oldText.toString();
-        fsMap.delete(key);
-
-        const newKey = newNorm + key.slice(oldNorm.length);
-        const newText = new Y.Text();
-        if (content) newText.insert(0, content);
-        fsMap.set(newKey, newText);
-
-        if (activeFile === key) setActiveFile(newKey);
-      }
-
       setOpenTabs(prev => prev.map(t => {
+        if (t === oldNorm) return newNorm;
         if (t.startsWith(oldPrefix)) return newNorm + t.slice(oldNorm.length);
         return t;
       }));
-
-      // Rename explicit dirs
-      for (let i = fsDirs.length - 1; i >= 0; i--) {
-        const d = fsDirs.get(i);
-        if (d === oldNorm || d.startsWith(oldPrefix)) {
-          fsDirs.delete(i, 1);
-          fsDirs.push([newNorm + d.slice(oldNorm.length)]);
-        }
+      if (activeFile && (activeFile === oldNorm || activeFile.startsWith(oldNorm + '/'))) {
+        setActiveFile(newNorm + activeFile.slice(oldNorm.length));
       }
     }
-  }, [fsMap, fsDirs, activeFile]);
+  }, [fsMap, fsDirs, activeFile, ydoc]);
 
   const openFile = useCallback((path: string) => {
     const norm = normalizePath(path);
