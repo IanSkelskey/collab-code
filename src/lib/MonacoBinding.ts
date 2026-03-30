@@ -1,6 +1,5 @@
 import { createMutex } from 'lib0/mutex';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
-import type { IDisposable, SelectionDirection, editor } from 'monaco-editor';
+import type { IDisposable, IRange, ISelection, Selection, SelectionDirection, editor } from 'monaco-editor';
 import * as Y from 'yjs';
 
 type RelativeSelection = {
@@ -10,7 +9,7 @@ type RelativeSelection = {
 };
 
 function createRelativeSelection(
-  selection: monaco.Selection,
+  selection: Selection,
   model: editor.ITextModel,
   ytext: Y.Text,
 ): RelativeSelection {
@@ -41,7 +40,7 @@ function restoreMonacoSelection(
   ytext: Y.Text,
   relSelection: RelativeSelection,
   doc: Y.Doc,
-): monaco.Selection | null {
+): ISelection | null {
   const start = Y.createAbsolutePositionFromRelativePosition(relSelection.start, doc);
   const end = Y.createAbsolutePositionFromRelativePosition(relSelection.end, doc);
 
@@ -51,13 +50,21 @@ function restoreMonacoSelection(
 
   const startPos = model.getPositionAt(start.index);
   const endPos = model.getPositionAt(end.index);
-  return monaco.Selection.createWithDirection(
-    startPos.lineNumber,
-    startPos.column,
-    endPos.lineNumber,
-    endPos.column,
-    relSelection.direction,
-  );
+  if (relSelection.direction === 1) {
+    return {
+      selectionStartLineNumber: endPos.lineNumber,
+      selectionStartColumn: endPos.column,
+      positionLineNumber: startPos.lineNumber,
+      positionColumn: startPos.column,
+    };
+  }
+
+  return {
+    selectionStartLineNumber: startPos.lineNumber,
+    selectionStartColumn: startPos.column,
+    positionLineNumber: endPos.lineNumber,
+    positionColumn: endPos.column,
+  };
 }
 
 export class MonacoBinding {
@@ -93,7 +100,12 @@ export class MonacoBinding {
 
         if (op.insert !== undefined) {
           const pos = this.monacoModel.getPositionAt(index);
-          const range = new monaco.Selection(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
+          const range: IRange = {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          };
           this.monacoModel.applyEdits([{ range, text: String(op.insert) }]);
           index += String(op.insert).length;
           return;
@@ -102,7 +114,12 @@ export class MonacoBinding {
         if (op.delete !== undefined) {
           const pos = this.monacoModel.getPositionAt(index);
           const endPos = this.monacoModel.getPositionAt(index + op.delete);
-          const range = new monaco.Selection(pos.lineNumber, pos.column, endPos.lineNumber, endPos.column);
+          const range: IRange = {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: endPos.lineNumber,
+            endColumn: endPos.column,
+          };
           this.monacoModel.applyEdits([{ range, text: '' }]);
         }
       });
@@ -110,7 +127,7 @@ export class MonacoBinding {
       this.savedSelections.forEach((selections, editorInstance) => {
         const restoredSelections = selections
           .map(selection => restoreMonacoSelection(this.monacoModel, this.ytext, selection, this.doc))
-          .filter((selection): selection is monaco.Selection => selection !== null);
+          .filter((selection): selection is ISelection => selection !== null);
 
         if (restoredSelections.length > 0) {
           editorInstance.setSelections(restoredSelections);
