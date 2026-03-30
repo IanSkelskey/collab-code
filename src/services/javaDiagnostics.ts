@@ -43,7 +43,7 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
   // Match lines like:  Main.java:3: error: ';' expected
   // or:                /tmp/collab-exec-xxx/Main.java:3: error: ...
   // or:                Main.java:3: warning: [unchecked] unchecked call
-  const diagnosticPattern = /^(?:.*[\/\\])?(\w+\.java):(\d+):\s*(error|warning):\s*(.+)$/;
+  const diagnosticPattern = /^(?:.*[/\\])?(\w+\.java):(\d+):\s*(error|warning):\s*(.+)$/;
 
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(diagnosticPattern);

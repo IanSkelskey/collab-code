@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { DragEvent, MouseEvent } from 'react';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
 
 export interface TreeContextValue {
@@ -9,12 +10,12 @@ export interface TreeContextValue {
   setRenaming: (path: string | null) => void;
   creating: { parentPath: string; type: 'file' | 'directory' } | null;
   setCreating: (v: { parentPath: string; type: 'file' | 'directory' } | null) => void;
-  onContextMenu: (e: React.MouseEvent, node: FSNode) => void;
+  onContextMenu: (e: MouseEvent, node: FSNode) => void;
   dragTarget: string | null;
-  onDragStartNode: (e: React.DragEvent, node: FSNode) => void;
-  onDragOverNode: (e: React.DragEvent, node: FSNode) => void;
+  onDragStartNode: (e: DragEvent, node: FSNode) => void;
+  onDragOverNode: (e: DragEvent, node: FSNode) => void;
   onDragLeaveNode: () => void;
-  onDropNode: (e: React.DragEvent, node: FSNode) => void;
+  onDropNode: (e: DragEvent, node: FSNode) => void;
   onDragEnd: () => void;
   entryPoints: Set<string>;
   onRunFile?: (path: string) => void;

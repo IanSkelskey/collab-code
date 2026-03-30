@@ -56,14 +56,34 @@ export class CollabProvider {
   }
 
   /** Subscribe to provider events (e.g. 'status'). */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: 'status' | 'sync' | 'connection-close' | 'connection-error', callback: (...args: any[]) => void) {
-    this.wsProvider.on(event, callback);
+  on(
+    event: 'status',
+    callback: (event: { status: 'connected' | 'connecting' | 'disconnected' }) => void,
+  ): void;
+  on(event: 'sync', callback: (state: boolean) => void): void;
+  on(event: 'connection-close' | 'connection-error', callback: (...args: unknown[]) => void): void;
+  on(
+    event: 'status' | 'sync' | 'connection-close' | 'connection-error',
+    callback: ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
+      | ((state: boolean) => void)
+      | ((...args: unknown[]) => void),
+  ) {
+    this.wsProvider.on(event, callback as never);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  off(event: 'status' | 'sync' | 'connection-close' | 'connection-error', callback: (...args: any[]) => void) {
-    this.wsProvider.off(event, callback);
+  off(
+    event: 'status',
+    callback: (event: { status: 'connected' | 'connecting' | 'disconnected' }) => void,
+  ): void;
+  off(event: 'sync', callback: (state: boolean) => void): void;
+  off(event: 'connection-close' | 'connection-error', callback: (...args: unknown[]) => void): void;
+  off(
+    event: 'status' | 'sync' | 'connection-close' | 'connection-error',
+    callback: ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
+      | ((state: boolean) => void)
+      | ((...args: unknown[]) => void),
+  ) {
+    this.wsProvider.off(event, callback as never);
   }
 
   destroy() {

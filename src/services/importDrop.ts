@@ -1,6 +1,13 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
-
-type Entry = any; // FileSystemEntry (webkit); using any for cross-browser typings
+import { joinVfsPath, normalizeVfsPath } from '../lib/vfsPaths';
+import {
+  hasWebkitEntry,
+  isWebkitDirectoryEntry,
+  isWebkitFileEntry,
+  type WebkitDataTransferItem,
+  type WebkitEntry,
+  type WebkitFileSystemDirectoryReader,
+} from '../types/dragAndDrop';
 
 function toPosix(path: string): string {
   return path.replace(/\\/g, '/').replace(/^\//, '');
@@ -28,29 +35,43 @@ function uniquePath(fs: VirtualFS, fullPath: string): string {
 
 async function addFile(fs: VirtualFS, baseDir: string, relPath: string, file: File) {
   const safeRel = toPosix(relPath);
-  const target = `${baseDir}/${safeRel}`.replace(/\/+/g, '/');
-  // Ensure parent dirs exist explicitly only if needed for empty dirs; files imply dirs in tree
+  const target = joinVfsPath(baseDir, safeRel);
   const content = await file.text();
-  const finalPath = uniquePath(fs, target.startsWith('~') ? target : `~/${safeRel}`);
+  const finalPath = uniquePath(fs, target);
   const parent = finalPath.split('/').slice(0, -1).join('/');
   if (parent && !fs.exists(parent)) fs.mkdir(parent);
   fs.writeFile(finalPath, content);
 }
 
-function readEntries(reader: any): Promise<Entry[]> {
-  return new Promise((resolve) => {
-    reader.readEntries((entries: Entry[]) => resolve(entries));
+function readEntries(reader: WebkitFileSystemDirectoryReader): Promise<WebkitEntry[]> {
+  return new Promise((resolve, reject) => {
+    reader.readEntries(
+      (entries) => resolve(entries as WebkitEntry[]),
+      reject,
+    );
   });
 }
 
-async function traverseEntry(fs: VirtualFS, baseDir: string, entry: Entry, prefix = ''): Promise<number> {
-  if (entry.isFile) {
-    const file: File = await new Promise((resolve) => entry.file(resolve));
+async function getEntryFile(entry: WebkitEntry): Promise<File> {
+  return new Promise((resolve, reject) => {
+    if (!isWebkitFileEntry(entry)) {
+      reject(new Error('Expected a file entry'));
+      return;
+    }
+
+    entry.file(resolve, reject);
+  });
+}
+
+async function traverseEntry(fs: VirtualFS, baseDir: string, entry: WebkitEntry, prefix = ''): Promise<number> {
+  if (isWebkitFileEntry(entry)) {
+    const file = await getEntryFile(entry);
     const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
     await addFile(fs, baseDir, rel, file);
     return 1;
   }
-  if (entry.isDirectory) {
+
+  if (isWebkitDirectoryEntry(entry)) {
     const dirPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
     const reader = entry.createReader();
     let count = 0;
@@ -63,8 +84,7 @@ async function traverseEntry(fs: VirtualFS, baseDir: string, entry: Entry, prefi
     }
     // Create explicit empty dir if it had no files
     if (!count) {
-      const full = `${baseDir}/${toPosix(dirPrefix)}`;
-      const norm = full.startsWith('~') ? full : `~/${toPosix(dirPrefix)}`;
+      const norm = normalizeVfsPath(joinVfsPath(baseDir, toPosix(dirPrefix)));
       if (!fs.exists(norm)) fs.mkdir(norm);
     }
     return count;
@@ -81,13 +101,14 @@ export async function importDataTransfer(fs: VirtualFS, dt: DataTransfer, baseDi
   const items = dt.items;
 
   // Prefer webkit entries for proper directory traversal when available
-  const hasEntries = items && items.length && typeof (items[0] as any).webkitGetAsEntry === 'function';
+  const firstItem = items.length > 0 ? items[0] : null;
+  const hasEntries = firstItem ? hasWebkitEntry(firstItem) : false;
   if (hasEntries) {
     const tasks: Promise<number>[] = [];
     for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+      const item = items[i] as WebkitDataTransferItem;
       if (item.kind !== 'file') continue;
-      const entry = (item as any).webkitGetAsEntry?.();
+      const entry = item.webkitGetAsEntry?.() as WebkitEntry | null;
       if (!entry) continue;
       tasks.push(traverseEntry(fs, baseDir, entry));
     }
@@ -100,7 +121,9 @@ export async function importDataTransfer(fs: VirtualFS, dt: DataTransfer, baseDi
   if (dt.files && dt.files.length) {
     const files = Array.from(dt.files);
     for (const f of files) {
-      const rel = (f as any).webkitRelativePath || f.name;
+      const rel = 'webkitRelativePath' in f && typeof f.webkitRelativePath === 'string' && f.webkitRelativePath
+        ? f.webkitRelativePath
+        : f.name;
       await addFile(fs, baseDir, rel, f);
       imported++;
     }

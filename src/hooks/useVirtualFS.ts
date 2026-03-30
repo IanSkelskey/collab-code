@@ -1,20 +1,15 @@
-/**
- * Yjs-backed collaborative virtual filesystem.
- *
- * Data model:
- *   - ydoc.getMap('fs')        → Y.Map<Y.Text>  keyed by absolute path (e.g. "~/Main.java")
- *   - ydoc.getArray('fs-dirs') → Y.Array<string> explicit empty directory paths (e.g. "~/src")
- *
- * Files are stored as Y.Text so each file supports collaborative editing via y-monaco.
- * Directories are implicit (derived from file paths) but empty directories are tracked
- * explicitly in the fs-dirs array.
- */
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { primaryLanguage } from '../config/languages';
-
-// ── Types ──
+import {
+  ROOT_PATH,
+  getBaseName,
+  getParentPath,
+  isRootPath,
+  joinVfsPath,
+  normalizeVfsPath,
+  stripVfsRoot,
+} from '../lib/vfsPaths';
 
 export interface FSNode {
   name: string;
@@ -24,162 +19,106 @@ export interface FSNode {
 }
 
 export interface VirtualFS {
-  /** Full tree starting at ~ */
   tree: FSNode;
-  /** Flat list of all file paths */
   files: string[];
-  /** Currently active file path (open in editor) */
   activeFile: string | null;
-  /** Ordered list of open tab paths */
   openTabs: string[];
-  /** Current working directory (for terminal) */
   cwd: string;
-  /** Increments on any file content change (for reactive dependency tracking) */
   contentVersion: number;
-  /** True until the filesystem has been seeded/synced */
   loading: boolean;
-
-  /** Get Y.Text for a file (for editor binding) */
   getFileText: (path: string) => Y.Text | null;
-  /** Read file content as string */
   readFile: (path: string) => string | null;
-  /** Create or overwrite a file */
   writeFile: (path: string, content?: string) => void;
-  /** Delete a file */
   deleteFile: (path: string) => void;
-  /** Create a directory */
   mkdir: (path: string) => void;
-  /** Delete a directory (must be empty) */
   rmdir: (path: string) => boolean;
-  /** Check if a path exists (file or directory) */
   exists: (path: string) => boolean;
-  /** Check if path is a directory */
   isDirectory: (path: string) => boolean;
-  /** Check if path is a file */
   isFile: (path: string) => boolean;
-  /** List contents of a directory */
   ls: (dirPath: string) => string[];
-  /** Rename/move a file or directory */
   rename: (oldPath: string, newPath: string) => void;
-
-  /** Set the active file (opens it in the editor) */
   openFile: (path: string) => void;
-  /** Close a tab (and switch active file if needed) */
   closeTab: (path: string) => void;
-  /** Close all tabs */
   closeAllTabs: () => void;
-  /** Close all tabs except the given one */
   closeOtherTabs: (path: string) => void;
-  /** Close all tabs to the right of the given one */
   closeTabsToRight: (path: string) => void;
-  /** Set the current working directory */
   setCwd: (path: string) => void;
-  /** Resolve a relative path against cwd */
   resolve: (relativePath: string) => string;
-
-  /** Get all files as a map of path→content (for sending to server) */
   getAllFiles: () => Record<string, string>;
 }
 
-// ── Helpers ──
-
-/** Normalize a path: resolve . and .., collapse //, ensure starts with ~ */
-function normalizePath(p: string): string {
-  // Replace backslashes
-  let path = p.replace(/\\/g, '/');
-
-  // Handle ~/
-  if (!path.startsWith('~')) {
-    path = '~/' + path;
-  }
-
-  const parts = path.split('/').filter(Boolean);
-  const resolved: string[] = [];
-
-  for (const part of parts) {
-    if (part === '.') continue;
-    if (part === '..') {
-      if (resolved.length > 1) resolved.pop(); // Don't go above ~
-      continue;
-    }
-    resolved.push(part);
-  }
-
-  return resolved.join('/') || '~';
+interface UseVirtualFSOptions {
+  storageReady?: boolean;
+  seedDefaultFile?: boolean;
 }
 
-/** Get the parent directory path */
-function parentDir(path: string): string {
-  const parts = path.split('/');
-  if (parts.length <= 1) return '~';
-  return parts.slice(0, -1).join('/');
-}
-
-/** Get the basename of a path */
-function basename(path: string): string {
-  const parts = path.split('/');
-  return parts[parts.length - 1];
-}
-
-/** Build a tree from a flat list of file paths and directory paths */
 function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
-  const root: FSNode = { name: '~', path: '~', type: 'directory', children: [] };
+  const root: FSNode = { name: ROOT_PATH, path: ROOT_PATH, type: 'directory', children: [] };
+  const allDirs = new Set<string>([ROOT_PATH]);
 
-  // Collect all directory paths (implicit from files + explicit)
-  const allDirs = new Set<string>();
-  allDirs.add('~');
-
-  for (const d of dirPaths) {
-    const parts = d.split('/');
-    for (let i = 1; i <= parts.length; i++) {
-      allDirs.add(parts.slice(0, i).join('/'));
+  for (const directoryPath of dirPaths) {
+    const parts = directoryPath.split('/');
+    for (let index = 1; index <= parts.length; index += 1) {
+      allDirs.add(parts.slice(0, index).join('/'));
     }
   }
 
-  for (const f of filePaths) {
-    const parts = f.split('/');
-    for (let i = 1; i < parts.length; i++) {
-      allDirs.add(parts.slice(0, i).join('/'));
+  for (const filePath of filePaths) {
+    const parts = filePath.split('/');
+    for (let index = 1; index < parts.length; index += 1) {
+      allDirs.add(parts.slice(0, index).join('/'));
     }
   }
 
-  // Create directory nodes
-  const nodeMap = new Map<string, FSNode>();
-  nodeMap.set('~', root);
+  const nodeMap = new Map<string, FSNode>([[ROOT_PATH, root]]);
 
-  const sortedDirs = [...allDirs].sort();
-  for (const dir of sortedDirs) {
-    if (dir === '~') continue;
-    const node: FSNode = { name: basename(dir), path: dir, type: 'directory', children: [] };
-    nodeMap.set(dir, node);
-    const parent = nodeMap.get(parentDir(dir));
-    if (parent) parent.children!.push(node);
+  for (const directoryPath of [...allDirs].sort()) {
+    if (directoryPath === ROOT_PATH) continue;
+
+    const directoryNode: FSNode = {
+      name: getBaseName(directoryPath),
+      path: directoryPath,
+      type: 'directory',
+      children: [],
+    };
+
+    nodeMap.set(directoryPath, directoryNode);
+    nodeMap.get(getParentPath(directoryPath))?.children?.push(directoryNode);
   }
 
-  // Add file nodes
-  for (const f of filePaths) {
-    const node: FSNode = { name: basename(f), path: f, type: 'file' };
-    const parent = nodeMap.get(parentDir(f));
-    if (parent) parent.children!.push(node);
+  for (const filePath of filePaths) {
+    const fileNode: FSNode = {
+      name: getBaseName(filePath),
+      path: filePath,
+      type: 'file',
+    };
+
+    nodeMap.get(getParentPath(filePath))?.children?.push(fileNode);
   }
 
-  // Sort children: directories first, then alphabetical
   function sortChildren(node: FSNode) {
     if (!node.children) return;
-    node.children.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
+
+    node.children.sort((left, right) => {
+      if (left.type !== right.type) {
+        return left.type === 'directory' ? -1 : 1;
+      }
+
+      return left.name.localeCompare(right.name);
     });
+
     node.children.forEach(sortChildren);
   }
+
   sortChildren(root);
 
   return root;
 }
 
-// ── Default file ──
-
-export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
+export function useVirtualFS(
+  ydoc: Y.Doc,
+  { storageReady = false, seedDefaultFile = false }: UseVirtualFSOptions = {},
+): VirtualFS {
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
 
@@ -187,25 +126,17 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   const [dirs, setDirs] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [openTabs, setOpenTabs] = useState<string[]>([]);
-  const [cwd, setCwd] = useState('~');
-
-  // Content version counter — bumps on any deep change (file content edits)
+  const [cwd, setCwd] = useState(ROOT_PATH);
   const [contentVersion, setContentVersion] = useState(0);
-
-  // Loading state — true until the filesystem has been seeded
   const [loading, setLoading] = useState(true);
 
-  // Track if we've seeded the default file
-  const seeded = useRef(false);
-
-  // ── Sync state from Yjs ──
+  const bootstrapResolvedRef = useRef(false);
+  const initialFileOpenedRef = useRef(false);
 
   const refreshState = useCallback(() => {
-    const filePaths = Array.from(fsMap.keys()).sort();
-    const dirPaths = fsDirs.toArray();
-    setFiles(filePaths);
-    setDirs(dirPaths);
-  }, [fsMap, fsDirs]);
+    setFiles(Array.from(fsMap.keys()).sort());
+    setDirs(fsDirs.toArray());
+  }, [fsDirs, fsMap]);
 
   useEffect(() => {
     refreshState();
@@ -213,77 +144,86 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     const onFsChange = (event: Y.YMapEvent<Y.Text>) => {
       refreshState();
 
-      // Detect renames (delete + add in same event) and update open tabs
-      const deleted: string[] = [];
-      const added: string[] = [];
+      const deletedPaths: string[] = [];
+      const addedPaths: string[] = [];
+
       event.changes.keys.forEach((change, key) => {
-        if (change.action === 'delete') deleted.push(key);
-        else if (change.action === 'add') added.push(key);
+        if (change.action === 'delete') {
+          deletedPaths.push(key);
+        } else if (change.action === 'add') {
+          addedPaths.push(key);
+        }
       });
 
-      if (deleted.length > 0 && added.length > 0) {
-        // Build a mapping from old paths to new paths for renames
-        const renameMap = new Map<string, string>();
+      if (deletedPaths.length > 0 && addedPaths.length > 0) {
+        const renamedPaths = new Map<string, string>();
 
-        // Single file rename: 1 delete + 1 add
-        if (deleted.length === 1 && added.length === 1) {
-          renameMap.set(deleted[0], added[0]);
+        if (deletedPaths.length === 1 && addedPaths.length === 1) {
+          renamedPaths.set(deletedPaths[0], addedPaths[0]);
         } else {
-          // Directory rename: match by suffix (files share a common prefix change)
-          for (const oldKey of deleted) {
-            for (const newKey of added) {
-              const oldParts = oldKey.split('/');
-              const newParts = newKey.split('/');
-              if (oldParts[oldParts.length - 1] === newParts[newParts.length - 1]) {
-                renameMap.set(oldKey, newKey);
-                break;
-              }
+          for (const oldPath of deletedPaths) {
+            const oldName = getBaseName(oldPath);
+            const nextPath = addedPaths.find((newPath) => getBaseName(newPath) === oldName);
+
+            if (nextPath) {
+              renamedPaths.set(oldPath, nextPath);
             }
           }
         }
 
-        if (renameMap.size > 0) {
-          setOpenTabs(prev => prev.map(t => renameMap.get(t) ?? t));
-          setActiveFile(prev => prev ? (renameMap.get(prev) ?? prev) : prev);
+        if (renamedPaths.size > 0) {
+          setOpenTabs((currentTabs) => currentTabs.map((tab) => renamedPaths.get(tab) ?? tab));
+          setActiveFile((currentFile) => (currentFile ? (renamedPaths.get(currentFile) ?? currentFile) : null));
         }
 
-        // Only close tabs for files that were deleted without being renamed
-        const pureDeletes = deleted.filter(d => !renameMap.has(d));
+        const pureDeletes = deletedPaths.filter((deletedPath) => !renamedPaths.has(deletedPath));
         if (pureDeletes.length > 0) {
-          const removed = new Set(pureDeletes);
-          setOpenTabs(prev => {
-            const next = prev.filter(t => !removed.has(t));
-            if (next.length < prev.length) {
-              setActiveFile(current => {
-                if (current && removed.has(current)) return next[0] ?? null;
-                return current;
+          const removedPaths = new Set(pureDeletes);
+          setOpenTabs((currentTabs) => {
+            const nextTabs = currentTabs.filter((tab) => !removedPaths.has(tab));
+
+            if (nextTabs.length !== currentTabs.length) {
+              setActiveFile((currentFile) => {
+                if (currentFile && removedPaths.has(currentFile)) {
+                  return nextTabs[0] ?? null;
+                }
+
+                return currentFile;
               });
             }
-            return next;
+
+            return nextTabs;
           });
         }
-      } else if (deleted.length > 0) {
-        // Pure deletion (no adds) — close tabs for deleted files
-        const removed = new Set(deleted);
-        setOpenTabs(prev => {
-          const next = prev.filter(t => !removed.has(t));
-          if (next.length < prev.length) {
-            setActiveFile(current => {
-              if (current && removed.has(current)) return next[0] ?? null;
-              return current;
+
+        return;
+      }
+
+      if (deletedPaths.length > 0) {
+        const removedPaths = new Set(deletedPaths);
+        setOpenTabs((currentTabs) => {
+          const nextTabs = currentTabs.filter((tab) => !removedPaths.has(tab));
+
+          if (nextTabs.length !== currentTabs.length) {
+            setActiveFile((currentFile) => {
+              if (currentFile && removedPaths.has(currentFile)) {
+                return nextTabs[0] ?? null;
+              }
+
+              return currentFile;
             });
           }
-          return next;
+
+          return nextTabs;
         });
       }
     };
-    fsMap.observe(onFsChange);
 
     const onDirsChange = () => refreshState();
-    fsDirs.observe(onDirsChange);
+    const onDeepChange = () => setContentVersion((version) => version + 1);
 
-    // Deep observer for content changes within files
-    const onDeepChange = () => setContentVersion(v => v + 1);
+    fsMap.observe(onFsChange);
+    fsDirs.observe(onDirsChange);
     fsMap.observeDeep(onDeepChange);
 
     return () => {
@@ -291,66 +231,54 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
       fsDirs.unobserve(onDirsChange);
       fsMap.unobserveDeep(onDeepChange);
     };
-  }, [fsMap, fsDirs, refreshState]);
+  }, [fsDirs, fsMap, refreshState]);
 
-  // Migrate from old single-file Y.Text('code') to filesystem if needed
   useEffect(() => {
-    if (seeded.current) return;
+    if (!storageReady || bootstrapResolvedRef.current) return;
 
-    // Wait a moment for sync
-    const timer = setTimeout(() => {
-      if (seeded.current) return;
-      seeded.current = true;
-      setLoading(false);
+    bootstrapResolvedRef.current = true;
+    setLoading(false);
 
-      if (fsMap.size === 0) {
-        // Check if there's existing code in the old Y.Text('code')
-        const oldCode = ydoc.getText('code');
-        const content = oldCode.toString();
-
-        const defaultFile = primaryLanguage.defaultFile!;
-        const ytext = new Y.Text();
-        ytext.insert(0, content.length > 0 ? content : defaultFile.content);
-        fsMap.set(`~/${defaultFile.name}`, ytext);
-        setActiveFile(`~/${defaultFile.name}`);
-        setOpenTabs([`~/${defaultFile.name}`]);
-      } else {
-        // Open the first file if none is active
-        const firstFile = Array.from(fsMap.keys()).sort()[0];
-        if (firstFile) {
-          setActiveFile(firstFile);
-          setOpenTabs([firstFile]);
-        }
-      }
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [fsMap, ydoc]);
-
-  // Also mark loading=false early if we detect files arriving from sync before the timeout
-  useEffect(() => {
-    if (!loading) return;
-    if (files.length > 0 && !seeded.current) {
-      seeded.current = true;
-      setLoading(false);
-      // Open the first file
-      const firstFile = files[0];
-      if (firstFile && !activeFile) {
-        setActiveFile(firstFile);
-        setOpenTabs([firstFile]);
-      }
+    if (fsMap.size > 0 || !seedDefaultFile) {
+      return;
     }
-  }, [files, loading, activeFile]);
 
-  // ── Build tree ──
+    const oldCode = ydoc.getText('code').toString();
+    const defaultFile = primaryLanguage.defaultFile;
 
-  const tree = useMemo(() => buildTree(files, dirs), [files, dirs]);
+    if (!defaultFile) {
+      return;
+    }
 
-  // ── File operations ──
+    const defaultPath = joinVfsPath(ROOT_PATH, defaultFile.name);
+    const ytext = new Y.Text();
+    ytext.insert(0, oldCode.length > 0 ? oldCode : defaultFile.content);
+    fsMap.set(defaultPath, ytext);
+    setActiveFile(defaultPath);
+    setOpenTabs([defaultPath]);
+    initialFileOpenedRef.current = true;
+  }, [fsMap, seedDefaultFile, storageReady, ydoc]);
+
+  useEffect(() => {
+    if (files.length === 0 || initialFileOpenedRef.current) return;
+    if (activeFile || openTabs.length > 0) {
+      initialFileOpenedRef.current = true;
+      return;
+    }
+
+    const firstFile = files[0];
+    if (!firstFile) return;
+
+    setActiveFile(firstFile);
+    setOpenTabs([firstFile]);
+    setLoading(false);
+    initialFileOpenedRef.current = true;
+  }, [activeFile, files, openTabs]);
+
+  const tree = useMemo(() => buildTree(files, dirs), [dirs, files]);
 
   const getFileText = useCallback((path: string): Y.Text | null => {
-    const norm = normalizePath(path);
-    return fsMap.get(norm) ?? null;
+    return fsMap.get(normalizeVfsPath(path)) ?? null;
   }, [fsMap]);
 
   const readFile = useCallback((path: string): string | null => {
@@ -358,199 +286,252 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     return ytext ? ytext.toString() : null;
   }, [getFileText]);
 
-  const writeFile = useCallback((path: string, content = '') => {
-    const norm = normalizePath(path);
-    if (!fsMap.has(norm)) {
+  const writeFile = useCallback((path: string, content?: string) => {
+    const normalizedPath = normalizeVfsPath(path);
+    const hasContent = content !== undefined;
+
+    if (!fsMap.has(normalizedPath)) {
       const ytext = new Y.Text();
-      if (content) ytext.insert(0, content);
-      fsMap.set(norm, ytext);
-    } else if (content) {
-      const ytext = fsMap.get(norm)!;
-      ydoc.transact(() => {
-        ytext.delete(0, ytext.length);
+      if (hasContent && content.length > 0) {
         ytext.insert(0, content);
-      });
+      }
+      fsMap.set(normalizedPath, ytext);
+      return;
     }
+
+    if (!hasContent) {
+      return;
+    }
+
+    const ytext = fsMap.get(normalizedPath);
+    if (!ytext) return;
+
+    ydoc.transact(() => {
+      ytext.delete(0, ytext.length);
+      ytext.insert(0, content);
+    });
   }, [fsMap, ydoc]);
 
   const deleteFile = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    fsMap.delete(norm);
-    setOpenTabs(prev => {
-      const next = prev.filter(t => t !== norm);
-      if (activeFile === norm) {
-        // Switch to nearest tab, or fall back to any remaining file
-        const idx = prev.indexOf(norm);
-        const nextActive = next[Math.min(idx, next.length - 1)]
-          ?? Array.from(fsMap.keys()).filter(k => k !== norm).sort()[0]
-          ?? null;
-        setActiveFile(nextActive);
-      }
-      return next;
-    });
-  }, [fsMap, activeFile]);
+    const normalizedPath = normalizeVfsPath(path);
 
-  const mkdirFn = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    // Don't add if it's already implicit from a file
-    const existing = fsDirs.toArray();
-    if (!existing.includes(norm)) {
-      fsDirs.push([norm]);
+    fsMap.delete(normalizedPath);
+
+    setOpenTabs((currentTabs) => {
+      const nextTabs = currentTabs.filter((tab) => tab !== normalizedPath);
+
+      if (activeFile === normalizedPath) {
+        const removedIndex = currentTabs.indexOf(normalizedPath);
+        const nextActiveFile = nextTabs[Math.min(removedIndex, nextTabs.length - 1)]
+          ?? Array.from(fsMap.keys()).filter((key) => key !== normalizedPath).sort()[0]
+          ?? null;
+
+        setActiveFile(nextActiveFile);
+      }
+
+      return nextTabs;
+    });
+  }, [activeFile, fsMap]);
+
+  const mkdir = useCallback((path: string) => {
+    const normalizedPath = normalizeVfsPath(path);
+
+    if (!fsDirs.toArray().includes(normalizedPath)) {
+      fsDirs.push([normalizedPath]);
     }
   }, [fsDirs]);
 
-  const rmdirFn = useCallback((path: string): boolean => {
-    const norm = normalizePath(path);
-    if (norm === '~') return false;
+  const rmdir = useCallback((path: string): boolean => {
+    const normalizedPath = normalizeVfsPath(path);
 
-    // Check if directory has any files
-    const hasFiles = Array.from(fsMap.keys()).some(k => k.startsWith(norm + '/'));
-    if (hasFiles) return false;
-
-    // Remove from explicit dirs
-    const existing = fsDirs.toArray();
-    const idx = existing.indexOf(norm);
-    if (idx >= 0) {
-      fsDirs.delete(idx, 1);
+    if (isRootPath(normalizedPath)) {
+      return false;
     }
 
-    // Also remove any child dirs
-    for (let i = fsDirs.length - 1; i >= 0; i--) {
-      if (fsDirs.get(i).startsWith(norm + '/')) {
-        fsDirs.delete(i, 1);
+    const hasFiles = Array.from(fsMap.keys()).some((key) => key.startsWith(`${normalizedPath}/`));
+    if (hasFiles) {
+      return false;
+    }
+
+    const existingDirectories = fsDirs.toArray();
+    const directIndex = existingDirectories.indexOf(normalizedPath);
+    if (directIndex >= 0) {
+      fsDirs.delete(directIndex, 1);
+    }
+
+    for (let index = fsDirs.length - 1; index >= 0; index -= 1) {
+      if (fsDirs.get(index).startsWith(`${normalizedPath}/`)) {
+        fsDirs.delete(index, 1);
       }
     }
 
     return true;
   }, [fsDirs, fsMap]);
 
-  const existsFn = useCallback((path: string): boolean => {
-    const norm = normalizePath(path);
-    if (norm === '~') return true;
-    if (fsMap.has(norm)) return true;
-    // Check if it's an implicit directory
-    const isImplicitDir = Array.from(fsMap.keys()).some(k => k.startsWith(norm + '/'));
-    if (isImplicitDir) return true;
-    // Check explicit dirs
-    return fsDirs.toArray().includes(norm);
-  }, [fsMap, fsDirs]);
+  const exists = useCallback((path: string): boolean => {
+    const normalizedPath = normalizeVfsPath(path);
 
-  const isDirectoryFn = useCallback((path: string): boolean => {
-    const norm = normalizePath(path);
-    if (norm === '~') return true;
-    if (fsMap.has(norm)) return false; // It's a file
-    return existsFn(norm);
-  }, [fsMap, existsFn]);
-
-  const isFileFn = useCallback((path: string): boolean => {
-    const norm = normalizePath(path);
-    return fsMap.has(norm);
-  }, [fsMap]);
-
-  const lsFn = useCallback((dirPath: string): string[] => {
-    const norm = normalizePath(dirPath);
-    const prefix = norm === '~' ? '~/' : norm + '/';
-    const entries = new Set<string>();
-
-    // Files in this directory
-    for (const key of fsMap.keys()) {
-      if (key.startsWith(prefix)) {
-        const rest = key.slice(prefix.length);
-        const firstSlash = rest.indexOf('/');
-        entries.add(firstSlash >= 0 ? rest.slice(0, firstSlash) + '/' : rest);
-      }
+    if (isRootPath(normalizedPath) || fsMap.has(normalizedPath)) {
+      return true;
     }
 
-    // Explicit dirs in this directory
-    for (const d of fsDirs.toArray()) {
-      if (d.startsWith(prefix)) {
-        const rest = d.slice(prefix.length);
-        const firstSlash = rest.indexOf('/');
-        entries.add(firstSlash >= 0 ? rest.slice(0, firstSlash) + '/' : rest + '/');
-      }
+    if (Array.from(fsMap.keys()).some((key) => key.startsWith(`${normalizedPath}/`))) {
+      return true;
+    }
+
+    return fsDirs.toArray().includes(normalizedPath);
+  }, [fsDirs, fsMap]);
+
+  const isDirectory = useCallback((path: string): boolean => {
+    const normalizedPath = normalizeVfsPath(path);
+
+    if (isRootPath(normalizedPath)) {
+      return true;
+    }
+
+    if (fsMap.has(normalizedPath)) {
+      return false;
+    }
+
+    return exists(normalizedPath);
+  }, [exists, fsMap]);
+
+  const isFile = useCallback((path: string): boolean => {
+    return fsMap.has(normalizeVfsPath(path));
+  }, [fsMap]);
+
+  const ls = useCallback((dirPath: string): string[] => {
+    const normalizedPath = normalizeVfsPath(dirPath);
+    const prefix = isRootPath(normalizedPath) ? `${ROOT_PATH}/` : `${normalizedPath}/`;
+    const entries = new Set<string>();
+
+    for (const key of fsMap.keys()) {
+      if (!key.startsWith(prefix)) continue;
+
+      const remainder = key.slice(prefix.length);
+      const slashIndex = remainder.indexOf('/');
+      entries.add(slashIndex >= 0 ? `${remainder.slice(0, slashIndex)}/` : remainder);
+    }
+
+    for (const directoryPath of fsDirs.toArray()) {
+      if (!directoryPath.startsWith(prefix)) continue;
+
+      const remainder = directoryPath.slice(prefix.length);
+      const slashIndex = remainder.indexOf('/');
+      entries.add(slashIndex >= 0 ? `${remainder.slice(0, slashIndex)}/` : `${remainder}/`);
     }
 
     return [...entries].sort();
-  }, [fsMap, fsDirs]);
+  }, [fsDirs, fsMap]);
 
-  const renameFn = useCallback((oldPath: string, newPath: string) => {
-    const oldNorm = normalizePath(oldPath);
-    const newNorm = normalizePath(newPath);
+  const rename = useCallback((oldPath: string, newPath: string) => {
+    const oldNormalizedPath = normalizeVfsPath(oldPath);
+    const newNormalizedPath = normalizeVfsPath(newPath);
 
     ydoc.transact(() => {
-      if (fsMap.has(oldNorm)) {
-        // It's a file — copy content to new path
-        const oldText = fsMap.get(oldNorm)!;
+      if (fsMap.has(oldNormalizedPath)) {
+        const oldText = fsMap.get(oldNormalizedPath);
+        if (!oldText) return;
+
         const content = oldText.toString();
-        fsMap.delete(oldNorm);
+        fsMap.delete(oldNormalizedPath);
 
         const newText = new Y.Text();
-        if (content) newText.insert(0, content);
-        fsMap.set(newNorm, newText);
-      } else {
-        // It's a directory — rename all files under it
-        const oldPrefix = oldNorm + '/';
-        const keysToMove = Array.from(fsMap.keys()).filter(k => k.startsWith(oldPrefix));
-
-        for (const key of keysToMove) {
-          const oldText = fsMap.get(key)!;
-          const content = oldText.toString();
-          fsMap.delete(key);
-
-          const newKey = newNorm + key.slice(oldNorm.length);
-          const newText = new Y.Text();
-          if (content) newText.insert(0, content);
-          fsMap.set(newKey, newText);
+        if (content) {
+          newText.insert(0, content);
         }
+        fsMap.set(newNormalizedPath, newText);
+        return;
+      }
 
-        // Rename explicit dirs
-        for (let i = fsDirs.length - 1; i >= 0; i--) {
-          const d = fsDirs.get(i);
-          if (d === oldNorm || d.startsWith(oldPrefix)) {
-            fsDirs.delete(i, 1);
-            fsDirs.push([newNorm + d.slice(oldNorm.length)]);
-          }
+      const oldPrefix = `${oldNormalizedPath}/`;
+      const keysToMove = Array.from(fsMap.keys()).filter((key) => key.startsWith(oldPrefix));
+
+      for (const key of keysToMove) {
+        const oldText = fsMap.get(key);
+        if (!oldText) continue;
+
+        const content = oldText.toString();
+        fsMap.delete(key);
+
+        const newKey = `${newNormalizedPath}${key.slice(oldNormalizedPath.length)}`;
+        const newText = new Y.Text();
+        if (content) {
+          newText.insert(0, content);
         }
+        fsMap.set(newKey, newText);
+      }
+
+      const renamedDirectories: string[] = [];
+      for (let index = fsDirs.length - 1; index >= 0; index -= 1) {
+        const directoryPath = fsDirs.get(index);
+        if (directoryPath === oldNormalizedPath || directoryPath.startsWith(oldPrefix)) {
+          renamedDirectories.push(`${newNormalizedPath}${directoryPath.slice(oldNormalizedPath.length)}`);
+          fsDirs.delete(index, 1);
+        }
+      }
+
+      if (renamedDirectories.length > 0) {
+        fsDirs.push(renamedDirectories.reverse());
       }
     });
 
-    // Update local tab/active state after transaction
-    if (fsMap.has(newNorm) && !fsMap.has(oldNorm)) {
-      // Single file rename
-      if (activeFile === oldNorm) setActiveFile(newNorm);
-      setOpenTabs(prev => prev.map(t => t === oldNorm ? newNorm : t));
-    } else {
-      // Directory rename
-      const oldPrefix = oldNorm + '/';
-      setOpenTabs(prev => prev.map(t => {
-        if (t === oldNorm) return newNorm;
-        if (t.startsWith(oldPrefix)) return newNorm + t.slice(oldNorm.length);
-        return t;
-      }));
-      if (activeFile && (activeFile === oldNorm || activeFile.startsWith(oldNorm + '/'))) {
-        setActiveFile(newNorm + activeFile.slice(oldNorm.length));
+    if (fsMap.has(newNormalizedPath)) {
+      if (activeFile === oldNormalizedPath) {
+        setActiveFile(newNormalizedPath);
       }
+
+      setOpenTabs((currentTabs) => currentTabs.map((tab) => (
+        tab === oldNormalizedPath ? newNormalizedPath : tab
+      )));
+      return;
     }
-  }, [fsMap, fsDirs, activeFile, ydoc]);
+
+    const oldPrefix = `${oldNormalizedPath}/`;
+
+    setOpenTabs((currentTabs) => currentTabs.map((tab) => {
+      if (tab === oldNormalizedPath) {
+        return newNormalizedPath;
+      }
+
+      if (tab.startsWith(oldPrefix)) {
+        return `${newNormalizedPath}${tab.slice(oldNormalizedPath.length)}`;
+      }
+
+      return tab;
+    }));
+
+    if (activeFile && (activeFile === oldNormalizedPath || activeFile.startsWith(oldPrefix))) {
+      setActiveFile(`${newNormalizedPath}${activeFile.slice(oldNormalizedPath.length)}`);
+    }
+  }, [activeFile, fsDirs, fsMap, ydoc]);
 
   const openFile = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    if (fsMap.has(norm)) {
-      setActiveFile(norm);
-      setOpenTabs(prev => prev.includes(norm) ? prev : [...prev, norm]);
+    const normalizedPath = normalizeVfsPath(path);
+
+    if (!fsMap.has(normalizedPath)) {
+      return;
     }
+
+    setActiveFile(normalizedPath);
+    setOpenTabs((currentTabs) => (
+      currentTabs.includes(normalizedPath) ? currentTabs : [...currentTabs, normalizedPath]
+    ));
   }, [fsMap]);
 
   const closeTab = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    setOpenTabs(prev => {
-      const next = prev.filter(t => t !== norm);
-      if (activeFile === norm) {
-        const idx = prev.indexOf(norm);
-        const nextActive = next[Math.min(idx, next.length - 1)] ?? null;
-        setActiveFile(nextActive);
+    const normalizedPath = normalizeVfsPath(path);
+
+    setOpenTabs((currentTabs) => {
+      const nextTabs = currentTabs.filter((tab) => tab !== normalizedPath);
+
+      if (activeFile === normalizedPath) {
+        const closingIndex = currentTabs.indexOf(normalizedPath);
+        const nextActiveFile = nextTabs[Math.min(closingIndex, nextTabs.length - 1)] ?? null;
+        setActiveFile(nextActiveFile);
       }
-      return next;
+
+      return nextTabs;
     });
   }, [activeFile]);
 
@@ -560,38 +541,45 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
   }, []);
 
   const closeOtherTabs = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    setOpenTabs(prev => prev.filter(t => t === norm));
-    setActiveFile(norm);
+    const normalizedPath = normalizeVfsPath(path);
+    setOpenTabs((currentTabs) => currentTabs.filter((tab) => tab === normalizedPath));
+    setActiveFile(normalizedPath);
   }, []);
 
   const closeTabsToRight = useCallback((path: string) => {
-    const norm = normalizePath(path);
-    setOpenTabs(prev => {
-      const idx = prev.indexOf(norm);
-      if (idx < 0) return prev;
-      const next = prev.slice(0, idx + 1);
-      if (activeFile && !next.includes(activeFile)) {
-        setActiveFile(norm);
+    const normalizedPath = normalizeVfsPath(path);
+
+    setOpenTabs((currentTabs) => {
+      const tabIndex = currentTabs.indexOf(normalizedPath);
+      if (tabIndex < 0) {
+        return currentTabs;
       }
-      return next;
+
+      const nextTabs = currentTabs.slice(0, tabIndex + 1);
+      if (activeFile && !nextTabs.includes(activeFile)) {
+        setActiveFile(normalizedPath);
+      }
+
+      return nextTabs;
     });
   }, [activeFile]);
 
-  const resolveFn = useCallback((relativePath: string): string => {
-    if (relativePath.startsWith('~')) return normalizePath(relativePath);
-    const combined = cwd + '/' + relativePath;
-    return normalizePath(combined);
+  const resolve = useCallback((relativePath: string): string => {
+    if (relativePath.startsWith(ROOT_PATH)) {
+      return normalizeVfsPath(relativePath);
+    }
+
+    return joinVfsPath(cwd, relativePath);
   }, [cwd]);
 
   const getAllFiles = useCallback((): Record<string, string> => {
-    const result: Record<string, string> = {};
-    for (const [key, ytext] of fsMap.entries()) {
-      // Strip the ~/ prefix for the server
-      const relPath = key.startsWith('~/') ? key.slice(2) : key;
-      result[relPath] = ytext.toString();
+    const allFiles: Record<string, string> = {};
+
+    for (const [path, ytext] of fsMap.entries()) {
+      allFiles[stripVfsRoot(path)] = ytext.toString();
     }
-    return result;
+
+    return allFiles;
   }, [fsMap]);
 
   return {
@@ -606,20 +594,20 @@ export function useVirtualFS(ydoc: Y.Doc): VirtualFS {
     readFile,
     writeFile,
     deleteFile,
-    mkdir: mkdirFn,
-    rmdir: rmdirFn,
-    exists: existsFn,
-    isDirectory: isDirectoryFn,
-    isFile: isFileFn,
-    ls: lsFn,
-    rename: renameFn,
+    mkdir,
+    rmdir,
+    exists,
+    isDirectory,
+    isFile,
+    ls,
+    rename,
     openFile,
     closeTab,
     closeAllTabs,
     closeOtherTabs,
     closeTabsToRight,
     setCwd,
-    resolve: resolveFn,
+    resolve,
     getAllFiles,
   };
 }

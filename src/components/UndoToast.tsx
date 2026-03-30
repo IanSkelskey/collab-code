@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface UndoToast {
   id: number;
@@ -6,28 +6,8 @@ export interface UndoToast {
   onUndo?: () => void;
 }
 
-let nextId = 0;
 const TOAST_DURATION = 5000;
 const INFO_TOAST_DURATION = 2500;
-
-export function useUndoToast() {
-  const [toasts, setToasts] = useState<UndoToast[]>([]);
-
-  const pushToast = useCallback((label: string, onUndo?: () => void) => {
-    const id = nextId++;
-    const duration = onUndo ? TOAST_DURATION : INFO_TOAST_DURATION;
-    setToasts((prev) => [...prev, { id, label, onUndo }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
-  }, []);
-
-  const dismissToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  return { toasts, pushToast, dismissToast };
-}
 
 export default function UndoToastContainer({
   toasts,

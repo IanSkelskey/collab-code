@@ -1,4 +1,5 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import { getBaseName } from '../lib/vfsPaths';
 
 // ── Name validation ──
 
@@ -25,7 +26,7 @@ export function deleteFileWithUndo(
 ): void {
   const content = vfs.readFile(path) ?? '';
   vfs.deleteFile(path);
-  const name = path.split('/').pop() ?? path;
+  const name = getBaseName(path);
   pushToast?.(`Deleted ${name}`, () => {
     vfs.writeFile(path, content);
     afterUndo?.();
@@ -48,7 +49,7 @@ export function deleteDirWithConfirm(
     return;
   }
 
-  const dirName = path.split('/').pop() ?? path;
+  const dirName = getBaseName(path);
   requestConfirm?.(
     `Delete "${dirName}"?`,
     `This will permanently delete ${allFiles.length} file${allFiles.length > 1 ? 's' : ''} inside this directory.`,

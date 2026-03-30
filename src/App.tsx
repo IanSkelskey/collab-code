@@ -1,11 +1,13 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
-import { CollabProvider, useCollab } from './context/CollabContext';
-import { useRoom } from './hooks/useRoom';
-import { useVirtualFS } from './hooks/useVirtualFS';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCollab } from './context/CollabContext';
 import { useExecution } from './hooks/useExecution';
-import { useDragResize } from './hooks/useDragResize';
 import { useFileExport } from './hooks/useFileExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useRoom } from './hooks/useRoom';
+import { useUndoToast } from './hooks/useUndoToast';
+import { useVirtualFS } from './hooks/useVirtualFS';
+import { useWorkspaceImport } from './hooks/useWorkspaceImport';
+import { useWorkspaceLayout } from './hooks/useWorkspaceLayout';
 import { TerminalIcon, ChevronDownIcon } from './components/Icons';
 import Editor, { type EditorHandle } from './components/Editor';
 import Terminal, { type TerminalHandle } from './components/Terminal';
@@ -13,59 +15,40 @@ import FileExplorer from './components/FileExplorer';
 import TabBar from './components/TabBar';
 import Toolbar, { ActivityBar } from './components/Toolbar';
 import ConfirmDialog from './components/ConfirmDialog';
-import UndoToastContainer, { useUndoToast } from './components/UndoToast';
+import UndoToastContainer from './components/UndoToast';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
 import { getLanguageForFile } from './config/languages';
-import { importDataTransfer } from './services/importDrop';
+import { CollabProvider } from './providers/CollabProvider';
 
-function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
-  const { ydoc, peerCount, roomId, connected, awareness } = useCollab();
-  const fs = useVirtualFS(ydoc);
+function AppContent({
+  onExitRoom,
+  seedDefaultFile,
+}: {
+  onExitRoom: () => void;
+  seedDefaultFile: boolean;
+}) {
+  const { ydoc, peerCount, roomId, connected, awareness, storageReady } = useCollab();
+  const fs = useVirtualFS(ydoc, { storageReady, seedDefaultFile });
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
-  const [explorerVisible, setExplorerVisible] = useState(() => window.innerWidth >= 768);
-  const [explorerWidth, setExplorerWidth] = useState(() =>
-    window.innerWidth < 640 ? 160 : 200
-  );
-  const [terminalVisible, setTerminalVisible] = useState(true);
-  const [terminalHeight, setTerminalHeight] = useState(250);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [searchVisible, setSearchVisible] = useState(false);
-  const [osDragActive, setOsDragActive] = useState(false);
-  const dragCounter = useRef(0);
-
-  // Undo toast + confirm dialog state
   const { toasts, pushToast, dismissToast } = useUndoToast();
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    message: string;
-    confirmLabel?: string;
-    secondaryLabel?: string;
-    onConfirm: () => void;
-    onSecondary?: () => void;
-  } | null>(null);
+  const layout = useWorkspaceLayout({
+    fs,
+    editorRef,
+    containerRef,
+    pushToast,
+  });
 
-  const requestConfirm = useCallback(
-    (title: string, message: string, onConfirm: () => void, confirmLabel?: string) => {
-      setConfirmDialog({ title, message, onConfirm, confirmLabel });
-    },
-    []
-  );
-
-  // Execution
   const { running, entryPoints, handleRun } = useExecution({
     fs,
     terminalRef,
     editorRef,
-    setTerminalVisible,
+    setTerminalVisible: layout.setTerminalVisible,
   });
 
-  // File export / download / clipboard
   const { codeCopied, handleCopyCode, handleSaveFile, handleSaveAll } = useFileExport({
     fs,
     roomId,
@@ -73,123 +56,41 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
     pushToast,
   });
 
-  // Drag-to-resize panels
-  const { onDragStart: handleExplorerDragStart } = useDragResize({
-    axis: 'horizontal',
-    value: explorerWidth,
-    setValue: setExplorerWidth,
-    min: 120,
-    max: 400,
-  });
+  const { osDragActive, dragHandlers } = useWorkspaceImport({ fs, pushToast });
 
-  const { onDragStart: handleTerminalDragStart } = useDragResize({
-    axis: 'vertical',
-    value: terminalHeight,
-    setValue: setTerminalHeight,
-    min: 80,
-    max: () => (containerRef.current?.clientHeight ?? 720) - 120,
-  });
+  const handleFormatCompleted = useCallback(() => {
+    pushToast('Document formatted');
+  }, [pushToast]);
 
-  // Keyboard shortcuts
   useKeyboardShortcuts({
-    setExplorerVisible,
-    setTerminalVisible,
-    setSearchVisible,
+    setExplorerVisible: layout.setExplorerVisible,
+    setTerminalVisible: layout.setTerminalVisible,
+    setSearchVisible: layout.setSearchVisible,
     handleSaveFile,
     handleSaveAll,
   });
 
-  // Warn before tab close while in a room (skip in dev for HMR)
   useEffect(() => {
     if (import.meta.env.DEV) return;
-    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // Broadcast active file to peers via awareness
   useEffect(() => {
     if (!awareness) return;
     awareness.setLocalStateField('activeFile', fs.activeFile);
   }, [awareness, fs.activeFile]);
 
-  const handleFormat = useCallback(() => {
-    editorRef.current?.format();
-    pushToast('Document formatted');
-  }, [pushToast]);
-
-  const handleToggleExplorer = useCallback(() => {
-    setExplorerVisible(v => {
-      if (!v) setSearchVisible(false);
-      return !v;
-    });
-  }, []);
-  const handleToggleTerminal = useCallback(() => setTerminalVisible(v => !v), []);
-  const handleToggleSearch = useCallback(() => {
-    setSearchVisible(v => {
-      if (!v) setExplorerVisible(false);
-      return !v;
-    });
-  }, []);
-
-  const handleSearchNavigateTo = useCallback((file: string, line: number, col: number) => {
-    if (fs.activeFile === file) {
-      editorRef.current?.revealLine(line, col);
-    } else {
-      fs.openFile(file);
-      setTimeout(() => {
-        editorRef.current?.revealLine(line, col);
-      }, 100);
-    }
-  }, [fs]);
-
-  const handleFontSizeUp = useCallback(() => {
-    setFontSize(s => { const next = Math.min(s + 2, 28); pushToast(`Font size: ${next}`); return next; });
-  }, [pushToast]);
-
-  const handleFontSizeDown = useCallback(() => {
-    setFontSize(s => { const next = Math.max(s - 2, 8); pushToast(`Font size: ${next}`); return next; });
-  }, [pushToast]);
-
-  // OS drag-and-drop import (files/folders)
-  const onOsDragEnter = useCallback((e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    dragCounter.current++;
-    setOsDragActive(true);
-  }, []);
-
-  const onOsDragOver = useCallback((e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  }, []);
-
-  const onOsDragLeave = useCallback((e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    dragCounter.current = Math.max(0, dragCounter.current - 1);
-    if (dragCounter.current === 0) setOsDragActive(false);
-  }, []);
-
-  const onOsDrop = useCallback(async (e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes('Files')) return;
-    e.preventDefault();
-    dragCounter.current = 0;
-    setOsDragActive(false);
-    const count = await importDataTransfer(fs, e.dataTransfer, '~');
-    if (count > 0) {
-      pushToast(count === 1 ? 'Imported 1 file' : `Imported ${count} files`);
-    }
-  }, [fs, pushToast]);
-
   return (
     <div
       className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-hidden"
-      onDragEnter={onOsDragEnter}
-      onDragOver={onOsDragOver}
-      onDragLeave={onOsDragLeave}
-      onDrop={onOsDrop}
+      {...dragHandlers}
     >
-      {/* Top header toolbar */}
       <Toolbar
         roomId={roomId}
         connected={connected}
@@ -198,55 +99,52 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
         onRun={() => handleRun()}
         onExitRoom={onExitRoom}
         onSaveAll={handleSaveAll}
-        onConfirmLeave={(opts) => setConfirmDialog(opts)}
+        onConfirmLeave={(options) => layout.setConfirmDialog(options)}
         fs={fs}
       />
 
-      {/* Main content: Activity bar + Explorer | Editor + Terminal */}
       <div ref={containerRef} className="flex-1 flex min-h-0">
-        {/* Activity bar */}
         <ActivityBar
-          explorerVisible={explorerVisible}
-          searchVisible={searchVisible}
+          explorerVisible={layout.explorerVisible}
+          searchVisible={layout.searchVisible}
           codeCopied={codeCopied}
-          fontSize={fontSize}
-          activeFileName={fs.activeFile?.split('/').pop() ?? null}
-          onToggleExplorer={handleToggleExplorer}
-          onToggleSearch={handleToggleSearch}
-          onFormat={handleFormat}
+          fontSize={layout.fontSize}
+          activeFileName={fs.activeFile ? fs.activeFile.split('/').pop() ?? null : null}
+          onToggleExplorer={layout.handleToggleExplorer}
+          onToggleSearch={layout.handleToggleSearch}
+          onFormat={layout.handleFormat}
           onCopyCode={handleCopyCode}
           onSaveFile={handleSaveFile}
           onSaveAll={handleSaveAll}
-          onFontSizeUp={handleFontSizeUp}
-          onFontSizeDown={handleFontSizeDown}
-          onHelpOpen={() => setHelpOpen(true)}
+          onFontSizeUp={layout.handleFontSizeUp}
+          onFontSizeDown={layout.handleFontSizeDown}
+          onHelpOpen={() => layout.setHelpOpen(true)}
         />
 
-        {/* File Explorer — full height */}
-        {(explorerVisible || searchVisible) && (
+        {(layout.explorerVisible || layout.searchVisible) && (
           <>
-            <div style={{ width: explorerWidth }} className="shrink-0 overflow-hidden">
-              {searchVisible ? (
-                <SearchPanel fs={fs} onNavigateTo={handleSearchNavigateTo} />
+            <div style={{ width: layout.explorerWidth }} className="shrink-0 overflow-hidden">
+              {layout.searchVisible ? (
+                <SearchPanel fs={fs} onNavigateTo={layout.handleSearchNavigateTo} />
               ) : (
                 <FileExplorer
-                fs={fs}
-                pushToast={pushToast}
-                requestConfirm={requestConfirm}
-                entryPoints={entryPoints}
-                onRunFile={(filePath) => {
-                  const lang = getLanguageForFile(filePath);
-                  const className = lang?.extractEntryPointName?.(filePath) ?? filePath.split('/').pop()!;
-                  handleRun(className);
-                }}
-                running={running}
-              />
+                  fs={fs}
+                  pushToast={pushToast}
+                  requestConfirm={layout.requestConfirm}
+                  entryPoints={entryPoints}
+                  onRunFile={(filePath) => {
+                    const language = getLanguageForFile(filePath);
+                    const entryName = language?.extractEntryPointName?.(filePath) ?? filePath.split('/').pop()!;
+                    handleRun(entryName);
+                  }}
+                  running={running}
+                />
               )}
             </div>
-            {/* Explorer resize handle */}
+
             <div
-              onMouseDown={handleExplorerDragStart}
-              onTouchStart={handleExplorerDragStart}
+              onMouseDown={layout.handleExplorerDragStart}
+              onTouchStart={layout.handleExplorerDragStart}
               className="w-3 shrink-0 cursor-col-resize flex items-center justify-center group touch-none border-r border-zinc-700/50"
             >
               <div className="h-10 w-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
@@ -254,18 +152,22 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
           </>
         )}
 
-        {/* Right column: TabBar + Editor + Terminal stacked */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <TabBar fs={fs} />
 
-          {/* Editor or empty state */}
           <div className="flex-1 min-h-[120px]">
             {fs.openTabs.length > 0 ? (
-              <Editor ref={editorRef} onRun={handleRun} onFormat={() => pushToast('Document formatted')} fontSize={fontSize} fs={fs} />
+              <Editor
+                ref={editorRef}
+                onRun={handleRun}
+                onFormat={handleFormatCompleted}
+                fontSize={layout.fontSize}
+                fs={fs}
+              />
             ) : fs.loading ? (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-zinc-500 select-none">
                 <div className="w-6 h-6 border-2 border-zinc-600 border-t-emerald-400 rounded-full animate-spin" />
-                <p className="text-xs text-zinc-500">Loading workspace…</p>
+                <p className="text-xs text-zinc-500">Loading workspace...</p>
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
@@ -274,28 +176,32 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
                   <p className="text-sm font-medium text-zinc-400">No open editors</p>
                   <p className="text-xs text-zinc-600">
                     Open a file from the Explorer{' '}
-                    <button onClick={handleToggleExplorer} className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer">(Ctrl+B)</button>
+                    <button
+                      onClick={layout.handleToggleExplorer}
+                      className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                    >
+                      (Ctrl+B)
+                    </button>
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Terminal bar */}
           <div className="shrink-0 bg-[#161b22] border-t border-zinc-700/50 flex items-center">
             <button
-              onClick={handleToggleTerminal}
+              onClick={layout.handleToggleTerminal}
               title="Toggle Terminal (Ctrl+`)"
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
             >
               <TerminalIcon className="w-3.5 h-3.5" strokeWidth={2} />
               Terminal
-              <ChevronDownIcon className={`w-3 h-3 transition-transform ${terminalVisible ? 'rotate-0' : 'rotate-180'}`} />
+              <ChevronDownIcon className={`w-3 h-3 transition-transform ${layout.terminalVisible ? 'rotate-0' : 'rotate-180'}`} />
             </button>
-            {terminalVisible && (
+            {layout.terminalVisible && (
               <div
-                onMouseDown={handleTerminalDragStart}
-                onTouchStart={handleTerminalDragStart}
+                onMouseDown={layout.handleTerminalDragStart}
+                onTouchStart={layout.handleTerminalDragStart}
                 className="flex-1 h-full cursor-row-resize flex items-center justify-center group py-1"
               >
                 <div className="w-10 h-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
@@ -303,37 +209,44 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
             )}
           </div>
 
-          {/* Terminal panel */}
-          {terminalVisible && (
-            <div style={{ height: terminalHeight }} className="shrink-0 bg-[#1a1a2e] overflow-hidden">
-              <Terminal ref={terminalRef} onRunRequested={handleRun} fontSize={Math.max(fontSize - 1, 10)} fs={fs} pushToast={pushToast} requestConfirm={requestConfirm} />
+          {layout.terminalVisible && (
+            <div style={{ height: layout.terminalHeight }} className="shrink-0 bg-[#1a1a2e] overflow-hidden">
+              <Terminal
+                ref={terminalRef}
+                onRunRequested={handleRun}
+                fontSize={Math.max(layout.fontSize - 1, 10)}
+                fs={fs}
+                pushToast={pushToast}
+                requestConfirm={layout.requestConfirm}
+              />
             </div>
           )}
         </div>
       </div>
 
-      {/* Confirm dialog overlay */}
-      {confirmDialog && (
+      {layout.confirmDialog && (
         <ConfirmDialog
-          title={confirmDialog.title}
-          message={confirmDialog.message}
-          confirmLabel={confirmDialog.confirmLabel}
-          secondaryLabel={confirmDialog.secondaryLabel}
-          onSecondary={confirmDialog.onSecondary}
-          onConfirm={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
-          onCancel={() => setConfirmDialog(null)}
+          title={layout.confirmDialog.title}
+          message={layout.confirmDialog.message}
+          confirmLabel={layout.confirmDialog.confirmLabel}
+          secondaryLabel={layout.confirmDialog.secondaryLabel}
+          onSecondary={layout.confirmDialog.onSecondary}
+          onConfirm={() => {
+            layout.confirmDialog?.onConfirm();
+            layout.setConfirmDialog(null);
+          }}
+          onCancel={() => layout.setConfirmDialog(null)}
         />
       )}
 
       <UndoToastContainer toasts={toasts} onDismiss={dismissToast} />
-      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+      {layout.helpOpen && <HelpModal onClose={() => layout.setHelpOpen(false)} />}
 
-      {/* OS Drop overlay */}
       {osDragActive && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/40">
           <div className="mx-4 max-w-md w-full border-2 border-dashed border-emerald-400/60 bg-[#0d1117]/80 rounded-lg px-6 py-8 text-center">
             <p className="text-sm text-emerald-300 font-medium">Drop files or folders to import</p>
-            <p className="text-[11px] text-zinc-400 mt-1">They’ll be added under ~/</p>
+            <p className="text-[11px] text-zinc-400 mt-1">They&apos;ll be added under ~/</p>
           </div>
         </div>
       )}
@@ -342,26 +255,39 @@ function AppContent({ onExitRoom }: { onExitRoom: () => void }) {
 }
 
 export default function App() {
-  const initialRoom = useRoom();
-  const [roomId, setRoomId] = useState<string | null>(initialRoom);
+  const roomId = useRoom();
+  const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
 
-  const handleEnterRoom = useCallback((id: string) => {
-    window.location.hash = id;
-    setRoomId(id);
+  const handleCreateRoom = useCallback((nextRoomId: string) => {
+    setCreatedRoomId(nextRoomId);
+    window.location.hash = nextRoomId;
+  }, []);
+
+  const handleJoinRoom = useCallback((nextRoomId: string) => {
+    setCreatedRoomId(null);
+    window.location.hash = nextRoomId;
   }, []);
 
   const handleExitRoom = useCallback(() => {
+    setCreatedRoomId(null);
     window.location.hash = '';
-    setRoomId(null);
   }, []);
 
   if (!roomId) {
-    return <LandingPage onEnterRoom={handleEnterRoom} />;
+    return (
+      <LandingPage
+        onCreateRoom={handleCreateRoom}
+        onJoinRoom={handleJoinRoom}
+      />
+    );
   }
 
   return (
-    <CollabProvider roomId={roomId}>
-      <AppContent onExitRoom={handleExitRoom} />
+    <CollabProvider key={roomId} roomId={roomId}>
+      <AppContent
+        onExitRoom={handleExitRoom}
+        seedDefaultFile={createdRoomId === roomId}
+      />
     </CollabProvider>
   );
 }

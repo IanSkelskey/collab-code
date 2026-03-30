@@ -11,20 +11,21 @@ function generateRoomId(): string {
 }
 
 interface LandingPageProps {
-  onEnterRoom: (roomId: string) => void;
+  onCreateRoom: (roomId: string) => void;
+  onJoinRoom: (roomId: string) => void;
 }
 
-export default function LandingPage({ onEnterRoom }: LandingPageProps) {
+export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPageProps) {
   const [joinId, setJoinId] = useState('');
 
   const handleCreate = useCallback(() => {
-    onEnterRoom(generateRoomId());
-  }, [onEnterRoom]);
+    onCreateRoom(generateRoomId());
+  }, [onCreateRoom]);
 
   const handleJoin = useCallback(() => {
     const trimmed = joinId.trim().replace(/^#/, '');
-    if (trimmed) onEnterRoom(trimmed);
-  }, [joinId, onEnterRoom]);
+    if (trimmed) onJoinRoom(trimmed);
+  }, [joinId, onJoinRoom]);
 
   return (
     <div className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-auto">

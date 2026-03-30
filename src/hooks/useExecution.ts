@@ -5,6 +5,7 @@ import type { TerminalHandle } from '../components/Terminal';
 import type { VirtualFS } from './useVirtualFS';
 import { InteractiveExecutor } from '../services/interactiveExec';
 import { primaryLanguage, getLanguageForFile } from '../config/languages';
+import { getBaseName, stripVfsRoot } from '../lib/vfsPaths';
 
 interface UseExecutionOptions {
   fs: VirtualFS;
@@ -46,15 +47,15 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
     // Determine which class to run
     let mainClass = explicitMainClass;
     if (!mainClass) {
-      const activeRel = fs.activeFile?.startsWith('~/') ? fs.activeFile.slice(2) : fs.activeFile;
+      const activeRel = fs.activeFile ? stripVfsRoot(fs.activeFile) : null;
       const activeLang = activeRel ? getLanguageForFile(activeRel) : undefined;
       if (activeRel && activeLang?.entryPointPattern && allFiles[activeRel] && activeLang.entryPointPattern.test(allFiles[activeRel])) {
-        mainClass = activeLang.extractEntryPointName?.(activeRel) ?? activeRel.split('/').pop()!;
+        mainClass = activeLang.extractEntryPointName?.(activeRel) ?? getBaseName(activeRel);
       } else {
         for (const [relPath, content] of Object.entries(allFiles)) {
           const lang = getLanguageForFile(relPath);
           if (lang?.entryPointPattern?.test(content)) {
-            mainClass = lang.extractEntryPointName?.(relPath) ?? relPath.split('/').pop()!;
+            mainClass = lang.extractEntryPointName?.(relPath) ?? getBaseName(relPath);
             break;
           }
         }
@@ -164,7 +165,7 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
         finish();
       },
     }, mainClass);
-  }, [fs, terminalRef, editorRef, setTerminalVisible, entryPoints]);
+  }, [fs, terminalRef, editorRef, setTerminalVisible]);
 
   return { running, entryPoints, handleRun };
 }
