@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import MonacoEditor, { type OnMount, type Monaco } from '@monaco-editor/react';
-import { MonacoBinding } from 'y-monaco';
 import * as Y from 'yjs';
 import type { editor, ISelection } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
 import { getMonacoLanguage, primaryLanguage, languages } from '../config/languages';
 import type { DiagnosticMarker } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import { MonacoBinding } from '../lib/MonacoBinding';
 
 export interface EditorHandle {
   getCode: () => string;
@@ -99,6 +99,30 @@ function getOrderedSelections(ed: editor.IStandaloneCodeEditor): ISelection[] {
   const secondarySelections = selections.filter(selection => selectionKey(selection) !== primaryKey);
 
   return [...primarySelections, ...secondarySelections];
+}
+
+function createRelativeSelection(
+  selection: ISelection,
+  model: editor.ITextModel,
+  ytext: Y.Text,
+): RelativeCursorSelection {
+  const anchorOffset = model.getOffsetAt({
+    lineNumber: selection.selectionStartLineNumber,
+    column: selection.selectionStartColumn,
+  });
+  const headOffset = model.getOffsetAt({
+    lineNumber: selection.positionLineNumber,
+    column: selection.positionColumn,
+  });
+  const isCollapsed = anchorOffset === headOffset;
+  const assoc = isCollapsed ? -1 : 0;
+
+  return {
+    // Empty carets are left-associated so inserts at the same index by other
+    // peers don't make an idle remote cursor appear to type along.
+    anchor: Y.createRelativePositionFromTypeIndex(ytext, anchorOffset, assoc),
+    head: Y.createRelativePositionFromTypeIndex(ytext, headOffset, assoc),
+  };
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -413,21 +437,8 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ onRun, on
     const publishLocalSelections = () => {
       const { ytext } = getBindingTarget();
       const activityAt = Date.now();
-      const relativeSelections = getOrderedSelections(monacoEditor).map((selection) => {
-        const anchor = model.getOffsetAt({
-          lineNumber: selection.selectionStartLineNumber,
-          column: selection.selectionStartColumn,
-        });
-        const head = model.getOffsetAt({
-          lineNumber: selection.positionLineNumber,
-          column: selection.positionColumn,
-        });
-
-        return {
-          anchor: Y.createRelativePositionFromTypeIndex(ytext, anchor),
-          head: Y.createRelativePositionFromTypeIndex(ytext, head),
-        };
-      });
+      const relativeSelections = getOrderedSelections(monacoEditor)
+        .map(selection => createRelativeSelection(selection, model, ytext));
 
       awareness.setLocalStateField(REMOTE_SELECTIONS_FIELD, relativeSelections);
       awareness.setLocalStateField(LEGACY_SELECTION_FIELD, relativeSelections[0] ?? null);
