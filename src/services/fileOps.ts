@@ -1,5 +1,11 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
-import { getBaseName } from '../lib/vfsPaths';
+import {
+  getBaseName,
+  getParentPath,
+  isRootPath,
+  joinVfsPath,
+  normalizeVfsPath,
+} from '../lib/vfsPaths';
 
 // ── Name validation ──
 
@@ -71,4 +77,226 @@ export function deleteDirWithConfirm(
       );
     },
   );
+}
+
+export interface PlannedPathMove {
+  from: string;
+  to: string;
+}
+
+export interface PlannedPathMoveResult {
+  moves: PlannedPathMove[];
+  skipped: string[];
+  error: string | null;
+}
+
+function sortByPathDepthAsc(left: string, right: string): number {
+  return left.split('/').length - right.split('/').length || left.localeCompare(right);
+}
+
+function sortByPathDepthDesc(left: string, right: string): number {
+  return right.split('/').length - left.split('/').length || left.localeCompare(right);
+}
+
+export function getTopLevelPaths(paths: Iterable<string>): string[] {
+  const normalizedPaths = [...new Set(
+    Array.from(paths)
+      .map((path) => normalizeVfsPath(path))
+      .filter((path) => !isRootPath(path)),
+  )].sort(sortByPathDepthAsc);
+
+  return normalizedPaths.filter((path, index) => {
+    return !normalizedPaths.slice(0, index).some((candidate) => path.startsWith(`${candidate}/`));
+  });
+}
+
+interface PathSnapshot {
+  directories: string[];
+  files: Record<string, string>;
+}
+
+function collectDirectorySnapshot(
+  vfs: VirtualFS,
+  dirPath: string,
+  directories: Set<string>,
+  files: Record<string, string>,
+): void {
+  directories.add(dirPath);
+
+  for (const entry of vfs.ls(dirPath)) {
+    const isDirectoryEntry = entry.endsWith('/');
+    const childPath = joinVfsPath(dirPath, isDirectoryEntry ? entry.slice(0, -1) : entry);
+
+    if (isDirectoryEntry) {
+      collectDirectorySnapshot(vfs, childPath, directories, files);
+      continue;
+    }
+
+    files[childPath] = vfs.readFile(childPath) ?? '';
+  }
+}
+
+function createPathSnapshot(vfs: VirtualFS, paths: string[]): PathSnapshot {
+  const directories = new Set<string>();
+  const files: Record<string, string> = {};
+
+  for (const path of paths) {
+    if (vfs.isFile(path)) {
+      files[path] = vfs.readFile(path) ?? '';
+      continue;
+    }
+
+    if (vfs.isDirectory(path)) {
+      collectDirectorySnapshot(vfs, path, directories, files);
+    }
+  }
+
+  return {
+    directories: [...directories].sort(sortByPathDepthAsc),
+    files,
+  };
+}
+
+function restorePathSnapshot(vfs: VirtualFS, snapshot: PathSnapshot): void {
+  for (const directoryPath of snapshot.directories) {
+    if (!vfs.exists(directoryPath)) {
+      vfs.mkdir(directoryPath);
+    }
+  }
+
+  for (const [filePath, content] of Object.entries(snapshot.files)) {
+    vfs.writeFile(filePath, content);
+  }
+}
+
+export function planMovePaths(
+  vfs: VirtualFS,
+  paths: Iterable<string>,
+  targetDir: string,
+): PlannedPathMoveResult {
+  const normalizedTargetDir = normalizeVfsPath(targetDir);
+  if (!vfs.isDirectory(normalizedTargetDir)) {
+    return { moves: [], skipped: [], error: 'Target is not a directory' };
+  }
+
+  const topLevelPaths = getTopLevelPaths(paths);
+  const moves: PlannedPathMove[] = [];
+  const skipped: string[] = [];
+  const plannedDestinations = new Set<string>();
+
+  for (const sourcePath of topLevelPaths) {
+    if (!vfs.exists(sourcePath)) {
+      continue;
+    }
+
+    if (sourcePath === normalizedTargetDir) {
+      return { moves: [], skipped, error: 'Cannot move a selection into itself' };
+    }
+
+    if (normalizedTargetDir.startsWith(`${sourcePath}/`)) {
+      return { moves: [], skipped, error: 'Cannot move a folder into its own descendant' };
+    }
+
+    if (getParentPath(sourcePath) === normalizedTargetDir) {
+      skipped.push(sourcePath);
+      continue;
+    }
+
+    const destinationPath = joinVfsPath(normalizedTargetDir, getBaseName(sourcePath));
+    if (plannedDestinations.has(destinationPath) || vfs.exists(destinationPath)) {
+      return {
+        moves: [],
+        skipped,
+        error: `"${getBaseName(destinationPath)}" already exists in the target folder`,
+      };
+    }
+
+    plannedDestinations.add(destinationPath);
+    moves.push({ from: sourcePath, to: destinationPath });
+  }
+
+  return { moves, skipped, error: null };
+}
+
+export function movePaths(
+  vfs: VirtualFS,
+  paths: Iterable<string>,
+  targetDir: string,
+): PlannedPathMoveResult {
+  const plan = planMovePaths(vfs, paths, targetDir);
+  if (plan.error || plan.moves.length === 0) {
+    return plan;
+  }
+
+  for (const move of plan.moves) {
+    vfs.rename(move.from, move.to);
+  }
+
+  return plan;
+}
+
+export function deletePathsWithUndo(
+  vfs: VirtualFS,
+  paths: Iterable<string>,
+  pushToast?: (label: string, onUndo: () => void) => void,
+  requestConfirm?: (title: string, message: string, onConfirm: () => void) => void,
+  afterUndo?: () => void,
+): void {
+  const topLevelPaths = getTopLevelPaths(paths).filter((path) => vfs.exists(path));
+  if (topLevelPaths.length === 0) {
+    return;
+  }
+
+  if (topLevelPaths.length === 1) {
+    const [path] = topLevelPaths;
+    if (vfs.isFile(path)) {
+      deleteFileWithUndo(vfs, path, pushToast, afterUndo);
+      return;
+    }
+
+    deleteDirWithConfirm(vfs, path, pushToast, requestConfirm);
+    return;
+  }
+
+  const snapshot = createPathSnapshot(vfs, topLevelPaths);
+  const selectedDirectoryPaths = topLevelPaths.filter((path) => vfs.isDirectory(path));
+  const totalFileCount = Object.keys(snapshot.files).length;
+  const totalDirCount = selectedDirectoryPaths.length;
+
+  const performDelete = () => {
+    Object.keys(snapshot.files).forEach((filePath) => vfs.deleteFile(filePath));
+    selectedDirectoryPaths
+      .slice()
+      .sort(sortByPathDepthDesc)
+      .forEach((dirPath) => {
+        vfs.rmdir(dirPath);
+      });
+
+    pushToast?.(
+      `Deleted ${topLevelPaths.length} items`,
+      () => {
+        restorePathSnapshot(vfs, snapshot);
+        afterUndo?.();
+      },
+    );
+  };
+
+  const detailParts: string[] = [];
+  if (totalFileCount > 0) {
+    detailParts.push(`${totalFileCount} file${totalFileCount === 1 ? '' : 's'}`);
+  }
+  if (totalDirCount > 0) {
+    detailParts.push(`${totalDirCount} folder${totalDirCount === 1 ? '' : 's'}`);
+  }
+
+  if (requestConfirm) {
+    requestConfirm(
+      `Delete ${topLevelPaths.length} items?`,
+      `This will permanently delete ${topLevelPaths.length} selected items${detailParts.length > 0 ? `, including ${detailParts.join(' and ')}` : ''}.`,
+      performDelete,
+    );
+    return;
+  }
+
+  performDelete();
 }

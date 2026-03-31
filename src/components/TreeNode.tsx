@@ -104,7 +104,9 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
   const {
     fs,
     expandedDirs,
-    toggleDir,
+    selectedPaths,
+    clearSelection,
+    onNodeClick,
     renaming,
     setRenaming,
     creating,
@@ -124,17 +126,10 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
   const isDir = node.type === 'directory';
   const isOpen = expandedDirs.has(node.path);
   const isActive = fs.activeFile === node.path;
+  const isSelected = selectedPaths.has(node.path);
   const showCreate = creating && creating.parentPath === node.path;
   const isDropTarget = isDir && dragTarget === node.path;
   const isEntryPoint = !isDir && entryPoints.has(node.path);
-
-  const handleClick = () => {
-    if (isDir) {
-      toggleDir(node.path);
-    } else {
-      fs.openFile(node.path);
-    }
-  };
 
   const validateRename = (newName: string): string | null => {
     const nameError = validateFileName(newName);
@@ -178,11 +173,12 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
       <div
         className={`flex items-center gap-1 px-2 py-[3px] cursor-pointer select-none text-xs
           hover:bg-zinc-700/50 transition-colors group
-          ${isActive ? 'bg-zinc-700/70 text-white' : 'text-zinc-300'}
+          ${isActive ? 'bg-zinc-700/70 text-white' : ''}
+          ${isSelected ? 'bg-emerald-500/12 text-white' : 'text-zinc-300'}
           ${isDropTarget ? 'bg-emerald-500/20 outline outline-1 outline-emerald-500/50' : ''}
         `}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
-        onClick={handleClick}
+        onClick={(e) => onNodeClick(e, node)}
         onContextMenu={(e) => onContextMenu(e, node)}
         draggable={node.path !== '~'}
         onDragStart={(e) => onDragStartNode(e, node)}
@@ -209,6 +205,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              clearSelection();
               onRunFile?.(node.path);
             }}
             disabled={running}
