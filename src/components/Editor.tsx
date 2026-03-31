@@ -1,10 +1,7 @@
 import {
   forwardRef,
-  useCallback,
   useEffect,
-  useEffectEvent,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -13,8 +10,11 @@ import type { editor } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
 import { primaryLanguage, type DiagnosticMarker } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import { useEditorActions } from '../hooks/useEditorActions';
 import { useEditorBinding } from '../hooks/useEditorBinding';
 import { useEditorDiagnostics } from '../hooks/useEditorDiagnostics';
+import { useEditorDropGuard } from '../hooks/useEditorDropGuard';
+import { useEditorOptions } from '../hooks/useEditorOptions';
 import { useRemoteMonacoSelections } from '../hooks/useRemoteMonacoSelections';
 import { registerEditorFormatters } from '../services/editorFormatters';
 
@@ -33,25 +33,6 @@ interface EditorProps {
   fs?: VirtualFS;
 }
 
-function getEditorOptions(fontSize: number): editor.IStandaloneEditorConstructionOptions {
-  return {
-    fontSize,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    automaticLayout: true,
-    padding: { top: 28 },
-    wordWrap: 'on',
-    tabSize: 4,
-    insertSpaces: true,
-    lineNumbers: window.innerWidth < 480 ? 'off' : 'on',
-    folding: window.innerWidth >= 640,
-    glyphMargin: false,
-    lineDecorationsWidth: window.innerWidth < 640 ? 4 : 10,
-    dragAndDrop: false,
-    dropIntoEditor: { enabled: false },
-  };
-}
-
 const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   { onRun, onFormat, fontSize = 14, fs },
   ref,
@@ -60,14 +41,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const activeFile = fs?.activeFile ?? null;
-
-  const invokeRun = useEffectEvent(() => {
-    onRun?.();
-  });
-
-  const invokeFormat = useEffectEvent(() => {
-    onFormat?.();
-  });
+  const editorOptions = useEditorOptions(fontSize);
 
   const { getBindingTarget } = useEditorBinding({
     monacoEditor,
@@ -91,83 +65,26 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
     getBindingTarget,
   });
 
+  useEditorActions({
+    monacoEditor,
+    monacoRef,
+    onRun,
+    onFormat,
+  });
+  useEditorDropGuard(monacoEditor);
+
   useImperativeHandle(ref, () => diagnostics, [diagnostics]);
 
-  const handleMount: OnMount = useCallback((editorInstance, monaco) => {
+  const handleMount: OnMount = (editorInstance, monaco) => {
     setMonacoEditor(editorInstance);
     monacoRef.current = monaco;
     registerEditorFormatters(monaco);
-  }, []);
-
-  useEffect(() => {
-    const editorInstance = monacoEditor;
-    const monaco = monacoRef.current;
-    if (!editorInstance || !monaco) return;
-
-    const disposable = editorInstance.addAction({
-      id: 'collab-code-run',
-      label: 'Run Code (Ctrl+Enter)',
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: () => {
-        invokeRun();
-      },
-    });
-
-    return () => disposable.dispose();
-  }, [invokeRun, monacoEditor]);
-
-  useEffect(() => {
-    const editorInstance = monacoEditor;
-    const monaco = monacoRef.current;
-    if (!editorInstance || !monaco) return;
-
-    const disposable = editorInstance.addAction({
-      id: 'collab-code-format',
-      label: 'Format Document (Alt+Shift+F)',
-      keybindings: [monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
-      run: async (activeEditor) => {
-        await activeEditor.getAction('editor.action.formatDocument')?.run();
-        invokeFormat();
-      },
-    });
-
-    return () => disposable.dispose();
-  }, [invokeFormat, monacoEditor]);
+  };
 
   useEffect(() => {
     if (!monacoEditor) return;
     monacoEditor.updateOptions({ fontSize });
   }, [fontSize, monacoEditor]);
-
-  useEffect(() => {
-    if (!monacoEditor) return;
-
-    const domNode = monacoEditor.getDomNode();
-    if (!domNode) return;
-
-    const preventDrop = (event: DragEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-    };
-
-    const showNoDrop = (event: DragEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'none';
-      }
-    };
-
-    domNode.addEventListener('dragover', showNoDrop, true);
-    domNode.addEventListener('drop', preventDrop, true);
-
-    return () => {
-      domNode.removeEventListener('dragover', showNoDrop, true);
-      domNode.removeEventListener('drop', preventDrop, true);
-    };
-  }, [monacoEditor]);
-
-  const editorOptions = useMemo(() => getEditorOptions(fontSize), [fontSize]);
 
   return (
     <div className="h-full w-full">
@@ -187,4 +104,3 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
 });
 
 export default Editor;
-

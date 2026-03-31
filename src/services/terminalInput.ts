@@ -166,13 +166,8 @@ function submitCommand(
   refs.historyIndex.current = -1;
   refs.savedInput.current = '';
 
-  const parts = raw.split(/\s+/);
-  const cmd = parts[0]?.toLowerCase() ?? '';
-  const arg = parts.slice(1).join(' ');
-
-  executeCommand(cmd, {
+  executeCommand(raw, {
     term,
-    arg,
     vfs: options.getVfs(),
     writePrompt: options.writePrompt,
     onRun: options.getOnRun(),
@@ -363,4 +358,3 @@ export function createTerminalDataHandler(options: CreateTerminalDataHandlerOpti
     handleCommandModeInput(data, code, options);
   };
 }
-

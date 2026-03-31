@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import * as Y from 'yjs';
-import { getMonacoLanguage } from '../config/languages';
+import { getMonacoLanguage, primaryLanguage } from '../config/languages';
 import type { VirtualFS } from './useVirtualFS';
 import { MonacoBinding } from '../lib/MonacoBinding';
 
@@ -64,9 +64,8 @@ export function useEditorBinding({
     bindingRef.current?.destroy();
     bindingRef.current = null;
 
-    if (filePath) {
-      monacoRef.current?.editor.setModelLanguage(model, getMonacoLanguage(filePath));
-    }
+    const languageId = filePath ? getMonacoLanguage(filePath) : primaryLanguage.monacoLanguage;
+    monacoRef.current?.editor.setModelLanguage(model, languageId);
 
     const binding = new MonacoBinding(ytext, model, new Set([monacoEditor]));
     bindingRef.current = binding;
