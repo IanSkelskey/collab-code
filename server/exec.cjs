@@ -17,7 +17,7 @@
  *     { type: "error", data: "..." }
  */
 
-const { spawn, execSync } = require('child_process');
+const { spawn, spawnSync, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -29,9 +29,15 @@ const EXEC_TIMEOUT_MS = 30000; // 30 seconds
 //  Check if Java is available on this server
 // ---------------------------------------------------------------------------
 let javaAvailable = false;
+let javaRuntimeVersion = null;
 try {
   execSync('javac -version', { stdio: 'ignore' });
   javaAvailable = true;
+  const versionCheck = spawnSync('java', ['-version'], { encoding: 'utf8' });
+  if (versionCheck.status === 0) {
+    const versionOutput = `${versionCheck.stderr || versionCheck.stdout || ''}`.trim();
+    javaRuntimeVersion = versionOutput.split(/\r?\n/, 1)[0] || null;
+  }
   console.log('[exec] Java compiler (javac) is available — interactive execution enabled');
 } catch {
   console.log('[exec] Java compiler (javac) NOT found — interactive execution disabled');
@@ -39,6 +45,10 @@ try {
 
 function isJavaAvailable() {
   return javaAvailable;
+}
+
+function getJavaRuntimeVersion() {
+  return javaRuntimeVersion;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,4 +254,4 @@ function handleExecConnection(ws) {
   });
 }
 
-module.exports = { handleExecConnection, isJavaAvailable };
+module.exports = { handleExecConnection, isJavaAvailable, getJavaRuntimeVersion };

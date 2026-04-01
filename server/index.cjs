@@ -12,7 +12,7 @@
 const http = require('http');
 const { URL } = require('url');
 const WebSocket = require('ws');
-const { handleExecConnection, isJavaAvailable } = require('./exec.cjs');
+const { handleExecConnection, isJavaAvailable, getJavaRuntimeVersion } = require('./exec.cjs');
 const { handleSyncConnection } = require('./sync.cjs');
 
 const PORT = parseInt(process.env.PORT || '4444', 10);
@@ -38,6 +38,7 @@ const server = http.createServer((req, res) => {
     status: 'ok',
     service: 'collab-code-sync',
     javaAvailable: isJavaAvailable(),
+    javaVersion: getJavaRuntimeVersion(),
   }));
 });
 
