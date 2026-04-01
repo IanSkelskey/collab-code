@@ -3,19 +3,28 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
 } from 'react';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal as XTerminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import type { VirtualFS } from '../hooks/useVirtualFS';
-import { printWelcome } from '../services/terminalCommands';
-import { clearBuffer } from '../services/terminalBuffer';
+import { useCollab } from '../context/CollabContext';
+import {
+  appendTerminalOutput,
+  buildTerminalPrompt,
+  clearTerminalTranscript,
+  getTerminalExecEvents,
+  getTerminalStateMap,
+  getTerminalTranscript,
+  readSharedTerminalSnapshot,
+  renderSharedTerminal,
+  type SharedTerminalSnapshot,
+  updateSharedTerminalState,
+} from '../services/sharedTerminal';
 import {
   createTerminalDataHandler,
   createTerminalKeyGuard,
-  type TerminalInputRefs,
 } from '../services/terminalInput';
 
 export interface TerminalHandle {
@@ -23,7 +32,7 @@ export interface TerminalHandle {
   writeln: (text: string) => void;
   clear: () => void;
   enterExecMode: (onStdin: (data: string) => void, onKill: () => void) => void;
-  exitExecMode: () => void;
+  exitExecMode: (options?: { appendNewline?: boolean }) => void;
 }
 
 interface TerminalProps {
@@ -34,10 +43,15 @@ interface TerminalProps {
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
 }
 
+type SyncTerminal = XTerminal & {
+  writeSync?: (data: string | Uint8Array, maxSubsequentCalls?: number) => void;
+};
+
 const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
   { onRunRequested, fontSize, fs, pushToast, requestConfirm },
   ref,
 ) {
+  const { ydoc } = useCollab();
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<XTerminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -46,17 +60,13 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
   const fsRef = useRef(fs);
   const pushToastRef = useRef(pushToast);
   const requestConfirmRef = useRef(requestConfirm);
-
-  const commandTextRef = useRef('');
-  const commandCursorRef = useRef(0);
-  const commandHistoryRef = useRef<string[]>([]);
-  const historyIndexRef = useRef(-1);
-  const savedInputRef = useRef('');
-
-  const execTextRef = useRef('');
-  const execCursorRef = useRef(0);
   const execStdinCallbackRef = useRef<((data: string) => void) | null>(null);
   const execKillCallbackRef = useRef<(() => void) | null>(null);
+  const execEventIndexRef = useRef(0);
+  const renderedContentRef = useRef<string | null>(null);
+  const renderedSnapshotRef = useRef<SharedTerminalSnapshot | null>(null);
+  const renderedTranscriptRef = useRef<string | null>(null);
+  const renderFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     onRunRef.current = onRunRequested;
@@ -74,56 +84,112 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     requestConfirmRef.current = requestConfirm;
   }, [requestConfirm]);
 
-  const inputRefs = useMemo<TerminalInputRefs>(() => ({
-    commandBuffer: {
-      text: commandTextRef,
-      cursor: commandCursorRef,
-    },
-    execBuffer: {
-      text: execTextRef,
-      cursor: execCursorRef,
-    },
-    commandHistory: commandHistoryRef,
-    historyIndex: historyIndexRef,
-    savedInput: savedInputRef,
-    execStdinCallback: execStdinCallbackRef,
-    execKillCallback: execKillCallbackRef,
-  }), []);
+  const renderTerminalView = useCallback(() => {
+    const terminal = termRef.current;
+    if (!terminal) {
+      return;
+    }
 
-  const writePrompt = useCallback((cwdOverride?: string) => {
-    const cwd = cwdOverride ?? fsRef.current?.cwd ?? '~';
-    termRef.current?.write(`\x1b[38;2;86;182;194m${cwd} $ \x1b[0m`);
-  }, []);
+    const transcript = getTerminalTranscript(ydoc).toString();
+    const snapshot = readSharedTerminalSnapshot(ydoc);
+    const content = renderSharedTerminal(snapshot, transcript);
+
+    if (content === renderedContentRef.current) {
+      return;
+    }
+
+    const previousSnapshot = renderedSnapshotRef.current;
+    const previousTranscript = renderedTranscriptRef.current;
+
+    if (
+      previousSnapshot
+      && previousTranscript === transcript
+      && canPatchActiveLine(terminal, previousSnapshot, snapshot)
+    ) {
+      patchActiveLine(terminal, snapshot);
+      renderedSnapshotRef.current = snapshot;
+      renderedTranscriptRef.current = transcript;
+      renderedContentRef.current = content;
+      return;
+    }
+
+    renderedContentRef.current = content;
+    renderedSnapshotRef.current = snapshot;
+    renderedTranscriptRef.current = transcript;
+    terminal.reset();
+    if (content) {
+      const syncTerminal = terminal as SyncTerminal;
+      if (typeof syncTerminal.writeSync === 'function') {
+        syncTerminal.writeSync(content);
+      } else {
+        terminal.write(content);
+      }
+    }
+  }, [ydoc]);
+
+  const scheduleRenderTerminalView = useCallback(() => {
+    if (renderFrameRef.current !== null) {
+      return;
+    }
+
+    renderFrameRef.current = window.requestAnimationFrame(() => {
+      renderFrameRef.current = null;
+      renderTerminalView();
+    });
+  }, [renderTerminalView]);
 
   useImperativeHandle(ref, () => ({
     write(text: string) {
-      termRef.current?.write(text);
+      appendTerminalOutput(ydoc, text);
     },
     writeln(text: string) {
-      termRef.current?.writeln(text);
+      appendTerminalOutput(ydoc, `${text}\r\n`);
     },
     clear() {
-      clearBuffer(inputRefs.commandBuffer);
-      clearBuffer(inputRefs.execBuffer);
-      termRef.current?.clear();
-      writePrompt();
+      clearTerminalTranscript(ydoc);
+      updateSharedTerminalState(ydoc, (current) => ({
+        ...current,
+        commandBuffer: '',
+        commandCursor: 0,
+        execBuffer: '',
+        execCursor: 0,
+        historyIndex: -1,
+        savedInput: '',
+        mode: 'command',
+      }));
     },
     enterExecMode(onStdin: (data: string) => void, onKill: () => void) {
       execStdinCallbackRef.current = onStdin;
       execKillCallbackRef.current = onKill;
-      clearBuffer(inputRefs.execBuffer);
+
+      updateSharedTerminalState(ydoc, (current) => ({
+        ...current,
+        mode: 'exec',
+        execBuffer: '',
+        execCursor: 0,
+      }));
     },
-    exitExecMode() {
+    exitExecMode(options?: { appendNewline?: boolean }) {
       execStdinCallbackRef.current = null;
       execKillCallbackRef.current = null;
-      clearBuffer(inputRefs.execBuffer);
-      termRef.current?.write('\r\n');
-      writePrompt();
+
+      if (options?.appendNewline !== false) {
+        appendTerminalOutput(ydoc, '\r\n');
+      }
+
+      updateSharedTerminalState(ydoc, (current) => ({
+        ...current,
+        mode: 'command',
+        execBuffer: '',
+        execCursor: 0,
+      }));
     },
-  }), [inputRefs, writePrompt]);
+  }), [ydoc]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
 
     const terminal = new XTerminal({
       cursorBlink: true,
@@ -151,20 +217,19 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
       }
     });
 
-    printWelcome(terminal);
     termRef.current = terminal;
     fitRef.current = fitAddon;
-    writePrompt('~');
 
-    terminal.attachCustomKeyEventHandler(createTerminalKeyGuard({ refs: inputRefs }));
+    terminal.attachCustomKeyEventHandler(createTerminalKeyGuard({
+      getSnapshot: () => readSharedTerminalSnapshot(ydoc),
+    }));
+
     const dataDisposable = terminal.onData(createTerminalDataHandler({
-      term: terminal,
-      refs: inputRefs,
+      ydoc,
       getVfs: () => fsRef.current,
       getOnRun: () => onRunRef.current,
       getPushToast: () => pushToastRef.current,
       getRequestConfirm: () => requestConfirmRef.current,
-      writePrompt,
     }));
 
     const resizeObserver = new ResizeObserver(() => {
@@ -177,18 +242,75 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     resizeObserver.observe(containerRef.current);
 
     return () => {
+      if (renderFrameRef.current !== null) {
+        window.cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
       resizeObserver.disconnect();
       dataDisposable.dispose();
       terminal.dispose();
       termRef.current = null;
       fitRef.current = null;
     };
-  }, [inputRefs, writePrompt]);
+  }, [renderTerminalView, ydoc]);
+
+  useEffect(() => {
+    const terminalState = getTerminalStateMap(ydoc);
+    const transcript = getTerminalTranscript(ydoc);
+    const rerender = () => {
+      scheduleRenderTerminalView();
+    };
+
+    terminalState.observe(rerender);
+    transcript.observe(rerender);
+    rerender();
+
+    return () => {
+      terminalState.unobserve(rerender);
+      transcript.unobserve(rerender);
+    };
+  }, [scheduleRenderTerminalView, ydoc]);
+
+  useEffect(() => {
+    const execEvents = getTerminalExecEvents(ydoc);
+    execEventIndexRef.current = execEvents.length;
+
+    const flushExecEvents = () => {
+      const snapshot = readSharedTerminalSnapshot(ydoc);
+      if (snapshot.execOwner !== ydoc.clientID || !snapshot.runId) {
+        execEventIndexRef.current = execEvents.length;
+        return;
+      }
+
+      while (execEventIndexRef.current < execEvents.length) {
+        const event = execEvents.get(execEventIndexRef.current);
+        execEventIndexRef.current += 1;
+
+        if (!event || event.runId !== snapshot.runId) {
+          continue;
+        }
+
+        if (event.type === 'stdin') {
+          execStdinCallbackRef.current?.(event.data ?? '');
+          continue;
+        }
+
+        execKillCallbackRef.current?.();
+      }
+    };
+
+    execEvents.observe(flushExecEvents);
+    return () => {
+      execEvents.unobserve(flushExecEvents);
+    };
+  }, [ydoc]);
 
   useEffect(() => {
     const terminal = termRef.current;
     const fitAddon = fitRef.current;
-    if (!terminal || !fitAddon || fontSize == null) return;
+    if (!terminal || !fitAddon || fontSize == null) {
+      return;
+    }
 
     terminal.options.fontSize = fontSize;
     try {
@@ -202,3 +324,53 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
 });
 
 export default Terminal;
+
+function canPatchActiveLine(
+  terminal: XTerminal,
+  previousSnapshot: SharedTerminalSnapshot,
+  nextSnapshot: SharedTerminalSnapshot,
+): boolean {
+  if (!previousSnapshot.initialized || !nextSnapshot.initialized) {
+    return false;
+  }
+
+  if (previousSnapshot.mode !== nextSnapshot.mode && (previousSnapshot.mode === 'exec' || nextSnapshot.mode === 'exec')) {
+    return false;
+  }
+
+  return getVisibleLineLength(previousSnapshot) < terminal.cols
+    && getVisibleLineLength(nextSnapshot) < terminal.cols;
+}
+
+function patchActiveLine(terminal: XTerminal, snapshot: SharedTerminalSnapshot): void {
+  const syncTerminal = terminal as SyncTerminal;
+  const buffer = snapshot.mode === 'exec'
+    ? { text: snapshot.execBuffer, cursor: snapshot.execCursor }
+    : { text: snapshot.commandBuffer, cursor: snapshot.commandCursor };
+
+  const prompt = snapshot.mode === 'command' ? buildTerminalPrompt(snapshot.cwd) : '';
+  const backtrack = buffer.text.length - buffer.cursor;
+  const nextLine = `\r\x1b[2K${prompt}${buffer.text}`;
+
+  if (typeof syncTerminal.writeSync === 'function') {
+    syncTerminal.writeSync(nextLine);
+    if (backtrack > 0) {
+      syncTerminal.writeSync(`\x1b[${backtrack}D`);
+    }
+    return;
+  }
+
+  terminal.write(nextLine);
+  if (backtrack > 0) {
+    terminal.write(`\x1b[${backtrack}D`);
+  }
+}
+
+function getVisibleLineLength(snapshot: SharedTerminalSnapshot): number {
+  const promptLength = snapshot.mode === 'command' ? `${snapshot.cwd} $ `.length : 0;
+  const bufferLength = snapshot.mode === 'exec'
+    ? snapshot.execBuffer.length
+    : snapshot.commandBuffer.length;
+
+  return promptLength + bufferLength;
+}

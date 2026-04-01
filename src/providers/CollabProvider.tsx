@@ -10,6 +10,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import type { Awareness } from 'y-protocols/awareness';
 import { CollabProvider as SyncProvider } from './SyncProvider';
 import { CollabContext, type CollabContextValue } from '../context/CollabContext';
+import { ensureSharedTerminalInitialized } from '../services/sharedTerminal';
 
 const PEER_COLORS = [
   '#e06c75',
@@ -66,13 +67,25 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     const idb = new IndexeddbPersistence(fullRoomName, ydoc);
     const syncProvider = new SyncProvider(fullRoomName, ydoc);
     let cancelled = false;
+    let indexedDbReady = false;
+    let websocketReady = false;
 
     setStorageReady(false);
 
+    const tryInitializeSharedState = () => {
+      if (cancelled || !indexedDbReady || !websocketReady) {
+        return;
+      }
+
+      ensureSharedTerminalInitialized(ydoc);
+    };
+
     void idb.whenSynced.then(() => {
+      indexedDbReady = true;
       if (!cancelled) {
         setStorageReady(true);
       }
+      tryInitializeSharedState();
     });
 
     const updatePeers = () => {
@@ -83,8 +96,16 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
       setConnected(status === 'connected');
     };
 
+    const handleSync = (synced: boolean) => {
+      websocketReady = synced;
+      if (synced) {
+        tryInitializeSharedState();
+      }
+    };
+
     syncProvider.awareness.on('change', updatePeers);
     syncProvider.on('status', handleStatus);
+    syncProvider.on('sync', handleSync);
     updatePeers();
 
     setProvider(syncProvider);
@@ -100,6 +121,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
       cancelled = true;
       window.removeEventListener('beforeunload', handleUnload);
       syncProvider.off('status', handleStatus);
+      syncProvider.off('sync', handleSync);
       syncProvider.awareness.off('change', updatePeers);
       syncProvider.awareness.setLocalState(null);
       syncProvider.destroy();

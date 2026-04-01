@@ -121,12 +121,13 @@ export function useVirtualFS(
 ): VirtualFS {
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
+  const fsState = useMemo(() => ydoc.getMap<string>('fs-state'), [ydoc]);
 
   const [files, setFiles] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [openTabs, setOpenTabs] = useState<string[]>([]);
-  const [cwd, setCwd] = useState(ROOT_PATH);
+  const [cwd, setCwdState] = useState(ROOT_PATH);
   const [contentVersion, setContentVersion] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -137,6 +138,11 @@ export function useVirtualFS(
     setFiles(Array.from(fsMap.keys()).sort());
     setDirs(fsDirs.toArray());
   }, [fsDirs, fsMap]);
+
+  const refreshCwd = useCallback(() => {
+    const nextCwd = fsState.get('cwd');
+    setCwdState(typeof nextCwd === 'string' ? normalizeVfsPath(nextCwd) : ROOT_PATH);
+  }, [fsState]);
 
   useEffect(() => {
     refreshState();
@@ -234,10 +240,29 @@ export function useVirtualFS(
   }, [fsDirs, fsMap, refreshState]);
 
   useEffect(() => {
+    refreshCwd();
+
+    const onFsStateChange = (event: Y.YMapEvent<string>) => {
+      if (event.keysChanged.has('cwd')) {
+        refreshCwd();
+      }
+    };
+
+    fsState.observe(onFsStateChange);
+    return () => {
+      fsState.unobserve(onFsStateChange);
+    };
+  }, [fsState, refreshCwd]);
+
+  useEffect(() => {
     if (!storageReady || bootstrapResolvedRef.current) return;
 
     bootstrapResolvedRef.current = true;
     setLoading(false);
+
+    if (!fsState.has('cwd')) {
+      fsState.set('cwd', ROOT_PATH);
+    }
 
     if (fsMap.size > 0 || !seedDefaultFile) {
       return;
@@ -257,7 +282,7 @@ export function useVirtualFS(
     setActiveFile(defaultPath);
     setOpenTabs([defaultPath]);
     initialFileOpenedRef.current = true;
-  }, [fsMap, seedDefaultFile, storageReady, ydoc]);
+  }, [fsMap, fsState, seedDefaultFile, storageReady, ydoc]);
 
   useEffect(() => {
     if (files.length === 0 || initialFileOpenedRef.current) return;
@@ -563,6 +588,10 @@ export function useVirtualFS(
       return nextTabs;
     });
   }, [activeFile]);
+
+  const setCwd = useCallback((path: string) => {
+    fsState.set('cwd', normalizeVfsPath(path));
+  }, [fsState]);
 
   const resolve = useCallback((relativePath: string): string => {
     if (relativePath.startsWith(ROOT_PATH)) {

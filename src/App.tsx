@@ -43,6 +43,7 @@ function AppContent({
   });
 
   const { running, entryPoints, handleRun } = useExecution({
+    ydoc,
     fs,
     terminalRef,
     editorRef,

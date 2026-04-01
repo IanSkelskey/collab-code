@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type * as Y from 'yjs';
 import type { RefObject } from 'react';
 import type { EditorHandle } from '../components/Editor';
 import type { TerminalHandle } from '../components/Terminal';
@@ -6,20 +7,39 @@ import type { VirtualFS } from './useVirtualFS';
 import { InteractiveExecutor } from '../services/interactiveExec';
 import { primaryLanguage, getLanguageForFile } from '../config/languages';
 import { getBaseName, stripVfsRoot } from '../lib/vfsPaths';
+import {
+  createTerminalRunId,
+  getTerminalStateMap,
+  readSharedTerminalSnapshot,
+  updateSharedTerminalState,
+} from '../services/sharedTerminal';
 
 interface UseExecutionOptions {
+  ydoc: Y.Doc;
   fs: VirtualFS;
   terminalRef: RefObject<TerminalHandle | null>;
   editorRef: RefObject<EditorHandle | null>;
   setTerminalVisible: (visible: boolean) => void;
 }
 
-export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }: UseExecutionOptions) {
-  const [running, setRunning] = useState(false);
-  const runningRef = useRef(false);
+export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisible }: UseExecutionOptions) {
+  const [running, setRunning] = useState(() => readSharedTerminalSnapshot(ydoc).running);
   const executorRef = useRef<InteractiveExecutor | null>(null);
 
-  // Compute set of VFS paths that contain an entry point (reactive to file content changes)
+  useEffect(() => {
+    const terminalState = getTerminalStateMap(ydoc);
+    const syncRunning = () => {
+      setRunning(readSharedTerminalSnapshot(ydoc).running);
+    };
+
+    terminalState.observe(syncRunning);
+    syncRunning();
+
+    return () => {
+      terminalState.unobserve(syncRunning);
+    };
+  }, [ydoc]);
+
   const entryPoints = useMemo(() => {
     const eps = new Set<string>();
     for (const filePath of fs.files) {
@@ -35,16 +55,17 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
   }, [fs.files, fs.readFile, fs.contentVersion]);
 
   const handleRun = useCallback((explicitMainClass?: string) => {
-    if (runningRef.current) return;
+    if (readSharedTerminalSnapshot(ydoc).running) {
+      return;
+    }
 
     const allFiles = fs.getAllFiles();
     const fileNames = Object.keys(allFiles);
-    if (fileNames.length === 0 || fileNames.every(f => !allFiles[f].trim())) {
+    if (fileNames.length === 0 || fileNames.every((fileName) => !allFiles[fileName].trim())) {
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
       return;
     }
 
-    // Determine which class to run
     let mainClass = explicitMainClass;
     if (!mainClass) {
       const activeRel = fs.activeFile ? stripVfsRoot(fs.activeFile) : null;
@@ -69,8 +90,18 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
       executorRef.current = null;
     }
 
-    runningRef.current = true;
-    setRunning(true);
+    const runId = createTerminalRunId(ydoc.clientID);
+
+    updateSharedTerminalState(ydoc, (current) => ({
+      ...current,
+      running: true,
+      mode: 'command',
+      execBuffer: '',
+      execCursor: 0,
+      execOwner: ydoc.clientID,
+      runId,
+    }));
+
     editorRef.current?.clearMarkers();
 
     let compileOutput = '';
@@ -80,9 +111,29 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
     executorRef.current = executor;
 
     const finish = () => {
-      runningRef.current = false;
-      setRunning(false);
+      const snapshot = readSharedTerminalSnapshot(ydoc);
+      if (snapshot.runId !== runId || snapshot.execOwner !== ydoc.clientID) {
+        executorRef.current = null;
+        return;
+      }
+
       terminalRef.current?.exitExecMode();
+      updateSharedTerminalState(ydoc, (current) => {
+        if (current.runId !== runId || current.execOwner !== ydoc.clientID) {
+          return current;
+        }
+
+        return {
+          ...current,
+          running: false,
+          mode: 'command',
+          execBuffer: '',
+          execCursor: 0,
+          execOwner: null,
+          runId: null,
+        };
+      });
+
       executorRef.current = null;
     };
 
@@ -92,12 +143,12 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
 
     executor.execute(allFiles, {
       onCompileStart() {
-        terminalRef.current?.writeln('\x1b[1;36m▶ Compiling...\x1b[0m');
+        terminalRef.current?.writeln('\x1b[1;36m> Compiling...\x1b[0m');
       },
 
       onCompileError(data) {
         compileOutput = data;
-        terminalRef.current?.writeln('\x1b[1;31m── Compilation Error ──\x1b[0m');
+        terminalRef.current?.writeln('\x1b[1;31m-- Compilation Error --\x1b[0m');
         data.split('\n').forEach((line) => {
           terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
         });
@@ -112,7 +163,7 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
       },
 
       onCompileOk() {
-        terminalRef.current?.writeln('\x1b[1;32m── Running ──\x1b[0m');
+        terminalRef.current?.writeln('\x1b[1;32m-- Running --\x1b[0m');
         terminalRef.current?.enterExecMode(
           (data) => executor.sendStdin(data),
           () => executor.kill(),
@@ -130,9 +181,7 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
 
       onExit(code) {
         if (code !== 0 && code !== null) {
-          terminalRef.current?.writeln(
-            `\n\x1b[33mProcess exited with code ${code}\x1b[0m`
-          );
+          terminalRef.current?.writeln(`\n\x1b[33mProcess exited with code ${code}\x1b[0m`);
         } else {
           terminalRef.current?.writeln('');
         }
@@ -149,14 +198,12 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
       onFilesSync(syncedFiles) {
         let count = 0;
         for (const [relPath, content] of Object.entries(syncedFiles)) {
-          const vfsPath = '~/' + relPath;
+          const vfsPath = `~/${relPath}`;
           fs.writeFile(vfsPath, content);
-          count++;
+          count += 1;
         }
         if (count > 0) {
-          terminalRef.current?.writeln(
-            `\x1b[2m[${count} file(s) synced to workspace]\x1b[0m`
-          );
+          terminalRef.current?.writeln(`\x1b[2m[${count} file(s) synced to workspace]\x1b[0m`);
         }
       },
 
@@ -165,7 +212,7 @@ export function useExecution({ fs, terminalRef, editorRef, setTerminalVisible }:
         finish();
       },
     }, mainClass);
-  }, [fs, terminalRef, editorRef, setTerminalVisible]);
+  }, [editorRef, fs, setTerminalVisible, terminalRef, ydoc]);
 
   return { running, entryPoints, handleRun };
 }

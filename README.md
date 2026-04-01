@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta--5-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta-5" />
+  <img src="https://img.shields.io/badge/version-1.0.0--beta--6-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta-5" />
 </p>
 
 <p align="center">
@@ -18,12 +18,12 @@
 </p>
 
 <p align="center">
-  Share a room link, edit the same workspace in Monaco, manage files together, and run Java from the browser through a lightweight relay server.
+  Share a room link, edit the same workspace in Monaco, use one shared terminal session, manage files together, and run Java from the browser through a lightweight relay server.
 </p>
 
 ## Why Collab Code
 
-Collab Code is built for the "open a link and start coding" workflow. It is meant to feel more like a shared coding room than a demo editor: multiple files, a real explorer, a terminal, search, diagnostics, and live collaboration all sit in the same browser-first workspace.
+Collab Code is built for the "open a link and start coding" workflow. It is meant to feel more like a shared coding room than a demo editor: multiple files, a real explorer, a shared terminal, search, diagnostics, and live collaboration all sit in the same browser-first workspace.
 
 It is especially suited to tutoring, CS education, pair programming, and collaborative walkthroughs where setup friction gets in the way.
 
@@ -31,11 +31,12 @@ It is especially suited to tutoring, CS education, pair programming, and collabo
 
 | Collaboration | Workspace | Execution |
 |---|---|---|
-| Live cursors, selections, peer presence, room sharing | Multi-file explorer, tabs, search/replace, drag-and-drop import, multi-select file actions | Interactive Java run flow, inline diagnostics, integrated terminal |
+| Live cursors, selections, peer presence, room sharing, shared terminal session | Multi-file explorer, tabs, search/replace, drag-and-drop import, multi-select file actions | Interactive Java run flow, inline diagnostics, shared terminal I/O |
 
 - **Collaborative editor** - Monaco + Yjs with live remote cursors, selections, and per-file awareness.
+- **Collaborative terminal** - peers share the same terminal transcript, prompt state, working directory, and run session.
 - **Real workspace** - folders, tabs, file icons, context menus, workspace search, export, and drag-and-drop file management.
-- **Integrated terminal** - browse and modify the virtual filesystem without leaving the app.
+- **Integrated terminal tools** - browse and modify the virtual filesystem without leaving the app.
 - **Classroom-friendly sharing** - create or join a room instantly with no account flow.
 - **Offline-friendly persistence** - IndexedDB keeps local workspace state around between reconnects.
 - **Responsive UI** - explorer, search, editor, and terminal all adapt across desktop and smaller screens.
@@ -71,9 +72,10 @@ For local development details, environment variables, architecture notes, deploy
 
 - Create or join a room from the landing page in a few seconds.
 - Edit the same workspace with other people in real time.
+- Share one terminal session with other peers, including `cd`, command history, terminal output, and interactive Java stdin/stdout/stderr.
 - Search and replace across the entire workspace.
 - Manage files with the explorer, drag-and-drop, multi-select actions, and the built-in terminal.
-- Compile and run Java projects with streamed stdin, stdout, and stderr.
+- Compile and run Java projects with streamed stdin, stdout, and stderr in the shared terminal.
 - Export a file or the whole workspace when you are done.
 
 ## Built With
