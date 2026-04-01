@@ -30,7 +30,7 @@ const shortcuts: { keys: string; desc: string }[] = [
 const tips: string[] = [
   'Share the URL to invite collaborators - they join instantly.',
   'Drag files onto folders in the explorer to move them.',
-  'Right-click files and folders for rename, delete, and more.',
+  'Right-click a file to copy it, or rename and delete files and folders.',
   'Deleted files show an undo toast - click it within 5 seconds to restore.',
   'Use the terminal for quick file operations: ls, cd, mkdir, touch, rm, mv, cat.',
   `${primaryLanguage.label} files can be run directly with Ctrl+Enter or the Run button.`,

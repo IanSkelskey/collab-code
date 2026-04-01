@@ -20,6 +20,79 @@ export function validateFileName(name: string): string | null {
   return null;
 }
 
+function splitFileName(name: string): { stem: string; extension: string } {
+  const lastDotIndex = name.lastIndexOf('.');
+  if (lastDotIndex <= 0) {
+    return { stem: name, extension: '' };
+  }
+
+  return {
+    stem: name.slice(0, lastDotIndex),
+    extension: name.slice(lastDotIndex),
+  };
+}
+
+function getCopyBaseName(stem: string): { baseStem: string; startIndex: number } {
+  const match = /^(.*?)(?: copy(?: (\d+))?)$/.exec(stem);
+  if (!match) {
+    return { baseStem: stem, startIndex: 1 };
+  }
+
+  const nextIndex = match[2] ? Number.parseInt(match[2], 10) + 1 : 2;
+  return {
+    baseStem: match[1],
+    startIndex: Number.isNaN(nextIndex) ? 1 : nextIndex,
+  };
+}
+
+function buildCopyName(stem: string, extension: string, copyIndex: number): string {
+  if (copyIndex <= 1) {
+    return `${stem} copy${extension}`;
+  }
+
+  return `${stem} copy ${copyIndex}${extension}`;
+}
+
+export function getNextFileCopyPath(vfs: VirtualFS, path: string): string {
+  const sourceName = getBaseName(path);
+  const parentPath = getParentPath(path);
+  const { stem, extension } = splitFileName(sourceName);
+  const { baseStem, startIndex } = getCopyBaseName(stem);
+  const normalizedStem = baseStem || stem;
+
+  let copyIndex = startIndex;
+  let candidatePath = joinVfsPath(parentPath, buildCopyName(normalizedStem, extension, copyIndex));
+
+  while (vfs.exists(candidatePath)) {
+    copyIndex += 1;
+    candidatePath = joinVfsPath(parentPath, buildCopyName(normalizedStem, extension, copyIndex));
+  }
+
+  return candidatePath;
+}
+
+export function copyFileWithUndo(
+  vfs: VirtualFS,
+  path: string,
+  pushToast?: (label: string, onUndo: () => void) => void,
+): string | null {
+  const content = vfs.readFile(path);
+  if (content === null) {
+    return null;
+  }
+
+  const copyPath = getNextFileCopyPath(vfs, path);
+  vfs.writeFile(copyPath, content);
+
+  pushToast?.(`Created ${getBaseName(copyPath)}`, () => {
+    if (vfs.exists(copyPath)) {
+      vfs.deleteFile(copyPath);
+    }
+  });
+
+  return copyPath;
+}
+
 /**
  * Delete a single file with an undo toast.
  * `afterUndo` is called after restoring the file (e.g. to re-open it in the editor).

@@ -2,7 +2,12 @@ import { useCallback, useMemo, useState, type MouseEvent as ReactMouseEvent } fr
 import { ROOT_PATH } from '../lib/vfsPaths';
 import type { FSNode, VirtualFS } from '../hooks/useVirtualFS';
 import { getLanguageForFile } from '../config/languages';
-import { deletePathsWithUndo, getTopLevelPaths, validateFileName } from '../services/fileOps';
+import {
+  copyFileWithUndo,
+  deletePathsWithUndo,
+  getTopLevelPaths,
+  validateFileName,
+} from '../services/fileOps';
 import { useExplorerDragAndDrop } from '../hooks/useExplorerDragAndDrop';
 import { useExplorerKeyboardShortcuts } from '../hooks/useExplorerKeyboardShortcuts';
 import { useExplorerSelection } from '../hooks/useExplorerSelection';
@@ -113,6 +118,20 @@ export default function FileExplorer({
     handleDeleteSelection([node.path]);
   }, [handleDeleteSelection]);
 
+  const handleCopyNode = useCallback((node: FSNode) => {
+    if (node.type !== 'file') {
+      return;
+    }
+
+    const copyPath = copyFileWithUndo(fs, node.path, pushToast);
+    if (!copyPath) {
+      return;
+    }
+
+    selectOnlyPath(copyPath);
+    fs.openFile(copyPath);
+  }, [fs, pushToast, selectOnlyPath]);
+
   const {
     dragTarget,
     onDragStartNode,
@@ -188,6 +207,10 @@ export default function FileExplorer({
       items.push({ label: 'New Folder', onClick: () => handleNewFolder(node.path) });
     }
 
+    if (node.type === 'file') {
+      items.push({ label: 'Copy', onClick: () => handleCopyNode(node) });
+    }
+
     if (node.path !== ROOT_PATH) {
       items.push({ label: 'Rename', onClick: () => setRenaming(node.path) });
       items.push({
@@ -203,6 +226,7 @@ export default function FileExplorer({
     entryPoints,
     handleDeleteCurrentSelection,
     handleDeleteNode,
+    handleCopyNode,
     handleNewFile,
     handleNewFolder,
     onRunFile,
