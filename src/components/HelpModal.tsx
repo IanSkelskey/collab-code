@@ -95,7 +95,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[460px] max-w-[92vw] max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[460px] max-w-[92vw] h-[34rem] max-h-[85vh] flex flex-col overflow-hidden">
         <div className="px-4 sm:px-5 pt-3 sm:pt-4 border-b border-zinc-700/60">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
@@ -145,7 +145,10 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 sm:py-4 min-h-72">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 sm:py-4"
+          style={{ scrollbarGutter: 'stable' }}
+        >
           {tab === 'about' && (
             <div className="space-y-4">
               <div className="flex flex-col items-center text-center pt-1">
@@ -174,35 +177,27 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           )}
 
           {tab === 'shortcuts' && (
-            <div className="space-y-1.5">
+            <div className="grid min-h-full content-center gap-2 sm:grid-cols-2">
               {shortcuts.map((shortcut) => (
-                <div key={shortcut.keys} className="flex items-center justify-between text-xs gap-2">
-                  <span className="text-zinc-400 min-w-0">{shortcut.desc}</span>
-                  <kbd className="bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0">
-                    {shortcut.keys}
-                  </kbd>
-                </div>
+                <ShortcutCard key={shortcut.keys} shortcut={shortcut} />
               ))}
             </div>
           )}
 
           {tab === 'tips' && (
-            <ul className="space-y-1.5">
-              {tips.map((tip) => (
-                <li key={tip} className="text-xs text-zinc-400 flex gap-2">
-                  <span className="text-emerald-400 shrink-0">-</span>
-                  {tip}
-                </li>
+            <div className="grid min-h-full content-center gap-2 sm:grid-cols-2">
+              {tips.map((tip, index) => (
+                <TipCard key={tip} index={index} tip={tip} />
               ))}
-            </ul>
+            </div>
           )}
 
           {tab === 'involved' && (
-            <div className="flex flex-col items-center pt-3">
+            <div className="flex min-h-full flex-col items-center justify-center">
               <div className="mb-1.5 text-xs text-zinc-400 text-center">
                 <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute.
               </div>
-              <p className="mb-2 text-[11px] leading-snug text-zinc-400/90 text-center max-w-[360px]">
+              <p className="mb-4 text-[11px] leading-snug text-zinc-400/90 text-center max-w-[360px]">
                 Sponsor to support ongoing development, open an issue for bugs or ideas, and star the repo
                 or send a PR if you would like to contribute.
               </p>
@@ -268,6 +263,38 @@ function InfoCard({
         {label}
       </div>
       <div className="text-xs text-zinc-300">{children}</div>
+    </div>
+  );
+}
+
+function ShortcutCard({
+  shortcut,
+}: {
+  shortcut: { keys: string; desc: string };
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2">
+      <div className="min-w-0 text-[11px] font-medium leading-snug text-zinc-200">{shortcut.desc}</div>
+      <kbd className="shrink-0 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300">
+        {shortcut.keys}
+      </kbd>
+    </div>
+  );
+}
+
+function TipCard({
+  index,
+  tip,
+}: {
+  index: number;
+  tip: string;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2.5">
+      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-[10px] font-semibold text-emerald-300">
+        {index + 1}
+      </div>
+      <p className="text-[11px] leading-snug text-zinc-300">{tip}</p>
     </div>
   );
 }
