@@ -5,6 +5,12 @@ const WebSocket = require('ws');
 const { runProcess } = require('./processRunner.cjs');
 const { getRunner, resolveExecutionLanguage } = require('./runtimeRegistry.cjs');
 const {
+  getExecutionSandboxStatus,
+  getExecutionSpawnOptions,
+  isExecutionAllowed,
+  prepareExecutionWorkspace,
+} = require('./sandbox.cjs');
+const {
   sanitizeRelativePath,
   normalizeProjectFiles,
   writeProjectFiles,
@@ -42,6 +48,11 @@ function handleExecConnection(ws) {
       return;
     }
 
+    if (!isExecutionAllowed()) {
+      send({ type: 'error', data: getExecutionSandboxStatus() });
+      return;
+    }
+
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'collab-exec-'));
     const files = normalizeProjectFiles(message);
     const language = resolveExecutionLanguage(message, files);
@@ -60,10 +71,20 @@ function handleExecConnection(ws) {
     }
 
     writeProjectFiles(tmpDir, files);
+    try {
+      prepareExecutionWorkspace(tmpDir);
+    } catch (err) {
+      send({ type: 'error', data: `Failed to prepare execution sandbox: ${err.message}` });
+      cleanup();
+      return;
+    }
+
+    const execSpawnOptions = getExecutionSpawnOptions(tmpDir);
     runner.start({
       files,
       entryPoint: sanitizeRelativePath(message.entryPoint || message.mainClass || ''),
       tmpDir,
+      execSpawnOptions,
       runProcess,
       send,
       cleanup,

@@ -63,6 +63,7 @@ const javaRunner = {
       files,
       entryPoint,
       tmpDir,
+      execSpawnOptions,
       runProcess,
       send,
       cleanup,
@@ -88,11 +89,18 @@ const javaRunner = {
     const mainClass = resolveMainClass(sourceByClass, entryPoint || 'Main');
     const outDir = path.join(tmpDir, '__out__');
     fs.mkdirSync(outDir, { recursive: true });
+    if (typeof execSpawnOptions?.uid === 'number' && typeof execSpawnOptions?.gid === 'number') {
+      fs.chownSync(outDir, execSpawnOptions.uid, execSpawnOptions.gid);
+      fs.chmodSync(outDir, 0o700);
+    }
 
     console.log(`[exec] Compiling ${javaFiles.length} Java file(s) in ${tmpDir}, main class: ${mainClass}`);
     send({ type: 'compile-start' });
 
-    const javac = spawn('javac', ['-d', outDir, ...javaFiles]);
+    const javac = spawn('javac', ['-d', outDir, ...javaFiles], {
+      cwd: tmpDir,
+      ...execSpawnOptions,
+    });
     let compileErr = '';
 
     javac.stderr.on('data', (data) => {
@@ -111,8 +119,9 @@ const javaRunner = {
       send({ type: 'compile-ok' });
       runProcess({
         command: 'java',
-        args: ['-cp', outDir, mainClass],
+        args: [`-Djava.io.tmpdir=${tmpDir}`, `-Duser.home=${tmpDir}`, '-cp', outDir, mainClass],
         cwd: tmpDir,
+        spawnOptions: execSpawnOptions,
         files,
         ignoredDirs: new Set(['__out__']),
         ignoredExtensions: new Set(['.class']),

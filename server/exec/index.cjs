@@ -5,6 +5,11 @@ const {
   isPythonAvailable,
   getPythonRuntimeVersion,
 } = require('./runtimeRegistry.cjs');
+const {
+  getExecutionSandboxStatus,
+  isExecutionAllowed,
+  isExecutionSandboxed,
+} = require('./sandbox.cjs');
 
 module.exports = {
   handleExecConnection,
@@ -12,4 +17,7 @@ module.exports = {
   getJavaRuntimeVersion,
   isPythonAvailable,
   getPythonRuntimeVersion,
+  isExecutionAllowed,
+  isExecutionSandboxed,
+  getExecutionSandboxStatus,
 };

@@ -46,6 +46,10 @@ function collectSyncedFiles(rootDir, originalFiles, ignoredDirs, ignoredExtensio
       const fullPath = path.join(directory, entry.name);
       const relativePath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
 
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
+
       if (entry.isDirectory()) {
         if (ignoredDirs.has(entry.name)) {
           continue;
@@ -54,12 +58,16 @@ function collectSyncedFiles(rootDir, originalFiles, ignoredDirs, ignoredExtensio
         continue;
       }
 
+      const stat = fs.lstatSync(fullPath);
+      if (!stat.isFile()) {
+        continue;
+      }
+
       const extension = path.extname(entry.name);
       if (ignoredExtensions.has(extension)) {
         continue;
       }
 
-      const stat = fs.statSync(fullPath);
       if (stat.size > 1024 * 256) {
         continue;
       }

@@ -3,8 +3,14 @@ FROM node:20-slim
 # Install JDK and Python for interactive code execution
 RUN apt-get update && \
     apt-get install -y default-jdk-headless python3 && \
+    groupadd --system --gid 10001 collabexec && \
+    useradd --system --uid 10001 --gid 10001 --create-home --home-dir /home/collabexec collabexec && \
     rm -rf /var/lib/apt/lists/* && \
     javac -version && java -version && python3 --version
+
+ENV EXEC_SANDBOX_UID=10001
+ENV EXEC_SANDBOX_GID=10001
+ENV EXEC_REQUIRE_SANDBOX=1
 
 WORKDIR /app
 

@@ -55,6 +55,7 @@ const pythonRunner = {
       files,
       entryPoint,
       tmpDir,
+      execSpawnOptions,
       runProcess,
       send,
       cleanup,
@@ -94,8 +95,9 @@ const pythonRunner = {
 
     runProcess({
       command: pythonRuntime.command,
-      args: [...pythonRuntime.args, runtimeEntryPoint],
+      args: [...pythonRuntime.args, '-I', '-B', runtimeEntryPoint],
       cwd: tmpDir,
+      spawnOptions: execSpawnOptions,
       files,
       ignoredDirs: new Set(['__pycache__']),
       ignoredExtensions: new Set(['.pyc']),

@@ -18,6 +18,9 @@ const {
   getJavaRuntimeVersion,
   isPythonAvailable,
   getPythonRuntimeVersion,
+  isExecutionAllowed,
+  isExecutionSandboxed,
+  getExecutionSandboxStatus,
 } = require('./exec.cjs');
 const { handleSyncConnection } = require('./sync.cjs');
 
@@ -47,6 +50,9 @@ const server = http.createServer((req, res) => {
     javaVersion: getJavaRuntimeVersion(),
     pythonAvailable: isPythonAvailable(),
     pythonVersion: getPythonRuntimeVersion(),
+    executionAllowed: isExecutionAllowed(),
+    executionSandboxed: isExecutionSandboxed(),
+    executionSandboxStatus: getExecutionSandboxStatus(),
   }));
 });
 
@@ -84,4 +90,5 @@ server.listen(PORT, HOST, () => {
   console.log(`[collab-code] Server running on ${HOST}:${PORT}`);
   console.log(`[collab-code] Yjs sync: ws://${HOST}:${PORT}/<room>`);
   console.log(`[collab-code] Interactive exec: ws://${HOST}:${PORT}/exec`);
+  console.log(`[collab-code] Exec isolation: ${getExecutionSandboxStatus()}`);
 });

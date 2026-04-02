@@ -68,6 +68,17 @@ Then open:
 
 For local development details, environment variables, architecture notes, deployment, and contributor workflow, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+## Execution Safety
+
+Browser-triggered Java and Python execution runs arbitrary user code on the relay host, so deployment defaults matter.
+
+- The Docker image is configured to require sandboxed execution and drops Java/Python child processes to a dedicated low-privilege OS user.
+- If the server is started as `root` without `EXEC_SANDBOX_UID` and `EXEC_SANDBOX_GID`, execution is now disabled by default. You can explicitly override that with `EXEC_ALLOW_UNSANDBOXED_ROOT=1`, but that is not recommended.
+- Local development on platforms without POSIX `uid`/`gid` privilege dropping can still run unsandboxed unless you require sandboxing with `EXEC_REQUIRE_SANDBOX=1`.
+- The app's Help -> About tab and the server health endpoint report whether execution is `Sandboxed`, `Unsandboxed`, or `Disabled`.
+
+This is a hardening step, not a full container-per-run sandbox. If you expose execution to untrusted users, isolate the relay further at the deployment level as well.
+
 ## What You Can Do
 
 - Create or join a room from the landing page in a few seconds.

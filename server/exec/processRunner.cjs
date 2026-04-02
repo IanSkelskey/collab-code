@@ -8,6 +8,7 @@ function runProcess(context) {
     command,
     args,
     cwd,
+    spawnOptions,
     files,
     ignoredDirs,
     ignoredExtensions,
@@ -22,6 +23,7 @@ function runProcess(context) {
   const child = spawn(command, args, {
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
+    ...spawnOptions,
   });
   setActiveProcess(child);
 

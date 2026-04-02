@@ -58,7 +58,7 @@ const tips: Array<{ title: string; items: string[] }> = [
 type Tab = 'about' | 'shortcuts' | 'tips' | 'involved';
 
 export default function HelpModal({ onClose }: HelpModalProps) {
-  const [tab, setTab] = useState<Tab>('shortcuts');
+  const [tab, setTab] = useState<Tab>('about');
   const [serverInfo, setServerInfo] = useState<ServerInfoState>({
     status: 'idle',
     javaAvailable: null,
