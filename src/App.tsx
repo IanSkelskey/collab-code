@@ -62,7 +62,14 @@ function AppContent({
     pushToast,
   });
 
-  const { running, entryPoints, handleRun } = useExecution({
+  const {
+    running,
+    entryPoints,
+    runnableTargets,
+    currentRunTarget,
+    handleRun,
+    handleRunActiveFile,
+  } = useExecution({
     ydoc,
     fs,
     terminalRef,
@@ -136,6 +143,9 @@ function AppContent({
         peerCount={peerCount}
         running={running}
         onRun={() => handleRun()}
+        currentRunTarget={currentRunTarget}
+        runTargets={runnableTargets}
+        onRunTargetSelect={(filePath) => handleRun(filePath)}
         onExitRoom={onExitRoom}
         onSaveAll={handleSaveAll}
         onConfirmLeave={(options) => layout.setConfirmDialog(options)}
@@ -194,7 +204,7 @@ function AppContent({
             {fs.openTabs.length > 0 ? (
               <Editor
                 ref={editorRef}
-                onRun={handleRun}
+                onRun={handleRunActiveFile}
                 onFormat={handleFormatCompleted}
                 fontSize={layout.fontSize}
                 fs={fs}

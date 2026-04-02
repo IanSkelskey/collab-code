@@ -6,7 +6,7 @@ import type { TerminalHandle } from '../components/Terminal';
 import type { VirtualFS } from './useVirtualFS';
 import { InteractiveExecutor, type SupportedExecutionLanguage } from '../services/interactiveExec';
 import { getLanguageForFile, type LanguageConfig } from '../config/languages';
-import { getBaseName, stripVfsRoot } from '../lib/vfsPaths';
+import { getBaseName, normalizeVfsPath, stripVfsRoot } from '../lib/vfsPaths';
 import {
   createTerminalRunId,
   getTerminalStateMap,
@@ -22,17 +22,50 @@ interface UseExecutionOptions {
   setTerminalVisible: (visible: boolean) => void;
 }
 
-interface ExecutionTarget {
+export interface ExecutionTarget {
+  filePath: string;
   language: LanguageConfig;
   entryPoint: string;
+}
+
+interface RunResolutionResult {
+  target: ExecutionTarget | null;
+  error: string | null;
 }
 
 function isSupportedExecutionLanguage(languageId: string): languageId is SupportedExecutionLanguage {
   return languageId === 'java' || languageId === 'python';
 }
 
+function buildExecutionTarget(
+  filePath: string,
+  allFiles: Record<string, string>,
+): ExecutionTarget | null {
+  const normalizedPath = normalizeVfsPath(filePath);
+  const relativePath = stripVfsRoot(normalizedPath);
+  const language = getLanguageForFile(relativePath);
+  const content = allFiles[relativePath];
+
+  if (
+    !language
+    || !isSupportedExecutionLanguage(language.id)
+    || !language.entryPointPattern
+    || !content
+    || !language.entryPointPattern.test(content)
+  ) {
+    return null;
+  }
+
+  return {
+    filePath: normalizedPath,
+    language,
+    entryPoint: language.extractEntryPointName?.(relativePath) ?? getBaseName(relativePath),
+  };
+}
+
 export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisible }: UseExecutionOptions) {
   const [running, setRunning] = useState(() => readSharedTerminalSnapshot(ydoc).running);
+  const [preferredRunFile, setPreferredRunFile] = useState<string | null>(null);
   const executorRef = useRef<InteractiveExecutor | null>(null);
 
   useEffect(() => {
@@ -49,69 +82,125 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
     };
   }, [ydoc]);
 
-  const entryPoints = useMemo(() => {
-    const eps = new Set<string>();
+  const allFiles = fs.getAllFiles();
+
+  const runnableTargets = useMemo(() => {
+    const targets: ExecutionTarget[] = [];
+
     for (const filePath of fs.files) {
-      const lang = getLanguageForFile(filePath);
-      if (!lang?.entryPointPattern) continue;
-      const content = fs.readFile(filePath);
-      if (content && lang.entryPointPattern.test(content)) {
-        eps.add(filePath);
+      const target = buildExecutionTarget(filePath, allFiles);
+      if (target) {
+        targets.push(target);
       }
     }
-    return eps;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fs.files, fs.readFile, fs.contentVersion]);
+
+    targets.sort((left, right) => left.filePath.localeCompare(right.filePath));
+    return targets;
+  }, [allFiles, fs.files]);
+
+  const entryPoints = useMemo(() => new Set(runnableTargets.map((target) => target.filePath)), [runnableTargets]);
+
+  const runnableTargetsByPath = useMemo(() => {
+    return new Map(runnableTargets.map((target) => [target.filePath, target]));
+  }, [runnableTargets]);
+
+  useEffect(() => {
+    if (!preferredRunFile) {
+      return;
+    }
+
+    if (!runnableTargetsByPath.has(preferredRunFile)) {
+      setPreferredRunFile(null);
+    }
+  }, [preferredRunFile, runnableTargetsByPath]);
+
+  const currentRunTarget = useMemo(() => {
+    if (preferredRunFile) {
+      const preferredTarget = runnableTargetsByPath.get(preferredRunFile);
+      if (preferredTarget) {
+        return preferredTarget;
+      }
+    }
+
+    if (fs.activeFile) {
+      const activeTarget = runnableTargetsByPath.get(fs.activeFile);
+      if (activeTarget) {
+        return activeTarget;
+      }
+    }
+
+    if (runnableTargets.length === 1) {
+      return runnableTargets[0];
+    }
+
+    return null;
+  }, [fs.activeFile, preferredRunFile, runnableTargets, runnableTargetsByPath]);
+
+  const resolveRunTarget = useCallback((explicitFilePath?: string): RunResolutionResult => {
+    if (explicitFilePath) {
+      const normalizedPath = normalizeVfsPath(explicitFilePath);
+      const explicitTarget = runnableTargetsByPath.get(normalizedPath);
+
+      if (explicitTarget) {
+        return { target: explicitTarget, error: null };
+      }
+
+      if (!fs.exists(normalizedPath)) {
+        return { target: null, error: `File not found: ${normalizedPath}` };
+      }
+
+      if (fs.isDirectory(normalizedPath)) {
+        return { target: null, error: `Cannot run a folder: ${normalizedPath}` };
+      }
+
+      return {
+        target: null,
+        error: `File is not a runnable Java or Python entry point: ${normalizedPath}`,
+      };
+    }
+
+    if (currentRunTarget) {
+      return { target: currentRunTarget, error: null };
+    }
+
+    if (runnableTargets.length > 1) {
+      return {
+        target: null,
+        error: 'Multiple runnable files found. Use run <file> or choose a target from the Run menu.',
+      };
+    }
+
+    if (fs.activeFile && fs.exists(fs.activeFile) && !runnableTargetsByPath.has(fs.activeFile)) {
+      return {
+        target: null,
+        error: `Active file is not runnable: ${fs.activeFile}. Use run <file> or choose a target from the Run menu.`,
+      };
+    }
+
+    return { target: null, error: 'No runnable Java or Python file found.' };
+  }, [currentRunTarget, fs, runnableTargets.length, runnableTargetsByPath]);
 
   const handleRun = useCallback((explicitFilePath?: string) => {
     if (readSharedTerminalSnapshot(ydoc).running) {
       return;
     }
 
-    const allFiles = fs.getAllFiles();
     const fileNames = Object.keys(allFiles);
     if (fileNames.length === 0 || fileNames.every((fileName) => !allFiles[fileName].trim())) {
+      setTerminalVisible(true);
       terminalRef.current?.writeln('\x1b[33mNo code to run.\x1b[0m');
       return;
     }
 
-    const candidatePaths: string[] = [];
-    if (explicitFilePath) {
-      candidatePaths.push(stripVfsRoot(explicitFilePath));
-    }
-    if (fs.activeFile) {
-      const activeRelPath = stripVfsRoot(fs.activeFile);
-      if (!candidatePaths.includes(activeRelPath)) {
-        candidatePaths.push(activeRelPath);
-      }
-    }
-    for (const filePath of fs.files) {
-      const relPath = stripVfsRoot(filePath);
-      if (!candidatePaths.includes(relPath)) {
-        candidatePaths.push(relPath);
-      }
-    }
-
-    let target: ExecutionTarget | null = null;
-    for (const relPath of candidatePaths) {
-      const language = getLanguageForFile(relPath);
-      const content = allFiles[relPath];
-      if (!language?.entryPointPattern || !content || !language.entryPointPattern.test(content)) {
-        continue;
-      }
-
-      target = {
-        language,
-        entryPoint: language.extractEntryPointName?.(relPath) ?? getBaseName(relPath),
-      };
-      break;
-    }
-
-    if (!target || !isSupportedExecutionLanguage(target.language.id)) {
-      terminalRef.current?.writeln('\x1b[33mNo runnable Java or Python file found.\x1b[0m');
+    const resolution = resolveRunTarget(explicitFilePath);
+    if (!resolution.target) {
+      setTerminalVisible(true);
+      terminalRef.current?.writeln(`\x1b[33m${resolution.error}\x1b[0m`);
       return;
     }
 
+    const target = resolution.target;
+    setPreferredRunFile(target.filePath);
     setTerminalVisible(true);
 
     if (executorRef.current) {
@@ -168,14 +257,15 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       executorRef.current = null;
     };
 
-    terminalRef.current?.writeln(`\x1b[2m${executionLanguage.label} entry: ${target.entryPoint}\x1b[0m`);
+    terminalRef.current?.writeln(`\x1b[2mTarget file: ${target.filePath}\x1b[0m`);
+    terminalRef.current?.writeln(`\x1b[2mEntry point: ${target.entryPoint}\x1b[0m`);
 
     executor.execute(allFiles, {
       onCompileStart() {
         const preparingLabel = executionLanguage.id === 'java'
           ? 'Compiling'
-          : 'Preparing runtime';
-        terminalRef.current?.writeln(`\x1b[1;36m> ${preparingLabel} ${executionLanguage.label}...\x1b[0m`);
+          : 'Preparing runtime for';
+        terminalRef.current?.writeln(`\x1b[1;36m> ${preparingLabel} ${getBaseName(target.filePath)}...\x1b[0m`);
       },
 
       onCompileError(data) {
@@ -195,7 +285,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       },
 
       onCompileOk() {
-        terminalRef.current?.writeln(`\x1b[1;32m-- Running ${executionLanguage.label} --\x1b[0m`);
+        terminalRef.current?.writeln(`\x1b[1;32m-- Running ${getBaseName(target.filePath)} --\x1b[0m`);
         terminalRef.current?.enterExecMode(
           (data) => executor.sendStdin(data),
           () => executor.kill(),
@@ -247,7 +337,24 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       language: executionLanguageId,
       entryPoint: target.entryPoint,
     });
-  }, [editorRef, fs, setTerminalVisible, terminalRef, ydoc]);
+  }, [allFiles, editorRef, fs, resolveRunTarget, setTerminalVisible, terminalRef, ydoc]);
 
-  return { running, entryPoints, handleRun };
+  const handleRunActiveFile = useCallback(() => {
+    if (fs.activeFile) {
+      handleRun(fs.activeFile);
+      return;
+    }
+
+    setTerminalVisible(true);
+    terminalRef.current?.writeln('\x1b[33mNo active file to run.\x1b[0m');
+  }, [fs.activeFile, handleRun, setTerminalVisible, terminalRef]);
+
+  return {
+    running,
+    entryPoints,
+    runnableTargets,
+    currentRunTarget,
+    handleRun,
+    handleRunActiveFile,
+  };
 }

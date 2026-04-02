@@ -19,7 +19,7 @@ export interface CommandContext {
   command: ParsedTerminalCommand;
   vfs: VirtualFS | undefined;
   writePrompt: (cwdOverride?: string) => void;
-  onRun: (() => void) | undefined;
+  onRun: ((filePath?: string) => void) | undefined;
   pushToast: PushToast | undefined;
   requestConfirm: ((title: string, message: string, onConfirm: () => void) => void) | undefined;
 }

@@ -32,7 +32,7 @@ interface CreateTerminalKeyGuardOptions {
 interface CreateTerminalDataHandlerOptions {
   ydoc: Y.Doc;
   getVfs: () => VirtualFS | undefined;
-  getOnRun: () => (() => void) | undefined;
+  getOnRun: () => ((filePath?: string) => void) | undefined;
   getPushToast: () => PushToast | undefined;
   getRequestConfirm: () => ((title: string, message: string, onConfirm: () => void) => void) | undefined;
 }

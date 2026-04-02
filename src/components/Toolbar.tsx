@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PeerAvatars from './PeerAvatars';
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import type { ExecutionTarget } from '../hooks/useExecution';
+import { getBaseName } from '../lib/vfsPaths';
 import {
   SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
-  FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon,
+  FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon,
 } from './Icons';
 
 interface ToolbarProps {
@@ -13,6 +15,9 @@ interface ToolbarProps {
   peerCount: number;
   running: boolean;
   onRun: () => void;
+  currentRunTarget: ExecutionTarget | null;
+  runTargets: ExecutionTarget[];
+  onRunTargetSelect: (filePath: string) => void;
   onExitRoom: () => void;
   onSaveAll: () => Promise<void>;
   fs?: VirtualFS;
@@ -32,12 +37,28 @@ export default function Toolbar({
   peerCount,
   running,
   onRun,
+  currentRunTarget,
+  runTargets,
+  onRunTargetSelect,
   onExitRoom,
   onSaveAll,
   onConfirmLeave,
   fs,
 }: ToolbarProps) {
   const [copied, setCopied] = useState(false);
+  const [runMenuOpen, setRunMenuOpen] = useState(false);
+  const runMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (runMenuRef.current && !runMenuRef.current.contains(event.target as Node)) {
+        setRunMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleShare = useCallback(async () => {
     const url = `${window.location.origin}${window.location.pathname}#${roomId}`;
@@ -50,82 +71,164 @@ export default function Toolbar({
     }
   }, [roomId]);
 
+  const handlePrimaryRun = useCallback(() => {
+    if (!currentRunTarget && runTargets.length > 1) {
+      setRunMenuOpen((open) => !open);
+      return;
+    }
+
+    onRun();
+  }, [currentRunTarget, onRun, runTargets.length]);
+
+  const handleSelectRunTarget = useCallback((filePath: string) => {
+    setRunMenuOpen(false);
+    onRunTargetSelect(filePath);
+  }, [onRunTargetSelect]);
+
+  const runButtonLabel = running
+    ? 'Running...'
+    : currentRunTarget
+      ? `Run ${getBaseName(currentRunTarget.filePath)}`
+      : runTargets.length > 1
+        ? 'Choose Run Target'
+        : 'Run';
+
+  const runButtonTitle = currentRunTarget
+    ? `Run ${currentRunTarget.filePath}. Ctrl+Enter runs the active editor.`
+    : runTargets.length > 1
+      ? 'Choose which runnable file to execute.'
+      : 'Run code. Ctrl+Enter runs the active editor.';
+
   return (
-      <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Logo / Title */}
-          <button
-            onClick={() => {
-              onConfirmLeave({
-                title: 'Leave workspace?',
-                message: 'Your work is only stored in each peer\'s browser. If all peers leave, unsaved work may be lost.',
-                confirmLabel: 'Leave',
-                secondaryLabel: 'Download & Leave',
-                onConfirm: onExitRoom,
-                onSecondary: () => { onSaveAll().then(onExitRoom); },
-              });
-            }}
-            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-            title="Back to home"
-          >
-            <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
-            <h1 className="text-sm sm:text-base font-semibold tracking-tight">
-              <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
-              <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5 hidden sm:inline">v{__APP_VERSION__}</span>
-            </h1>
-          </button>
+    <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button
+          onClick={() => {
+            onConfirmLeave({
+              title: 'Leave workspace?',
+              message: 'Your work is only stored in each peer\'s browser. If all peers leave, unsaved work may be lost.',
+              confirmLabel: 'Leave',
+              secondaryLabel: 'Download & Leave',
+              onConfirm: onExitRoom,
+              onSecondary: () => { onSaveAll().then(onExitRoom); },
+            });
+          }}
+          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+          title="Back to home"
+        >
+          <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
+          <h1 className="text-sm sm:text-base font-semibold tracking-tight">
+            <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
+            <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5 hidden sm:inline">v{__APP_VERSION__}</span>
+          </h1>
+        </button>
 
-          <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+        <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
 
-          {/* Run button */}
+        <div ref={runMenuRef} className="relative flex items-stretch">
           <button
-            onClick={onRun}
+            onClick={handlePrimaryRun}
             disabled={running}
-            title="Run code (Ctrl+Enter)"
-            className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer touch-manipulation"
+            title={runButtonTitle}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-l-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer touch-manipulation"
           >
             {running ? (
               <SpinnerIcon className="w-4 h-4 animate-spin" />
             ) : (
               <PlayIcon className="w-4 h-4" />
             )}
-            <span className="hidden sm:inline">{running ? 'Running...' : 'Run'}</span>
+            <span className="hidden sm:inline max-w-[11rem] truncate">{runButtonLabel}</span>
           </button>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <PeerAvatars fs={fs} />
-
-          <div
-            className={`w-2 h-2 rounded-full shrink-0 ${
-              connected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
-            }`}
-            title={connected ? 'Connected to server' : 'Connecting...'}
-          />
-
-          <span className="text-xs text-zinc-400 hidden sm:inline">
-            {peerCount} {peerCount === 1 ? 'peer' : 'peers'}
-          </span>
-
-          <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
-
-          <span className="text-xs text-zinc-500 font-mono hidden md:inline">
-            #{roomId}
-          </span>
-
           <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
+            onClick={() => setRunMenuOpen((open) => !open)}
+            disabled={running}
+            title="Choose run target"
+            className="px-2 rounded-r-md border-l border-emerald-500/40 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
-            <LinkIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
+            <ChevronDownIcon className={`w-4 h-4 transition-transform ${runMenuOpen ? 'rotate-180' : ''}`} />
           </button>
+
+          {runMenuOpen && (
+            <div className="absolute left-0 top-full mt-2 z-50 min-w-[260px] max-w-[320px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 overflow-hidden">
+              <div className="px-3 py-2 border-b border-zinc-700/60">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                  Run Targets
+                </div>
+                <div className="mt-1 text-[11px] text-zinc-400">
+                  Ctrl+Enter always runs the active editor.
+                </div>
+              </div>
+
+              {runTargets.length === 0 ? (
+                <div className="px-3 py-3 text-xs text-zinc-400">
+                  No runnable Java or Python files found.
+                </div>
+              ) : (
+                <div className="py-1">
+                  {runTargets.map((target) => {
+                    const isCurrentTarget = currentRunTarget?.filePath === target.filePath;
+
+                    return (
+                      <button
+                        key={target.filePath}
+                        onClick={() => handleSelectRunTarget(target.filePath)}
+                        className={`w-full px-3 py-2 text-left transition-colors cursor-pointer ${
+                          isCurrentTarget ? 'bg-zinc-700/60' : 'hover:bg-zinc-700/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-zinc-100">{getBaseName(target.filePath)}</span>
+                          {isCurrentTarget && (
+                            <span className="text-[10px] uppercase tracking-[0.16em] text-emerald-400">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-zinc-400 break-all">{target.filePath}</div>
+                        <div className="mt-0.5 text-[10px] text-zinc-500">
+                          {target.language.label} entry: {target.entryPoint}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </header>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3">
+        <PeerAvatars fs={fs} />
+
+        <div
+          className={`w-2 h-2 rounded-full shrink-0 ${
+            connected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+          }`}
+          title={connected ? 'Connected to server' : 'Connecting...'}
+        />
+
+        <span className="text-xs text-zinc-400 hidden sm:inline">
+          {peerCount} {peerCount === 1 ? 'peer' : 'peers'}
+        </span>
+
+        <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+
+        <span className="text-xs text-zinc-500 font-mono hidden md:inline">
+          #{roomId}
+        </span>
+
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
+        >
+          <LinkIcon className="w-4 h-4" />
+          <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
+        </button>
+      </div>
+    </header>
   );
 }
-
-// ── Activity bar (vertical icon strip) ──
 
 export interface ActivityBarProps {
   explorerVisible: boolean;
@@ -165,22 +268,21 @@ export function ActivityBar({
   const saveMenuRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  // Close popovers on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) {
+    const handler = (event: MouseEvent) => {
+      if (saveMenuRef.current && !saveMenuRef.current.contains(event.target as Node)) {
         setSaveMenuOpen(false);
       }
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setSettingsOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
   return (
     <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1 pb-2">
-      {/* Top — Explorer */}
       <button
         onClick={onToggleExplorer}
         title="Toggle Explorer (Ctrl+B)"
@@ -193,7 +295,6 @@ export function ActivityBar({
         <ExplorerFolderIcon className="w-5 h-5" />
       </button>
 
-      {/* Search */}
       <button
         onClick={onToggleSearch}
         title="Search Files (Ctrl+Shift+F)"
@@ -208,9 +309,7 @@ export function ActivityBar({
 
       <div className="flex-1" />
 
-      {/* Bottom section */}
       <div className="flex flex-col items-center gap-0.5">
-        {/* Format */}
         <button
           onClick={onFormat}
           title="Format Document (Alt+Shift+F)"
@@ -219,10 +318,9 @@ export function ActivityBar({
           <FormatIcon className="w-5 h-5" />
         </button>
 
-        {/* Export / Download */}
         <div ref={saveMenuRef} className="relative">
           <button
-            onClick={() => { setSaveMenuOpen(v => !v); setSettingsOpen(false); }}
+            onClick={() => { setSaveMenuOpen((open) => !open); setSettingsOpen(false); }}
             title="Export & Copy"
             className={`p-2 rounded transition-colors cursor-pointer ${
               saveMenuOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
@@ -258,7 +356,7 @@ export function ActivityBar({
               </button>
               <div className="mx-2 my-1 border-t border-zinc-700/60" />
               <button
-                onClick={() => { onSaveAll(); setSaveMenuOpen(false); }}
+                onClick={() => { void onSaveAll(); setSaveMenuOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
               >
                 <ArchiveIcon className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -273,10 +371,9 @@ export function ActivityBar({
           )}
         </div>
 
-        {/* Settings */}
         <div ref={settingsRef} className="relative">
           <button
-            onClick={() => { setSettingsOpen(v => !v); setSaveMenuOpen(false); }}
+            onClick={() => { setSettingsOpen((open) => !open); setSaveMenuOpen(false); }}
             title="Settings"
             className={`p-2 rounded transition-colors cursor-pointer ${
               settingsOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
@@ -293,7 +390,7 @@ export function ActivityBar({
                   title="Decrease font size"
                   className="px-2 py-1 rounded text-xs font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer leading-none"
                 >
-                  A−
+                  A-
                 </button>
                 <span className="text-xs text-zinc-300 font-mono min-w-[2ch] text-center">{fontSize}</span>
                 <button
@@ -308,7 +405,6 @@ export function ActivityBar({
           )}
         </div>
 
-        {/* Help */}
         <button
           onClick={onHelpOpen}
           title="Help & Shortcuts"

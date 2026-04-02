@@ -37,7 +37,7 @@ export interface TerminalHandle {
 }
 
 interface TerminalProps {
-  onRunRequested?: () => void;
+  onRunRequested?: (filePath?: string) => void;
   fontSize?: number;
   fs?: VirtualFS;
   pushToast?: PushToast;

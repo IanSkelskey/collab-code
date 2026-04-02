@@ -28,15 +28,31 @@ const shortcuts: { keys: string; desc: string }[] = [
   { keys: 'Up / Down', desc: 'Terminal command history' },
 ];
 
-const tips: string[] = [
-  'Share the URL to invite collaborators - they join instantly.',
-  'New rooms can start with a Java starter, Python starter, or a blank workspace.',
-  'Blank rooms show one-click Java and Python starter buttons in the editor.',
-  'Drag files onto folders in the explorer to move them.',
-  'Right-click a file to copy it, or rename and delete files and folders.',
-  'Deleted files show an undo toast - click it within 5 seconds to restore.',
-  'Use the terminal for quick file operations: ls, cd, mkdir, touch, rm, mv, cat.',
-  'Java and Python files can be run directly with Ctrl+Enter or the Run button.',
+const tips: Array<{ title: string; items: string[] }> = [
+  {
+    title: 'Starting Rooms',
+    items: [
+      'Share the URL to invite collaborators instantly.',
+      'New rooms can start with Java, Python, or a blank workspace.',
+      'Blank rooms include one-click Java and Python starter buttons.',
+    ],
+  },
+  {
+    title: 'Working With Files',
+    items: [
+      'Drag files onto folders in the explorer to move them.',
+      'Right-click files to copy, rename, or delete them.',
+      'Undo delete toasts stay available for 5 seconds.',
+    ],
+  },
+  {
+    title: 'Running Code',
+    items: [
+      'Terminal commands include ls, cd, mkdir, touch, rm, mv, and cat.',
+      'Use run <file> when you want to choose an exact entry file.',
+      'Ctrl+Enter runs the active editor; the Run menu chooses targets.',
+    ],
+  },
 ];
 
 type Tab = 'about' | 'shortcuts' | 'tips' | 'involved';
@@ -106,9 +122,9 @@ export default function HelpModal({ onClose }: HelpModalProps) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[460px] max-w-[92vw] h-[34rem] max-h-[85vh] flex flex-col overflow-hidden">
+      <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[460px] max-w-[92vw] h-[35rem] max-h-[85vh] flex flex-col overflow-hidden">
         <div className="px-4 sm:px-5 pt-3 sm:pt-4 border-b border-zinc-700/60">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2.5">
             <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
               <HelpCircleIcon className="w-4 h-4 text-emerald-400" strokeWidth={2} />
               Help
@@ -120,7 +136,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
               <CloseIcon className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-3">
             <TabButton
               active={tab === 'about'}
               activeClassName="text-sky-400 border-sky-400"
@@ -157,7 +173,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         </div>
 
         <div
-          className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 sm:py-4"
+          className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-2.5 sm:py-3"
           style={{ scrollbarGutter: 'stable' }}
         >
           {tab === 'about' && (
@@ -207,9 +223,9 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           )}
 
           {tab === 'tips' && (
-            <div className="grid min-h-full content-center gap-2 sm:grid-cols-2">
-              {tips.map((tip, index) => (
-                <TipCard key={tip} index={index} tip={tip} />
+            <div className="grid min-h-full content-center gap-2.5">
+              {tips.map((section) => (
+                <TipSection key={section.title} title={section.title} items={section.items} />
               ))}
             </div>
           )}
@@ -228,7 +244,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           )}
         </div>
 
-        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-zinc-700/60 flex flex-col items-center gap-1.5 sm:gap-2">
+        <div className="px-4 sm:px-5 py-2 sm:py-2.5 border-t border-zinc-700/60 flex flex-col items-center gap-1 sm:gap-1.5">
           <div className="text-xs text-zinc-400 font-mono">v{__APP_VERSION__}</div>
           <span className="text-xs text-zinc-400">
             Made with <span className="text-red-400">♥</span> by{' '}
@@ -304,19 +320,26 @@ function ShortcutCard({
   );
 }
 
-function TipCard({
-  index,
-  tip,
+function TipSection({
+  title,
+  items,
 }: {
-  index: number;
-  tip: string;
+  title: string;
+  items: string[];
 }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2.5">
-      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-[10px] font-semibold text-emerald-300">
-        {index + 1}
+    <div className="rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2.5">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+        {title}
       </div>
-      <p className="text-[11px] leading-snug text-zinc-300">{tip}</p>
+      <div className="space-y-1.5">
+        {items.map((item) => (
+          <div key={item} className="flex items-start gap-2">
+            <div className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/70" />
+            <p className="text-[11px] leading-snug text-zinc-300">{item}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { parseTerminalCommand } from './terminalCommandParser';
+import { getSingleCommandArg, parseTerminalCommand } from './terminalCommandParser';
 import {
   formatHelpEntry,
   printWelcomeBanner,
@@ -13,9 +13,16 @@ type CommandExecutionContext = Omit<CommandContext, 'command'>;
 
 const commandEntries: Array<[string, CommandDef]> = [
   ['run', {
-    help: 'run active Java/Python entry point',
+    help: 'run current target or run <file>',
     run(ctx) {
-      ctx.onRun?.();
+      const targetArg = getSingleCommandArg(ctx.command).trim();
+      if (!targetArg) {
+        ctx.onRun?.();
+        return;
+      }
+
+      const resolvedPath = ctx.vfs ? ctx.vfs.resolve(targetArg) : targetArg;
+      ctx.onRun?.(resolvedPath);
     },
   }],
   ['clear', {
