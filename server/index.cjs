@@ -2,7 +2,7 @@
  * Collab Code server entry point.
  *
  * - Y.js document sync relay via WebSocket (any path except /exec)
- * - Interactive Java execution via WebSocket (/exec)
+ * - Interactive code execution via WebSocket (/exec)
  *
  * Usage:
  *   node server/index.cjs              # default port 4444
@@ -12,7 +12,13 @@
 const http = require('http');
 const { URL } = require('url');
 const WebSocket = require('ws');
-const { handleExecConnection, isJavaAvailable, getJavaRuntimeVersion } = require('./exec.cjs');
+const {
+  handleExecConnection,
+  isJavaAvailable,
+  getJavaRuntimeVersion,
+  isPythonAvailable,
+  getPythonRuntimeVersion,
+} = require('./exec.cjs');
 const { handleSyncConnection } = require('./sync.cjs');
 
 const PORT = parseInt(process.env.PORT || '4444', 10);
@@ -39,6 +45,8 @@ const server = http.createServer((req, res) => {
     service: 'collab-code-sync',
     javaAvailable: isJavaAvailable(),
     javaVersion: getJavaRuntimeVersion(),
+    pythonAvailable: isPythonAvailable(),
+    pythonVersion: getPythonRuntimeVersion(),
   }));
 });
 

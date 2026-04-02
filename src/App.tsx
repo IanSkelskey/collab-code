@@ -20,7 +20,6 @@ import ToastContainer from './components/ToastContainer';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
-import { getLanguageForFile } from './config/languages';
 import { CollabProvider } from './providers/CollabProvider';
 
 function AppContent({
@@ -140,11 +139,7 @@ function AppContent({
                   pushToast={pushToast}
                   requestConfirm={layout.requestConfirm}
                   entryPoints={entryPoints}
-                  onRunFile={(filePath) => {
-                    const language = getLanguageForFile(filePath);
-                    const entryName = language?.extractEntryPointName?.(filePath) ?? filePath.split('/').pop()!;
-                    handleRun(entryName);
-                  }}
+                  onRunFile={(filePath) => handleRun(filePath)}
                   running={running}
                 />
               )}

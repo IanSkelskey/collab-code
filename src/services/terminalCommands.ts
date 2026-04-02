@@ -13,7 +13,7 @@ type CommandExecutionContext = Omit<CommandContext, 'command'>;
 
 const commandEntries: Array<[string, CommandDef]> = [
   ['run', {
-    help: 'compile & execute',
+    help: 'run active Java/Python entry point',
     run(ctx) {
       ctx.onRun?.();
     },

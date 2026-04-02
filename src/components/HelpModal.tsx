@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { primaryLanguage } from '../config/languages';
 import { HelpCircleIcon, CloseIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 import GetInvolvedActions from './GetInvolvedActions';
@@ -12,6 +11,8 @@ interface ServerInfoState {
   status: 'idle' | 'loading' | 'success' | 'error';
   javaAvailable: boolean | null;
   javaVersion: string | null;
+  pythonAvailable: boolean | null;
+  pythonVersion: string | null;
 }
 
 const shortcuts: { keys: string; desc: string }[] = [
@@ -33,7 +34,7 @@ const tips: string[] = [
   'Right-click a file to copy it, or rename and delete files and folders.',
   'Deleted files show an undo toast - click it within 5 seconds to restore.',
   'Use the terminal for quick file operations: ls, cd, mkdir, touch, rm, mv, cat.',
-  `${primaryLanguage.label} files can be run directly with Ctrl+Enter or the Run button.`,
+  'Java and Python files can be run directly with Ctrl+Enter or the Run button.',
 ];
 
 type Tab = 'about' | 'shortcuts' | 'tips' | 'involved';
@@ -44,6 +45,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
     status: 'idle',
     javaAvailable: null,
     javaVersion: null,
+    pythonAvailable: null,
+    pythonVersion: null,
   });
   const serverInfoRef = useRef(serverInfo);
 
@@ -68,6 +71,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           status: 'success',
           javaAvailable: response.javaAvailable === true,
           javaVersion: typeof response.javaVersion === 'string' ? response.javaVersion : null,
+          pythonAvailable: response.pythonAvailable === true,
+          pythonVersion: typeof response.pythonVersion === 'string' ? response.pythonVersion : null,
         });
       })
       .catch(() => {
@@ -76,6 +81,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             status: 'error',
             javaAvailable: null,
             javaVersion: null,
+            pythonAvailable: null,
+            pythonVersion: null,
           });
           return;
         }
@@ -84,6 +91,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           status: 'error',
           javaAvailable: null,
           javaVersion: null,
+          pythonAvailable: null,
+          pythonVersion: null,
         });
       });
 
@@ -161,16 +170,26 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                 <p className="mt-2 text-xs leading-relaxed text-zinc-400 max-w-[360px]">
                   Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
                   Share a room link, edit the same workspace, use one shared terminal session, and run
-                  Java together from the browser.
+                  Java and Python together from the browser.
                 </p>
               </div>
 
               <div className="grid gap-2.5">
-                <InfoCard label="App Version">
-                  <span className="font-mono text-zinc-100">v{__APP_VERSION__}</span>
-                </InfoCard>
                 <InfoCard label="Server Java Runtime">
-                  <ServerJavaVersion serverInfo={serverInfo} />
+                  <ServerRuntimeVersion
+                    status={serverInfo.status}
+                    available={serverInfo.javaAvailable}
+                    version={serverInfo.javaVersion}
+                    label="Java"
+                  />
+                </InfoCard>
+                <InfoCard label="Server Python Runtime">
+                  <ServerRuntimeVersion
+                    status={serverInfo.status}
+                    available={serverInfo.pythonAvailable}
+                    version={serverInfo.pythonVersion}
+                    label="Python"
+                  />
                 </InfoCard>
               </div>
             </div>
@@ -299,24 +318,34 @@ function TipCard({
   );
 }
 
-function ServerJavaVersion({ serverInfo }: { serverInfo: ServerInfoState }) {
-  if (serverInfo.status === 'loading' || serverInfo.status === 'idle') {
+function ServerRuntimeVersion({
+  status,
+  available,
+  version,
+  label,
+}: {
+  status: ServerInfoState['status'];
+  available: boolean | null;
+  version: string | null;
+  label: string;
+}) {
+  if (status === 'loading' || status === 'idle') {
     return <span className="text-zinc-400">Checking execution server...</span>;
   }
 
-  if (serverInfo.status === 'error') {
+  if (status === 'error') {
     return <span className="text-amber-300">Unable to reach the execution server.</span>;
   }
 
-  if (!serverInfo.javaAvailable) {
-    return <span className="text-amber-300">Java is not available on this server.</span>;
+  if (!available) {
+    return <span className="text-amber-300">{label} is not available on this server.</span>;
   }
 
-  if (!serverInfo.javaVersion) {
-    return <span className="font-mono text-zinc-100">Java available</span>;
+  if (!version) {
+    return <span className="font-mono text-zinc-100">{label} available</span>;
   }
 
-  return <span className="font-mono text-zinc-100 break-all">{serverInfo.javaVersion}</span>;
+  return <span className="font-mono text-zinc-100 break-all">{version}</span>;
 }
 
 function getServerInfoUrl(): string {
@@ -332,6 +361,8 @@ function getServerInfoUrl(): string {
 async function fetchServerInfo(signal: AbortSignal): Promise<{
   javaAvailable?: boolean;
   javaVersion?: string | null;
+  pythonAvailable?: boolean;
+  pythonVersion?: string | null;
 }> {
   const candidates = getServerInfoUrls();
   let lastError: unknown = null;
@@ -346,6 +377,8 @@ async function fetchServerInfo(signal: AbortSignal): Promise<{
       return await response.json() as {
         javaAvailable?: boolean;
         javaVersion?: string | null;
+        pythonAvailable?: boolean;
+        pythonVersion?: string | null;
       };
     } catch (error) {
       if (signal.aborted) {

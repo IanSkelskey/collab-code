@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  Share a room link, edit the same workspace in Monaco, use one shared terminal session, manage files together, and run Java from the browser through a lightweight relay server.
+  Share a room link, edit the same workspace in Monaco, use one shared terminal session, manage files together, and run Java or Python from the browser through a lightweight relay server.
 </p>
 
 ## Why Collab Code
@@ -31,7 +31,7 @@ It is especially suited to tutoring, CS education, pair programming, and collabo
 
 | Collaboration | Workspace | Execution |
 |---|---|---|
-| Live cursors, selections, peer presence, room sharing, shared terminal session | Multi-file explorer, tabs, search/replace, drag-and-drop import, multi-select file actions | Interactive Java run flow, inline diagnostics, shared terminal I/O |
+| Live cursors, selections, peer presence, room sharing, shared terminal session | Multi-file explorer, tabs, search/replace, drag-and-drop import, multi-select file actions | Interactive Java and Python run flow, inline diagnostics, shared terminal I/O |
 
 - **Collaborative editor** - Monaco + Yjs with live remote cursors, selections, and per-file awareness.
 - **Collaborative terminal** - peers share the same terminal transcript, prompt state, working directory, and run session.
@@ -43,7 +43,7 @@ It is especially suited to tutoring, CS education, pair programming, and collabo
 
 ## Current Scope
 
-- **Runnable language today:** Java
+- **Runnable languages today:** Java and Python
 - **Editor/file support:** Java, TypeScript, JavaScript, Python, JSON, HTML, CSS, Markdown, C, C++, XML, and SQL
 - **Best fit:** classrooms, tutoring sessions, collaborative exercises, code reviews, and quick pair-programming rooms
 
@@ -72,10 +72,10 @@ For local development details, environment variables, architecture notes, deploy
 
 - Create or join a room from the landing page in a few seconds.
 - Edit the same workspace with other people in real time.
-- Share one terminal session with other peers, including `cd`, command history, terminal output, and interactive Java stdin/stdout/stderr.
+- Share one terminal session with other peers, including `cd`, command history, terminal output, and interactive Java/Python stdin/stdout/stderr.
 - Search and replace across the entire workspace.
 - Manage files with the explorer, drag-and-drop, multi-select actions, and the built-in terminal.
-- Compile and run Java projects with streamed stdin, stdout, and stderr in the shared terminal.
+- Compile and run Java projects, or execute Python scripts, with streamed stdin, stdout, and stderr in the shared terminal.
 - Export a file or the whole workspace when you are done.
 
 ## Built With

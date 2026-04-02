@@ -1,10 +1,10 @@
 FROM node:20-slim
 
-# Install JDK for interactive Java compilation and execution
+# Install JDK and Python for interactive code execution
 RUN apt-get update && \
-    apt-get install -y default-jdk-headless && \
+    apt-get install -y default-jdk-headless python3 && \
     rm -rf /var/lib/apt/lists/* && \
-    javac -version && java -version
+    javac -version && java -version && python3 --version
 
 WORKDIR /app
 

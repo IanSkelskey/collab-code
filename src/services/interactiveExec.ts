@@ -1,10 +1,16 @@
 /**
- * WebSocket client for interactive Java execution.
+ * WebSocket client for interactive code execution.
  *
  * Connects to the server's /exec WebSocket endpoint and manages
- * the lifecycle of a single Java execution session with streaming
- * stdin/stdout/stderr.
+ * the lifecycle of a single run session with streaming stdin/stdout/stderr.
  */
+
+export type SupportedExecutionLanguage = 'java' | 'python';
+
+export interface ExecuteOptions {
+  language: SupportedExecutionLanguage;
+  entryPoint: string;
+}
 
 export interface ExecCallbacks {
   onCompileStart: () => void;
@@ -14,29 +20,26 @@ export interface ExecCallbacks {
   onStderr: (data: string) => void;
   onExit: (code: number) => void;
   onError: (error: string) => void;
-  /** Called with files created/modified by the Java program, to sync back to VFS */
+  /** Called with files created/modified by the executed program, to sync back to VFS */
   onFilesSync?: (files: Record<string, string>) => void;
 }
 
 export class InteractiveExecutor {
   private ws: WebSocket | null = null;
 
-  /**
-   * Open a WebSocket to /exec and start compiling + running the given source files.
-   * All lifecycle events are delivered through the callbacks object.
-   *
-   * @param files - Map of relative file paths to their content (e.g., { "Main.java": "..." })
-   * @param mainClass - Simple class name to run (e.g., "App" for App.java). Defaults to "Main".
-   */
-  execute(files: Record<string, string>, callbacks: ExecCallbacks, mainClass?: string): void {
-    // Derive WebSocket URL — reuse the same env var used for Yjs sync
+  execute(files: Record<string, string>, callbacks: ExecCallbacks, options: ExecuteOptions): void {
     const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4444';
     const execUrl = `${wsUrl}/exec`;
 
     this.ws = new WebSocket(execUrl);
 
     this.ws.onopen = () => {
-      this.ws!.send(JSON.stringify({ type: 'exec', files, mainClass: mainClass || 'Main' }));
+      this.ws!.send(JSON.stringify({
+        type: 'exec',
+        files,
+        language: options.language,
+        entryPoint: options.entryPoint,
+      }));
     };
 
     this.ws.onmessage = (event) => {
@@ -65,7 +68,6 @@ export class InteractiveExecutor {
           break;
         case 'exit':
           callbacks.onExit(msg.code ?? 1);
-          // Server closes the WebSocket after exit; clean up our side too
           this.close();
           break;
         case 'files-sync':
@@ -86,14 +88,14 @@ export class InteractiveExecutor {
     };
   }
 
-  /** Send a string of stdin data to the running Java process. */
+  /** Send a string of stdin data to the running process. */
   sendStdin(data: string): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: 'stdin', data }));
     }
   }
 
-  /** Kill the running Java process. */
+  /** Kill the running process. */
   kill(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: 'kill' }));

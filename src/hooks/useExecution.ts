@@ -4,8 +4,8 @@ import type { RefObject } from 'react';
 import type { EditorHandle } from '../components/Editor';
 import type { TerminalHandle } from '../components/Terminal';
 import type { VirtualFS } from './useVirtualFS';
-import { InteractiveExecutor } from '../services/interactiveExec';
-import { primaryLanguage, getLanguageForFile } from '../config/languages';
+import { InteractiveExecutor, type SupportedExecutionLanguage } from '../services/interactiveExec';
+import { getLanguageForFile, type LanguageConfig } from '../config/languages';
 import { getBaseName, stripVfsRoot } from '../lib/vfsPaths';
 import {
   createTerminalRunId,
@@ -20,6 +20,15 @@ interface UseExecutionOptions {
   terminalRef: RefObject<TerminalHandle | null>;
   editorRef: RefObject<EditorHandle | null>;
   setTerminalVisible: (visible: boolean) => void;
+}
+
+interface ExecutionTarget {
+  language: LanguageConfig;
+  entryPoint: string;
+}
+
+function isSupportedExecutionLanguage(languageId: string): languageId is SupportedExecutionLanguage {
+  return languageId === 'java' || languageId === 'python';
 }
 
 export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisible }: UseExecutionOptions) {
@@ -54,7 +63,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fs.files, fs.readFile, fs.contentVersion]);
 
-  const handleRun = useCallback((explicitMainClass?: string) => {
+  const handleRun = useCallback((explicitFilePath?: string) => {
     if (readSharedTerminalSnapshot(ydoc).running) {
       return;
     }
@@ -66,21 +75,41 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       return;
     }
 
-    let mainClass = explicitMainClass;
-    if (!mainClass) {
-      const activeRel = fs.activeFile ? stripVfsRoot(fs.activeFile) : null;
-      const activeLang = activeRel ? getLanguageForFile(activeRel) : undefined;
-      if (activeRel && activeLang?.entryPointPattern && allFiles[activeRel] && activeLang.entryPointPattern.test(allFiles[activeRel])) {
-        mainClass = activeLang.extractEntryPointName?.(activeRel) ?? getBaseName(activeRel);
-      } else {
-        for (const [relPath, content] of Object.entries(allFiles)) {
-          const lang = getLanguageForFile(relPath);
-          if (lang?.entryPointPattern?.test(content)) {
-            mainClass = lang.extractEntryPointName?.(relPath) ?? getBaseName(relPath);
-            break;
-          }
-        }
+    const candidatePaths: string[] = [];
+    if (explicitFilePath) {
+      candidatePaths.push(stripVfsRoot(explicitFilePath));
+    }
+    if (fs.activeFile) {
+      const activeRelPath = stripVfsRoot(fs.activeFile);
+      if (!candidatePaths.includes(activeRelPath)) {
+        candidatePaths.push(activeRelPath);
       }
+    }
+    for (const filePath of fs.files) {
+      const relPath = stripVfsRoot(filePath);
+      if (!candidatePaths.includes(relPath)) {
+        candidatePaths.push(relPath);
+      }
+    }
+
+    let target: ExecutionTarget | null = null;
+    for (const relPath of candidatePaths) {
+      const language = getLanguageForFile(relPath);
+      const content = allFiles[relPath];
+      if (!language?.entryPointPattern || !content || !language.entryPointPattern.test(content)) {
+        continue;
+      }
+
+      target = {
+        language,
+        entryPoint: language.extractEntryPointName?.(relPath) ?? getBaseName(relPath),
+      };
+      break;
+    }
+
+    if (!target || !isSupportedExecutionLanguage(target.language.id)) {
+      terminalRef.current?.writeln('\x1b[33mNo runnable Java or Python file found.\x1b[0m');
+      return;
     }
 
     setTerminalVisible(true);
@@ -91,6 +120,8 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
     }
 
     const runId = createTerminalRunId(ydoc.clientID);
+    const executionLanguage = target.language;
+    const executionLanguageId = executionLanguage.id as SupportedExecutionLanguage;
 
     updateSharedTerminalState(ydoc, (current) => ({
       ...current,
@@ -137,13 +168,14 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       executorRef.current = null;
     };
 
-    if (mainClass) {
-      terminalRef.current?.writeln(`\x1b[2mEntry point: ${mainClass}\x1b[0m`);
-    }
+    terminalRef.current?.writeln(`\x1b[2m${executionLanguage.label} entry: ${target.entryPoint}\x1b[0m`);
 
     executor.execute(allFiles, {
       onCompileStart() {
-        terminalRef.current?.writeln('\x1b[1;36m> Compiling...\x1b[0m');
+        const preparingLabel = executionLanguage.id === 'java'
+          ? 'Compiling'
+          : 'Preparing runtime';
+        terminalRef.current?.writeln(`\x1b[1;36m> ${preparingLabel} ${executionLanguage.label}...\x1b[0m`);
       },
 
       onCompileError(data) {
@@ -153,7 +185,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
           terminalRef.current?.writeln(`\x1b[31m${line}\x1b[0m`);
         });
 
-        const parseDiagnostics = primaryLanguage.parseDiagnostics;
+        const parseDiagnostics = executionLanguage.parseDiagnostics;
         if (parseDiagnostics) {
           const markers = parseDiagnostics(compileOutput);
           if (markers.length > 0) editorRef.current?.setMarkers(markers);
@@ -163,7 +195,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       },
 
       onCompileOk() {
-        terminalRef.current?.writeln('\x1b[1;32m-- Running --\x1b[0m');
+        terminalRef.current?.writeln(`\x1b[1;32m-- Running ${executionLanguage.label} --\x1b[0m`);
         terminalRef.current?.enterExecMode(
           (data) => executor.sendStdin(data),
           () => executor.kill(),
@@ -186,7 +218,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
           terminalRef.current?.writeln('');
         }
 
-        const parseRuntimeErrors = primaryLanguage.parseRuntimeErrors;
+        const parseRuntimeErrors = executionLanguage.parseRuntimeErrors;
         if (parseRuntimeErrors) {
           const markers = parseRuntimeErrors(runtimeStderr);
           if (markers.length > 0) editorRef.current?.setMarkers(markers);
@@ -211,7 +243,10 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
         terminalRef.current?.writeln(`\x1b[31mExecution failed: ${error}\x1b[0m`);
         finish();
       },
-    }, mainClass);
+    }, {
+      language: executionLanguageId,
+      entryPoint: target.entryPoint,
+    });
   }, [editorRef, fs, setTerminalVisible, terminalRef, ydoc]);
 
   return { running, entryPoints, handleRun };

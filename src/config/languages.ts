@@ -1,4 +1,6 @@
 import { parseJavaDiagnostics, parseJavaRuntimeErrors, type DiagnosticMarker } from '../services/javaDiagnostics';
+import { stripVfsRoot } from '../lib/vfsPaths';
+import { parsePythonRuntimeErrors } from '../services/pythonDiagnostics';
 
 export interface LanguageConfig {
   /** Unique language identifier */
@@ -59,6 +61,9 @@ const languages: LanguageConfig[] = [
     iconColor: 'text-blue-400',
     iconName: 'python',
     mimeType: 'text/x-python',
+    entryPointPattern: /\S/,
+    extractEntryPointName: (filePath: string) => stripVfsRoot(filePath),
+    parseRuntimeErrors: parsePythonRuntimeErrors,
   },
   {
     id: 'javascript',
