@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import type { RefObject } from 'react';
 import type { EditorHandle } from '../components/Editor';
 import type { VirtualFS } from './useVirtualFS';
-import { primaryLanguage, getMimeType } from '../config/languages';
+import { getMimeType } from '../config/languages';
 import JSZip from 'jszip';
 
 interface UseFileExportOptions {
@@ -32,7 +32,7 @@ export function useFileExport({ fs, roomId, editorRef, pushToast }: UseFileExpor
   const handleSaveFile = useCallback(() => {
     const code = editorRef.current?.getCode() ?? '';
     if (!code.trim()) return;
-    const activeName = fs.activeFile?.split('/').pop() ?? primaryLanguage.defaultFile!.name;
+    const activeName = fs.activeFile?.split('/').pop() ?? 'code.txt';
     const blob = new Blob([code], { type: getMimeType(activeName) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

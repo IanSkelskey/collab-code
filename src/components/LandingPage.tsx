@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
 import GetInvolvedActions from './GetInvolvedActions';
+import RoomTemplateDialog from './RoomTemplateDialog';
+import type { RoomTemplateId } from '../config/roomTemplates';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -10,15 +12,21 @@ function generateRoomId(): string {
 }
 
 interface LandingPageProps {
-  onCreateRoom: (roomId: string) => void;
+  onCreateRoom: (roomId: string, templateId: RoomTemplateId) => void;
   onJoinRoom: (roomId: string) => void;
 }
 
 export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPageProps) {
   const [joinId, setJoinId] = useState('');
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const handleCreate = useCallback(() => {
-    onCreateRoom(generateRoomId());
+    setTemplateDialogOpen(true);
+  }, []);
+
+  const handleTemplateSelect = useCallback((templateId: RoomTemplateId) => {
+    setTemplateDialogOpen(false);
+    onCreateRoom(generateRoomId(), templateId);
   }, [onCreateRoom]);
 
   const handleJoin = useCallback(() => {
@@ -28,7 +36,6 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
 
   return (
     <div className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-auto">
-      {/* Minimal header */}
       <header className="shrink-0 flex items-center gap-2 px-4 py-3 sm:px-6 bg-[#161b22] border-b border-zinc-700/50">
         <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
         <h1 className="text-base font-semibold tracking-tight text-zinc-100">
@@ -37,10 +44,8 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
         </h1>
       </header>
 
-      {/* Main content — centered */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-lg flex flex-col items-center gap-10">
-          {/* Logo + heading */}
+        <div className="w-full max-w-xl flex flex-col items-center gap-10">
           <div className="flex flex-col items-center gap-4 text-center">
             <img
               src="/collab-code/logo.svg"
@@ -51,21 +56,16 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
               Collab Code
             </h2>
             <span className="text-xs text-zinc-500 font-mono -mt-2">v{__APP_VERSION__}</span>
-            <p className="text-sm sm:text-base text-zinc-400 max-w-md leading-relaxed">
+            <p className="text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
               A minimal, collaborative coding room for Java and Python, built for tutors and students.
-              No installs, no accounts&mdash;just share a link and start
-              coding together in real time.
+              No installs, no accounts - just share a link and start coding together in real time.
             </p>
-            
-            {/* Language note */}
             <p className="text-xs text-zinc-500 text-center italic">
-                Runs Java and Python today, with broader language support planned.
+              Creating a room opens a starter picker for Java, Python, or a blank workspace.
             </p>
           </div>
 
-          {/* Actions */}
           <div className="w-full max-w-xs flex flex-col gap-4">
-            {/* Create new room */}
             <button
               onClick={handleCreate}
               className="w-full px-5 py-3 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 transition-colors cursor-pointer"
@@ -73,22 +73,24 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
               Create a Room
             </button>
 
-            {/* Divider */}
+            <p className="text-center text-[11px] leading-relaxed text-zinc-500">
+              You&apos;ll choose the room starter after clicking create.
+            </p>
+
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-zinc-700/60" />
               <span className="text-xs text-zinc-500 uppercase tracking-wider">or join</span>
               <div className="flex-1 h-px bg-zinc-700/60" />
             </div>
 
-            {/* Join existing room */}
             <form
-              onSubmit={(e) => { e.preventDefault(); handleJoin(); }}
+              onSubmit={(event) => { event.preventDefault(); handleJoin(); }}
               className="flex gap-2"
             >
               <input
                 type="text"
                 value={joinId}
-                onChange={(e) => setJoinId(e.target.value)}
+                onChange={(event) => setJoinId(event.target.value)}
                 placeholder="Room code"
                 className="flex-1 min-w-0 px-3 py-2.5 rounded-lg text-sm bg-[#161b22] border border-zinc-700 text-zinc-200 placeholder-zinc-500 outline-none focus:border-emerald-500 transition-colors"
               />
@@ -102,7 +104,6 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             </form>
           </div>
 
-          {/* Brief feature highlights */}
           <div className="grid grid-cols-3 gap-4 text-center w-full max-w-sm pt-2">
             <div className="flex flex-col items-center gap-1.5">
               <UsersIcon className="w-5 h-5 text-emerald-400" />
@@ -110,7 +111,7 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             </div>
             <div className="flex flex-col items-center gap-1.5">
               <TerminalIcon className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />
-              <span className="text-[11px] text-zinc-500">Run code in-browser</span>
+              <span className="text-[11px] text-zinc-500">Run Java or Python</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
               <MonitorIcon className="w-5 h-5 text-emerald-400" />
@@ -118,18 +119,15 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             </div>
           </div>
 
-          {/* Get Involved section */}
           <div className="mt-8 flex flex-col items-center gap-2 w-full max-w-sm">
             <div className="text-xs text-zinc-400 text-center">
-              <span className="font-semibold text-pink-400">Get Involved</span> &mdash; Support, suggest, or contribute!
+              <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute!
             </div>
             <GetInvolvedActions />
           </div>
-
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="shrink-0 flex flex-col items-center gap-2 py-3 text-[11px] text-zinc-600 border-t border-zinc-800/50">
         <div>Built for CS educators &amp; students</div>
         <div className="text-zinc-500">
@@ -144,6 +142,13 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
           </a>
         </div>
       </footer>
+
+      {templateDialogOpen && (
+        <RoomTemplateDialog
+          onSelect={handleTemplateSelect}
+          onClose={() => setTemplateDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }

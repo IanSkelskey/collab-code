@@ -30,6 +30,8 @@ const shortcuts: { keys: string; desc: string }[] = [
 
 const tips: string[] = [
   'Share the URL to invite collaborators - they join instantly.',
+  'New rooms can start with a Java starter, Python starter, or a blank workspace.',
+  'Blank rooms show one-click Java and Python starter buttons in the editor.',
   'Drag files onto folders in the explorer to move them.',
   'Right-click a file to copy it, or rename and delete files and folders.',
   'Deleted files show an undo toast - click it within 5 seconds to restore.',
@@ -170,7 +172,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                 <p className="mt-2 text-xs leading-relaxed text-zinc-400 max-w-[360px]">
                   Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
                   Share a room link, edit the same workspace, use one shared terminal session, and run
-                  Java and Python together from the browser.
+                  Java and Python together from the browser. New rooms can start with a Java starter,
+                  a Python starter, or a blank workspace.
                 </p>
               </div>
 

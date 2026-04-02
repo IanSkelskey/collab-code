@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import { primaryLanguage } from '../config/languages';
+import { getRoomStarterFile, type RoomTemplateId } from '../config/roomTemplates';
 import {
   ROOT_PATH,
   getBaseName,
@@ -49,7 +49,7 @@ export interface VirtualFS {
 
 interface UseVirtualFSOptions {
   storageReady?: boolean;
-  seedDefaultFile?: boolean;
+  initialRoomTemplate?: RoomTemplateId | null;
 }
 
 function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
@@ -117,7 +117,7 @@ function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
 
 export function useVirtualFS(
   ydoc: Y.Doc,
-  { storageReady = false, seedDefaultFile = false }: UseVirtualFSOptions = {},
+  { storageReady = false, initialRoomTemplate = null }: UseVirtualFSOptions = {},
 ): VirtualFS {
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
@@ -264,12 +264,12 @@ export function useVirtualFS(
       fsState.set('cwd', ROOT_PATH);
     }
 
-    if (fsMap.size > 0 || !seedDefaultFile) {
+    if (fsMap.size > 0 || !initialRoomTemplate) {
       return;
     }
 
     const oldCode = ydoc.getText('code').toString();
-    const defaultFile = primaryLanguage.defaultFile;
+    const defaultFile = getRoomStarterFile(initialRoomTemplate);
 
     if (!defaultFile) {
       return;
@@ -282,7 +282,7 @@ export function useVirtualFS(
     setActiveFile(defaultPath);
     setOpenTabs([defaultPath]);
     initialFileOpenedRef.current = true;
-  }, [fsMap, fsState, seedDefaultFile, storageReady, ydoc]);
+  }, [fsMap, fsState, initialRoomTemplate, storageReady, ydoc]);
 
   useEffect(() => {
     if (files.length === 0 || initialFileOpenedRef.current) return;

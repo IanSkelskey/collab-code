@@ -61,6 +61,16 @@ const languages: LanguageConfig[] = [
     iconColor: 'text-blue-400',
     iconName: 'python',
     mimeType: 'text/x-python',
+    defaultFile: {
+      name: 'main.py',
+      content: `def main():
+    print("Hello, Collab Code!")
+
+
+if __name__ == "__main__":
+    main()
+`,
+    },
     entryPointPattern: /\S/,
     extractEntryPointName: (filePath: string) => stripVfsRoot(filePath),
     parseRuntimeErrors: parsePythonRuntimeErrors,
@@ -160,10 +170,17 @@ const languages: LanguageConfig[] = [
 
 // Build lookup map for O(1) extension-based access
 const extToConfig = new Map<string, LanguageConfig>();
+const idToConfig = new Map<string, LanguageConfig>();
 for (const lang of languages) {
+  idToConfig.set(lang.id, lang);
   for (const ext of lang.extensions) {
     extToConfig.set(ext, lang);
   }
+}
+
+/** Get the LanguageConfig for a language identifier */
+export function getLanguageConfig(id: string): LanguageConfig | undefined {
+  return idToConfig.get(id);
 }
 
 /** Get the LanguageConfig for a file path based on its extension */

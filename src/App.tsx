@@ -20,17 +20,37 @@ import ToastContainer from './components/ToastContainer';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
+import { getRoomStarterFile, type RoomTemplateId } from './config/roomTemplates';
+import { ROOT_PATH, getBaseName, joinVfsPath } from './lib/vfsPaths';
 import { CollabProvider } from './providers/CollabProvider';
+
+function getNextStarterPath(exists: (path: string) => boolean, fileName: string): string {
+  const lastDotIndex = fileName.lastIndexOf('.');
+  const stem = lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
+  const extension = lastDotIndex > 0 ? fileName.slice(lastDotIndex) : '';
+
+  let candidateName = fileName;
+  let candidatePath = joinVfsPath(ROOT_PATH, candidateName);
+  let copyIndex = 2;
+
+  while (exists(candidatePath)) {
+    candidateName = `${stem} ${copyIndex}${extension}`;
+    candidatePath = joinVfsPath(ROOT_PATH, candidateName);
+    copyIndex += 1;
+  }
+
+  return candidatePath;
+}
 
 function AppContent({
   onExitRoom,
-  seedDefaultFile,
+  initialRoomTemplate,
 }: {
   onExitRoom: () => void;
-  seedDefaultFile: boolean;
+  initialRoomTemplate: RoomTemplateId | null;
 }) {
   const { ydoc, peerCount, roomId, connected, awareness, storageReady } = useCollab();
-  const fs = useVirtualFS(ydoc, { storageReady, seedDefaultFile });
+  const fs = useVirtualFS(ydoc, { storageReady, initialRoomTemplate });
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +82,18 @@ function AppContent({
   const handleFormatCompleted = useCallback(() => {
     pushToast('Document formatted');
   }, [pushToast]);
+
+  const handleCreateStarterFile = useCallback((templateId: Exclude<RoomTemplateId, 'blank'>) => {
+    const starterFile = getRoomStarterFile(templateId);
+    if (!starterFile) {
+      return;
+    }
+
+    const nextPath = getNextStarterPath(fs.exists, starterFile.name);
+    fs.writeFile(nextPath, starterFile.content);
+    fs.openFile(nextPath);
+    pushToast(`Created ${getBaseName(nextPath)}`);
+  }, [fs, pushToast]);
 
   useKeyboardShortcuts({
     setExplorerVisible: layout.setExplorerVisible,
@@ -172,6 +204,36 @@ function AppContent({
                 <div className="w-6 h-6 border-2 border-zinc-600 border-t-emerald-400 rounded-full animate-spin" />
                 <p className="text-xs text-zinc-500">Loading workspace...</p>
               </div>
+            ) : fs.files.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
+                <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-zinc-300">Choose how to start this room</p>
+                  <p className="text-xs text-zinc-500 max-w-sm">
+                    Create a starter file for Java or Python, or open the Explorer to build your own workspace.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    onClick={() => handleCreateStarterFile('java')}
+                    className="px-4 py-2 rounded-md text-xs font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white transition-colors cursor-pointer"
+                  >
+                    New Main.java
+                  </button>
+                  <button
+                    onClick={() => handleCreateStarterFile('python')}
+                    className="px-4 py-2 rounded-md text-xs font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 text-zinc-100 transition-colors cursor-pointer"
+                  >
+                    New main.py
+                  </button>
+                </div>
+                <button
+                  onClick={() => layout.setExplorerVisible(true)}
+                  className="text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  Open Explorer (Ctrl+B)
+                </button>
+              </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
                 <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
@@ -260,19 +322,23 @@ function AppContent({
 export default function App() {
   const roomId = useRoom();
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+  const [createdRoomTemplate, setCreatedRoomTemplate] = useState<RoomTemplateId | null>(null);
 
-  const handleCreateRoom = useCallback((nextRoomId: string) => {
+  const handleCreateRoom = useCallback((nextRoomId: string, templateId: RoomTemplateId) => {
     setCreatedRoomId(nextRoomId);
+    setCreatedRoomTemplate(templateId);
     window.location.hash = nextRoomId;
   }, []);
 
   const handleJoinRoom = useCallback((nextRoomId: string) => {
     setCreatedRoomId(null);
+    setCreatedRoomTemplate(null);
     window.location.hash = nextRoomId;
   }, []);
 
   const handleExitRoom = useCallback(() => {
     setCreatedRoomId(null);
+    setCreatedRoomTemplate(null);
     window.location.hash = '';
   }, []);
 
@@ -289,7 +355,7 @@ export default function App() {
     <CollabProvider key={roomId} roomId={roomId}>
       <AppContent
         onExitRoom={handleExitRoom}
-        seedDefaultFile={createdRoomId === roomId}
+        initialRoomTemplate={createdRoomId === roomId ? createdRoomTemplate : null}
       />
     </CollabProvider>
   );

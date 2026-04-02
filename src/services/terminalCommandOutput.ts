@@ -1,4 +1,3 @@
-import { primaryLanguage } from '../config/languages';
 import type { TermWriter } from './terminalCommandTypes';
 
 const ANSI_RESET = '\x1b[0m';
@@ -9,7 +8,7 @@ function wrapAnsi(code: string, text: string): string {
 
 export function formatHelpEntry(name: string, help: string): string {
   const pad = ' '.repeat(Math.max(1, 7 - name.length));
-  return `  ${wrapAnsi('\x1b[1;32m', name)}${pad}— ${help}`;
+  return `  ${wrapAnsi('\x1b[1;32m', name)}${pad}- ${help}`;
 }
 
 export function writeError(term: TermWriter, message: string): void {
@@ -50,18 +49,19 @@ export function writeDirectoryListing(term: TermWriter, entries: string[]): void
 
 export function printWelcomeBanner(term: TermWriter): void {
   const narrow = window.innerWidth < 480;
+  const termLabel = 'Collaborative Terminal';
+
   if (narrow) {
-    term.writeln(wrapAnsi('\x1b[1;36m', '—— Collab Code ——'));
-    term.writeln(wrapAnsi('\x1b[1;33m', `${primaryLanguage.label} IDE Terminal`));
+    term.writeln(wrapAnsi('\x1b[1;36m', '-- Collab Code --'));
+    term.writeln(wrapAnsi('\x1b[1;33m', termLabel));
     return;
   }
 
-  const termLabel = `${primaryLanguage.label} IDE Terminal`;
-  const innerText = `   Collab Code — ${termLabel}`;
+  const innerText = `   Collab Code - ${termLabel}`;
   const boxWidth = Math.max(38, innerText.length + 4);
   const rightPad = ' '.repeat(boxWidth - innerText.length);
 
-  term.writeln(wrapAnsi('\x1b[1;36m', `╔${'═'.repeat(boxWidth)}╗`));
-  term.writeln(`\x1b[1;36m║\x1b[0m   \x1b[1;33mCollab Code\x1b[0m — ${termLabel}${rightPad}\x1b[1;36m║\x1b[0m`);
-  term.writeln(wrapAnsi('\x1b[1;36m', `╚${'═'.repeat(boxWidth)}╝`));
+  term.writeln(wrapAnsi('\x1b[1;36m', `+${'-'.repeat(boxWidth)}+`));
+  term.writeln(`\x1b[1;36m|\x1b[0m   \x1b[1;33mCollab Code\x1b[0m - ${termLabel}${rightPad}\x1b[1;36m|\x1b[0m`);
+  term.writeln(wrapAnsi('\x1b[1;36m', `+${'-'.repeat(boxWidth)}+`));
 }
