@@ -6,6 +6,7 @@ import {
   joinVfsPath,
   normalizeVfsPath,
 } from '../lib/vfsPaths';
+import type { PushToast } from '../types/toast';
 
 // ── Name validation ──
 
@@ -74,7 +75,7 @@ export function getNextFileCopyPath(vfs: VirtualFS, path: string): string {
 export function copyFileWithUndo(
   vfs: VirtualFS,
   path: string,
-  pushToast?: (label: string, onUndo: () => void) => void,
+  pushToast?: PushToast,
 ): string | null {
   const content = vfs.readFile(path);
   if (content === null) {
@@ -100,7 +101,7 @@ export function copyFileWithUndo(
 export function deleteFileWithUndo(
   vfs: VirtualFS,
   path: string,
-  pushToast?: (label: string, onUndo: () => void) => void,
+  pushToast?: PushToast,
   afterUndo?: () => void,
 ): void {
   const content = vfs.readFile(path) ?? '';
@@ -119,7 +120,7 @@ export function deleteFileWithUndo(
 export function deleteDirWithConfirm(
   vfs: VirtualFS,
   path: string,
-  pushToast?: (label: string, onUndo: () => void) => void,
+  pushToast?: PushToast,
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void,
 ): void {
   const allFiles = vfs.files.filter(f => f.startsWith(path + '/'));
@@ -311,7 +312,7 @@ export function movePaths(
 export function deletePathsWithUndo(
   vfs: VirtualFS,
   paths: Iterable<string>,
-  pushToast?: (label: string, onUndo: () => void) => void,
+  pushToast?: PushToast,
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void,
   afterUndo?: () => void,
 ): void {

@@ -1,4 +1,5 @@
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import type { PushToast } from '../types/toast';
 
 export interface TermWriter {
   write(text: string): void;
@@ -19,7 +20,7 @@ export interface CommandContext {
   vfs: VirtualFS | undefined;
   writePrompt: (cwdOverride?: string) => void;
   onRun: (() => void) | undefined;
-  pushToast: ((label: string, onUndo?: () => void) => void) | undefined;
+  pushToast: PushToast | undefined;
   requestConfirm: ((title: string, message: string, onConfirm: () => void) => void) | undefined;
 }
 

@@ -4,7 +4,8 @@ import { useExecution } from './hooks/useExecution';
 import { useFileExport } from './hooks/useFileExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useRoom } from './hooks/useRoom';
-import { useUndoToast } from './hooks/useUndoToast';
+import { useToast } from './hooks/useToast';
+import { usePeerPresenceToasts } from './hooks/usePeerPresenceToasts';
 import { useVirtualFS } from './hooks/useVirtualFS';
 import { useWorkspaceImport } from './hooks/useWorkspaceImport';
 import { useWorkspaceLayout } from './hooks/useWorkspaceLayout';
@@ -15,7 +16,7 @@ import FileExplorer from './components/FileExplorer';
 import TabBar from './components/TabBar';
 import Toolbar, { ActivityBar } from './components/Toolbar';
 import ConfirmDialog from './components/ConfirmDialog';
-import UndoToastContainer from './components/UndoToast';
+import ToastContainer from './components/ToastContainer';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
@@ -34,7 +35,7 @@ function AppContent({
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { toasts, pushToast, dismissToast } = useUndoToast();
+  const { toasts, pushToast, dismissToast } = useToast();
   const layout = useWorkspaceLayout({
     fs,
     editorRef,
@@ -69,6 +70,12 @@ function AppContent({
     setSearchVisible: layout.setSearchVisible,
     handleSaveFile,
     handleSaveAll,
+  });
+
+  usePeerPresenceToasts({
+    awareness,
+    connected,
+    pushToast,
   });
 
   useEffect(() => {
@@ -240,7 +247,7 @@ function AppContent({
         />
       )}
 
-      <UndoToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       {layout.helpOpen && <HelpModal onClose={() => layout.setHelpOpen(false)} />}
 
       {osDragActive && (

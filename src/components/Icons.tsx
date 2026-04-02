@@ -122,6 +122,15 @@ export function InfoCircleIcon(props: IconProps) {
   );
 }
 
+export function UndoIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M9 14L4 9l5-5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 20a8 8 0 0 0-8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── Files & Folders ──
 
 export function FileDocIcon({ children, ...props }: IconProps) {

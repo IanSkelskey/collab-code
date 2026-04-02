@@ -12,6 +12,7 @@ import { useExplorerDragAndDrop } from '../hooks/useExplorerDragAndDrop';
 import { useExplorerKeyboardShortcuts } from '../hooks/useExplorerKeyboardShortcuts';
 import { useExplorerSelection } from '../hooks/useExplorerSelection';
 import TreeContext from '../context/TreeContext';
+import type { PushToast } from '../types/toast';
 import type {
   ExplorerContextMenuItem,
   ExplorerContextMenuState,
@@ -24,7 +25,7 @@ import TreeNode, { FolderIcon, FileIcon, InlineInput } from './TreeNode';
 
 interface FileExplorerProps {
   fs: VirtualFS;
-  pushToast: (label: string, onUndo?: () => void) => void;
+  pushToast: PushToast;
   requestConfirm: (title: string, message: string, onConfirm: () => void) => void;
   entryPoints: Set<string>;
   onRunFile?: (path: string) => void;

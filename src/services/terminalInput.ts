@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import type { VirtualFS } from '../hooks/useVirtualFS';
+import type { PushToast } from '../types/toast';
 import { executeCommand } from './terminalCommands';
 import type { TermWriter } from './terminalCommandTypes';
 import {
@@ -32,7 +33,7 @@ interface CreateTerminalDataHandlerOptions {
   ydoc: Y.Doc;
   getVfs: () => VirtualFS | undefined;
   getOnRun: () => (() => void) | undefined;
-  getPushToast: () => ((label: string, onUndo?: () => void) => void) | undefined;
+  getPushToast: () => PushToast | undefined;
   getRequestConfirm: () => ((title: string, message: string, onConfirm: () => void) => void) | undefined;
 }
 

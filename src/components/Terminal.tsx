@@ -10,6 +10,7 @@ import { Terminal as XTerminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { useCollab } from '../context/CollabContext';
+import type { PushToast } from '../types/toast';
 import {
   appendTerminalOutput,
   buildTerminalPrompt,
@@ -39,7 +40,7 @@ interface TerminalProps {
   onRunRequested?: () => void;
   fontSize?: number;
   fs?: VirtualFS;
-  pushToast?: (label: string, onUndo?: () => void) => void;
+  pushToast?: PushToast;
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
 }
 
