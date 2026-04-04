@@ -20,6 +20,9 @@ import ToastContainer from './components/ToastContainer';
 import HelpModal from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
+import MarkdownModeBar from './components/MarkdownModeBar';
+import MarkdownPreview from './components/MarkdownPreview';
+import { isMarkdownFile } from './config/languages';
 import { getRoomStarterFile, type RoomTemplateId } from './config/roomTemplates';
 import { ROOT_PATH, getBaseName, joinVfsPath } from './lib/vfsPaths';
 import { CollabProvider } from './providers/CollabProvider';
@@ -85,6 +88,10 @@ function AppContent({
   });
 
   const { osDragActive, dragHandlers } = useWorkspaceImport({ fs, pushToast });
+  const markdownActive = isMarkdownFile(fs.activeFile);
+  const markdownContent = fs.activeFile ? (fs.readFile(fs.activeFile) ?? '') : '';
+  const showMarkdownEditor = !markdownActive || layout.markdownViewMode !== 'preview';
+  const showMarkdownPreview = markdownActive && layout.markdownViewMode !== 'write';
 
   const handleFormatCompleted = useCallback(() => {
     pushToast('Document formatted');
@@ -200,15 +207,60 @@ function AppContent({
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <TabBar fs={fs} />
 
-          <div className="flex-1 min-h-[120px]">
+          <div className="flex-1 min-h-[120px] flex flex-col">
             {fs.openTabs.length > 0 ? (
-              <Editor
-                ref={editorRef}
-                onRun={handleRunActiveFile}
-                onFormat={handleFormatCompleted}
-                fontSize={layout.fontSize}
-                fs={fs}
-              />
+              <>
+                {markdownActive && (
+                  <MarkdownModeBar
+                    mode={layout.markdownViewMode}
+                    onChange={layout.setMarkdownViewMode}
+                  />
+                )}
+
+                <div className="flex-1 min-h-0">
+                  {markdownActive ? (
+                    <div
+                      className={`flex h-full w-full min-h-0 ${
+                        layout.markdownViewMode === 'split' ? 'flex-col lg:flex-row' : 'flex-col'
+                      }`}
+                    >
+                      <div className={`min-h-0 min-w-0 flex-1 ${showMarkdownEditor ? '' : 'hidden'}`}>
+                        <Editor
+                          ref={editorRef}
+                          onRun={handleRunActiveFile}
+                          onFormat={handleFormatCompleted}
+                          fontSize={layout.fontSize}
+                          fs={fs}
+                        />
+                      </div>
+
+                      {showMarkdownPreview && fs.activeFile && (
+                        <div
+                          className={`min-h-0 min-w-0 flex-1 ${
+                            showMarkdownEditor
+                              ? 'border-t border-zinc-700/50 lg:border-l lg:border-t-0'
+                              : ''
+                          }`}
+                        >
+                          <MarkdownPreview
+                            content={markdownContent}
+                            filePath={fs.activeFile}
+                            fs={fs}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Editor
+                      ref={editorRef}
+                      onRun={handleRunActiveFile}
+                      onFormat={handleFormatCompleted}
+                      fontSize={layout.fontSize}
+                      fs={fs}
+                    />
+                  )}
+                </div>
+              </>
             ) : fs.loading ? (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-zinc-500 select-none">
                 <div className="w-6 h-6 border-2 border-zinc-600 border-t-emerald-400 rounded-full animate-spin" />

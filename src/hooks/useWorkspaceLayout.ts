@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { EditorHandle } from '../components/Editor';
+import { isMarkdownFile } from '../config/languages';
 import { useDragResize } from './useDragResize';
 import type { VirtualFS } from './useVirtualFS';
 
@@ -19,6 +20,8 @@ interface UseWorkspaceLayoutOptions {
   pushToast: (label: string) => void;
 }
 
+export type MarkdownViewMode = 'write' | 'split' | 'preview';
+
 export function useWorkspaceLayout({
   fs,
   editorRef,
@@ -33,6 +36,9 @@ export function useWorkspaceLayout({
   const [helpOpen, setHelpOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [markdownViewMode, setMarkdownViewMode] = useState<MarkdownViewMode>(() => (
+    window.innerWidth < 960 ? 'write' : 'split'
+  ));
   const pendingNavigationRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -69,7 +75,12 @@ export function useWorkspaceLayout({
   });
 
   const handleFormat = useCallback(() => {
-    editorRef.current?.format();
+    if (!editorRef.current) {
+      pushToast('Open the editor pane to format this file');
+      return;
+    }
+
+    editorRef.current.format();
     pushToast('Document formatted');
   }, [editorRef, pushToast]);
 
@@ -103,17 +114,25 @@ export function useWorkspaceLayout({
       pendingNavigationRef.current = null;
     }
 
-    if (fs.activeFile === file) {
+    const shouldOpenEditor = isMarkdownFile(file) && markdownViewMode === 'preview';
+    if (shouldOpenEditor) {
+      setMarkdownViewMode('write');
+    }
+
+    if (fs.activeFile === file && !shouldOpenEditor) {
       editorRef.current?.revealLine(line, col);
       return;
     }
 
-    fs.openFile(file);
+    if (fs.activeFile !== file) {
+      fs.openFile(file);
+    }
+
     pendingNavigationRef.current = window.setTimeout(() => {
       editorRef.current?.revealLine(line, col);
       pendingNavigationRef.current = null;
-    }, 100);
-  }, [editorRef, fs]);
+    }, shouldOpenEditor ? 140 : 100);
+  }, [editorRef, fs, markdownViewMode]);
 
   const handleFontSizeUp = useCallback(() => {
     setFontSize((currentFontSize) => {
@@ -140,11 +159,13 @@ export function useWorkspaceLayout({
     helpOpen,
     searchVisible,
     confirmDialog,
+    markdownViewMode,
     setTerminalVisible,
     setHelpOpen,
     setSearchVisible,
     setExplorerVisible,
     setConfirmDialog,
+    setMarkdownViewMode,
     requestConfirm,
     handleExplorerDragStart,
     handleTerminalDragStart,

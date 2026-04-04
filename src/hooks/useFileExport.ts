@@ -15,8 +15,16 @@ interface UseFileExportOptions {
 export function useFileExport({ fs, roomId, editorRef, pushToast }: UseFileExportOptions) {
   const [codeCopied, setCodeCopied] = useState(false);
 
+  const getActiveCode = useCallback(() => {
+    if (fs.activeFile) {
+      return fs.readFile(fs.activeFile) ?? '';
+    }
+
+    return editorRef.current?.getCode() ?? '';
+  }, [editorRef, fs]);
+
   const handleCopyCode = useCallback(async () => {
-    const code = editorRef.current?.getCode() ?? '';
+    const code = getActiveCode();
     if (!code.trim()) return;
     try {
       await navigator.clipboard.writeText(code);
@@ -27,10 +35,10 @@ export function useFileExport({ fs, roomId, editorRef, pushToast }: UseFileExpor
     } catch {
       prompt('Copy this code:', code);
     }
-  }, [fs.activeFile, editorRef, pushToast]);
+  }, [fs.activeFile, getActiveCode, pushToast]);
 
   const handleSaveFile = useCallback(() => {
-    const code = editorRef.current?.getCode() ?? '';
+    const code = getActiveCode();
     if (!code.trim()) return;
     const activeName = fs.activeFile?.split('/').pop() ?? 'code.txt';
     const blob = new Blob([code], { type: getMimeType(activeName) });
@@ -43,7 +51,7 @@ export function useFileExport({ fs, roomId, editorRef, pushToast }: UseFileExpor
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     pushToast(`Downloaded ${activeName}`);
-  }, [fs.activeFile, editorRef, pushToast]);
+  }, [fs.activeFile, getActiveCode, pushToast]);
 
   const handleSaveAll = useCallback(async () => {
     const allFiles = fs.getAllFiles();

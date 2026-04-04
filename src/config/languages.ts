@@ -190,6 +190,11 @@ export function getLanguageForFile(path: string): LanguageConfig | undefined {
   return extToConfig.get(path.slice(dotIndex));
 }
 
+/** Whether a file path should use the markdown preview flow */
+export function isMarkdownFile(path: string | null | undefined): boolean {
+  return typeof path === 'string' && getLanguageForFile(path)?.id === 'markdown';
+}
+
 /** Get the Monaco language ID for a file path (defaults to 'plaintext') */
 export function getMonacoLanguage(path: string): string {
   return getLanguageForFile(path)?.monacoLanguage ?? 'plaintext';
