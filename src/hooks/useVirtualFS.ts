@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import { getRoomStarterFile, type RoomTemplateId } from '../config/roomTemplates';
+import { getRoomStarterWorkspace, type RoomTemplateId } from '../config/roomTemplates';
 import {
   ROOT_PATH,
   getBaseName,
@@ -269,18 +269,31 @@ export function useVirtualFS(
     }
 
     const oldCode = ydoc.getText('code').toString();
-    const defaultFile = getRoomStarterFile(initialRoomTemplate);
+    const starterWorkspace = getRoomStarterWorkspace(initialRoomTemplate);
 
-    if (!defaultFile) {
+    if (!starterWorkspace || starterWorkspace.files.length === 0) {
       return;
     }
 
-    const defaultPath = joinVfsPath(ROOT_PATH, defaultFile.name);
-    const ytext = new Y.Text();
-    ytext.insert(0, oldCode.length > 0 ? oldCode : defaultFile.content);
-    fsMap.set(defaultPath, ytext);
-    setActiveFile(defaultPath);
-    setOpenTabs([defaultPath]);
+    ydoc.transact(() => {
+      for (const file of starterWorkspace.files) {
+        const filePath = joinVfsPath(ROOT_PATH, file.name);
+        const ytext = new Y.Text();
+        const content = file.name === starterWorkspace.initialOpenFileName && oldCode.length > 0
+          ? oldCode
+          : file.content;
+
+        ytext.insert(0, content);
+        fsMap.set(filePath, ytext);
+      }
+    });
+
+    const initialPath = starterWorkspace.initialOpenFileName
+      ? joinVfsPath(ROOT_PATH, starterWorkspace.initialOpenFileName)
+      : joinVfsPath(ROOT_PATH, starterWorkspace.files[0].name);
+
+    setActiveFile(initialPath);
+    setOpenTabs([initialPath]);
     initialFileOpenedRef.current = true;
   }, [fsMap, fsState, initialRoomTemplate, storageReady, ydoc]);
 

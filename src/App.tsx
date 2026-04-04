@@ -23,8 +23,8 @@ import SearchPanel from './components/SearchPanel';
 import MarkdownModeBar from './components/MarkdownModeBar';
 import MarkdownPreview from './components/MarkdownPreview';
 import { isMarkdownFile } from './config/languages';
-import { getRoomStarterFile, type RoomTemplateId } from './config/roomTemplates';
-import { ROOT_PATH, getBaseName, joinVfsPath } from './lib/vfsPaths';
+import { getRoomStarterWorkspace, type RoomTemplateId } from './config/roomTemplates';
+import { ROOT_PATH, joinVfsPath } from './lib/vfsPaths';
 import { CollabProvider } from './providers/CollabProvider';
 
 function getNextStarterPath(exists: (path: string) => boolean, fileName: string): string {
@@ -98,15 +98,30 @@ function AppContent({
   }, [pushToast]);
 
   const handleCreateStarterFile = useCallback((templateId: Exclude<RoomTemplateId, 'blank'>) => {
-    const starterFile = getRoomStarterFile(templateId);
-    if (!starterFile) {
+    const starterWorkspace = getRoomStarterWorkspace(templateId);
+    if (!starterWorkspace) {
       return;
     }
 
-    const nextPath = getNextStarterPath(fs.exists, starterFile.name);
-    fs.writeFile(nextPath, starterFile.content);
-    fs.openFile(nextPath);
-    pushToast(`Created ${getBaseName(nextPath)}`);
+    const createdPaths = new Map<string, string>();
+
+    for (const file of starterWorkspace.files) {
+      const nextPath = getNextStarterPath(fs.exists, file.name);
+      fs.writeFile(nextPath, file.content);
+      createdPaths.set(file.name, nextPath);
+    }
+
+    const initialPath = starterWorkspace.initialOpenFileName
+      ? createdPaths.get(starterWorkspace.initialOpenFileName)
+      : undefined;
+    const pathToOpen = initialPath ?? createdPaths.values().next().value;
+
+    if (pathToOpen) {
+      fs.openFile(pathToOpen);
+    }
+
+    const createdNames = starterWorkspace.files.map((file) => file.name).join(' and ');
+    pushToast(`Created ${createdNames}`);
   }, [fs, pushToast]);
 
   useKeyboardShortcuts({
