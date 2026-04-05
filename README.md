@@ -73,6 +73,7 @@ For local development details, environment variables, architecture notes, deploy
 Browser-triggered Java and Python execution runs arbitrary user code on the relay host, so deployment defaults matter.
 
 - The Docker image is configured to require sandboxed execution and drops Java/Python child processes to a dedicated low-privilege OS user.
+- Python execution now runs inside a fresh per-run virtual environment. If the workspace includes a `requirements.txt` next to the entry file or in one of its parent folders, those packages are installed into that isolated environment instead of the server's global Python installation.
 - If the server is started as `root` without `EXEC_SANDBOX_UID` and `EXEC_SANDBOX_GID`, execution is now disabled by default. You can explicitly override that with `EXEC_ALLOW_UNSANDBOXED_ROOT=1`, but that is not recommended.
 - Local development on platforms without POSIX `uid`/`gid` privilege dropping can still run unsandboxed unless you require sandboxing with `EXEC_REQUIRE_SANDBOX=1`.
 - The app's Help -> About tab and the server health endpoint report whether execution is `Sandboxed`, `Unsandboxed`, or `Disabled`.
@@ -86,7 +87,7 @@ This is a hardening step, not a full container-per-run sandbox. If you expose ex
 - Share one terminal session with other peers, including `cd`, command history, terminal output, and interactive Java/Python stdin/stdout/stderr.
 - Search and replace across the entire workspace.
 - Manage files with the explorer, drag-and-drop, multi-select actions, and the built-in terminal.
-- Compile and run Java projects, or execute Python scripts, with streamed stdin, stdout, and stderr in the shared terminal.
+- Compile and run Java projects, or execute Python scripts inside an isolated virtual environment with streamed stdin, stdout, and stderr in the shared terminal.
 - Export a file or the whole workspace when you are done.
 
 ## Built With

@@ -7,6 +7,7 @@ This document covers local development, contributor workflow, architecture, depl
 - Node.js 20+
 - npm
 - A JDK available on `PATH` if you want interactive Java execution locally (`javac` and `java`)
+- Python 3 with `venv` support available on `PATH` if you want interactive Python execution locally (`python3 -m venv --help` or equivalent)
 
 ## Local Development
 
@@ -78,7 +79,7 @@ At a high level:
 The relay server does three main jobs:
 
 1. Sync Yjs workspace documents between peers.
-2. Compile and run Java code with `javac` / `java`.
+2. Compile and run Java code, or create isolated Python virtual environments and execute Python code.
 3. Stream stdin, stdout, stderr, and generated output files back to the browser workspace.
 
 ## Repo Map
@@ -101,7 +102,7 @@ The relay server does three main jobs:
 
 | Command | Description |
 |---|---|
-| `run` | Compile and execute the Java project |
+| `run` | Run the current Java or Python target |
 | `ls [dir]` | List files in the current or specified directory |
 | `cd <dir>` | Change working directory |
 | `mkdir <dir>` | Create a directory |
@@ -115,6 +116,8 @@ The relay server does three main jobs:
 | `clear` | Clear the terminal |
 | `reset` | Clear room data and reload |
 | `help` | Show available commands |
+
+When running Python, the relay creates a fresh virtual environment for each execution. If a `requirements.txt` exists alongside the selected entry file or in one of its parent folders, it is installed into that temporary environment before the script starts.
 
 ### Keyboard shortcuts
 
@@ -142,7 +145,7 @@ Release tags with a `v*` prefix are intended to be used for release/deploy flows
 
 The relay server is set up for Render using `render.yaml`, with the Docker build defined in `server/Dockerfile`.
 
-The Docker image installs a JDK so Java compilation and execution are available in production.
+The Docker image installs a JDK plus Python virtual-environment support so Java compilation and isolated Python execution are available in production.
 
 ## Contribution Workflow
 

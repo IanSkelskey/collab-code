@@ -51,6 +51,7 @@ const tips: Array<{ title: string; items: string[] }> = [
       'Terminal commands include ls, cd, mkdir, touch, rm, mv, and cat.',
       'Use run <file> when you want to choose an exact entry file.',
       'Ctrl+Enter runs the active editor; the Run menu chooses targets.',
+      'Python runs in an isolated virtual environment, and a nearby requirements.txt is installed automatically before launch.',
     ],
   },
 ];
@@ -178,7 +179,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                   Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
                   Share a room link, edit the same workspace, use one shared terminal session, and run
                   Java and Python together from the browser. New rooms can start with a Java starter,
-                  a Python starter, or a blank workspace.
+                  a Python starter, or a blank workspace. Python execution stays isolated in a temporary
+                  virtual environment on the server.
                 </p>
               </div>
 

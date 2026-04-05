@@ -43,6 +43,19 @@ export const roomTemplates: RoomTemplateOption[] = [
 function getStarterReadmeContent(templateId: Exclude<RoomTemplateId, 'blank'>, starterFileName: string): string {
   const title = templateId === 'java' ? 'Java Starter Workspace' : 'Python Starter Workspace';
   const languageLabel = templateId === 'java' ? 'Java' : 'Python';
+  const pythonPackagesSection = templateId === 'python'
+    ? `
+## Python Packages
+
+- \`requirements.txt\`: add Python packages here, one per line
+
+Each run creates a fresh isolated virtual environment on the server. If \`requirements.txt\` is present next to \`${starterFileName}\` or in a parent folder, those packages are installed into that temporary environment before the program starts.
+
+This does not modify the server's global Python installation. Update \`requirements.txt\`, then run the program again to install the new packages.
+
+The starter \`${starterFileName}\` already imports \`rich\`, and the starter \`requirements.txt\` includes it so the room runs immediately.
+`
+    : '';
 
   return `# ${title}
 
@@ -51,10 +64,24 @@ This room starts with a small ${languageLabel} example so you can run code right
 ## Files
 
 - \`${starterFileName}\`: the main starter program
+${templateId === 'python' ? '- `requirements.txt`: optional Python dependencies for this room' : ''}
+
+${pythonPackagesSection}
 
 ## Run It
 
 Open \`${starterFileName}\` and use the Run button or press \`Ctrl+Enter\`.
+`;
+}
+
+function getPythonStarterRequirementsContent(): string {
+  return `rich
+
+# Add more Python packages below, one per line.
+# They will be installed into an isolated temporary virtual environment on run.
+#
+# Example:
+# requests
 `;
 }
 
@@ -75,6 +102,12 @@ export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarter
         content: getStarterReadmeContent(templateId, defaultFile.name),
       },
       defaultFile,
+      ...(templateId === 'python'
+        ? [{
+            name: 'requirements.txt',
+            content: getPythonStarterRequirementsContent(),
+          }]
+        : []),
     ],
     initialOpenFileName: defaultFile.name,
   };

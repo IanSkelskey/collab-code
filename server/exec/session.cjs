@@ -89,10 +89,13 @@ function handleExecConnection(ws) {
       send,
       cleanup,
       setActiveProcess(process) {
-        activeProcess = process;
+        activeProcess = process || null;
       },
       setTimeoutHandle(handle) {
-        timeout = handle;
+        if (timeout && timeout !== handle) {
+          clearTimeout(timeout);
+        }
+        timeout = handle || null;
       },
       ws,
     });
