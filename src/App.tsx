@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useCollab } from './context/CollabContext';
 import { useExecution } from './hooks/useExecution';
 import { useFileExport } from './hooks/useFileExport';
@@ -58,11 +58,13 @@ function AppContent({
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const markdownSplitContainerRef = useRef<HTMLDivElement>(null);
   const { toasts, pushToast, dismissToast } = useToast();
   const layout = useWorkspaceLayout({
     fs,
     editorRef,
     containerRef,
+    markdownSplitContainerRef,
     pushToast,
   });
   const {
@@ -107,6 +109,9 @@ function AppContent({
   const showMarkdownEditor = !markdownActive || layout.markdownViewMode !== 'preview';
   const showMarkdownPreview = markdownActive && layout.markdownViewMode !== 'write';
   const editorLockLabel = followedPeer ? `Following ${followedPeer.name}` : null;
+  const markdownSplitStyle = showMarkdownEditor && showMarkdownPreview && layout.markdownViewMode === 'split'
+    ? ({ '--cc-markdown-editor-width': `${layout.markdownEditorWidth}px` } as CSSProperties)
+    : undefined;
 
   const handleFormatCompleted = useCallback(() => {
     pushToast('Document formatted');
@@ -254,11 +259,21 @@ function AppContent({
                 <div className="flex-1 min-h-0">
                   {markdownActive ? (
                     <div
+                      ref={markdownSplitContainerRef}
+                      style={markdownSplitStyle}
                       className={`flex h-full w-full min-h-0 ${
                         layout.markdownViewMode === 'split' ? 'flex-col lg:flex-row' : 'flex-col'
                       }`}
                     >
-                      <div className={`min-h-0 min-w-0 flex-1 ${showMarkdownEditor ? '' : 'hidden'}`}>
+                      <div
+                        className={`min-h-0 min-w-0 ${
+                          showMarkdownEditor
+                            ? showMarkdownPreview && layout.markdownViewMode === 'split'
+                              ? 'flex-1 lg:w-[var(--cc-markdown-editor-width)] lg:min-w-[280px] lg:flex-none'
+                              : 'flex-1'
+                            : 'hidden'
+                        }`}
+                      >
                         <Editor
                           ref={editorRef}
                           onRun={handleRunActiveFile}
@@ -270,11 +285,22 @@ function AppContent({
                         />
                       </div>
 
+                      {showMarkdownEditor && showMarkdownPreview && layout.markdownViewMode === 'split' && (
+                        <div
+                          onMouseDown={layout.handleMarkdownSplitDragStart}
+                          onTouchStart={layout.handleMarkdownSplitDragStart}
+                          className="cc-divider hidden w-3 shrink-0 cursor-col-resize items-center justify-center border-l touch-none lg:flex"
+                          title="Resize markdown split view"
+                        >
+                          <div className="h-10 w-[2px] rounded-full bg-[var(--cc-border-strong)] transition-colors hover:bg-[var(--cc-accent)]" />
+                        </div>
+                      )}
+
                       {showMarkdownPreview && fs.activeFile && (
                         <div
                           className={`min-h-0 min-w-0 flex-1 ${
                             showMarkdownEditor
-                              ? 'cc-divider border-t lg:border-l lg:border-t-0'
+                              ? 'cc-divider border-t lg:min-w-[280px] lg:border-t-0'
                               : ''
                           }`}
                         >

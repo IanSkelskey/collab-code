@@ -17,6 +17,7 @@ interface UseWorkspaceLayoutOptions {
   fs: VirtualFS;
   editorRef: RefObject<EditorHandle | null>;
   containerRef: RefObject<HTMLDivElement | null>;
+  markdownSplitContainerRef: RefObject<HTMLDivElement | null>;
   pushToast: (label: string) => void;
 }
 
@@ -26,8 +27,11 @@ export function useWorkspaceLayout({
   fs,
   editorRef,
   containerRef,
+  markdownSplitContainerRef,
   pushToast,
 }: UseWorkspaceLayoutOptions) {
+  const markdownPanelMinWidth = 280;
+  const markdownSplitHandleWidth = 12;
   const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
   const [explorerVisible, setExplorerVisible] = useState(() => window.innerWidth >= 768);
   const [explorerWidth, setExplorerWidth] = useState(() => (window.innerWidth < 640 ? 160 : 200));
@@ -39,7 +43,19 @@ export function useWorkspaceLayout({
   const [markdownViewMode, setMarkdownViewMode] = useState<MarkdownViewMode>(() => (
     window.innerWidth < 960 ? 'write' : 'split'
   ));
+  const [markdownEditorWidth, setMarkdownEditorWidth] = useState(() => (
+    Math.max(markdownPanelMinWidth, Math.round((window.innerWidth - markdownSplitHandleWidth) / 2))
+  ));
   const pendingNavigationRef = useRef<number | null>(null);
+  const markdownSplitManuallyResizedRef = useRef(false);
+
+  const getMarkdownEditorMaxWidth = useCallback(() => {
+    const containerWidth = markdownSplitContainerRef.current?.clientWidth ?? window.innerWidth;
+    return Math.max(
+      markdownPanelMinWidth,
+      containerWidth - markdownPanelMinWidth - markdownSplitHandleWidth,
+    );
+  }, [markdownSplitContainerRef]);
 
   useEffect(() => {
     return () => {
@@ -73,6 +89,47 @@ export function useWorkspaceLayout({
     min: 80,
     max: () => (containerRef.current?.clientHeight ?? 720) - 120,
   });
+
+  const { onDragStart: handleMarkdownSplitDragStart } = useDragResize({
+    axis: 'horizontal',
+    value: markdownEditorWidth,
+    setValue: (nextWidth) => {
+      markdownSplitManuallyResizedRef.current = true;
+      setMarkdownEditorWidth(nextWidth);
+    },
+    min: markdownPanelMinWidth,
+    max: getMarkdownEditorMaxWidth,
+  });
+
+  useEffect(() => {
+    const container = markdownSplitContainerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const clampMarkdownEditorWidth = () => {
+      const containerWidth = container.clientWidth;
+      const nextMaxWidth = getMarkdownEditorMaxWidth();
+      const idealSplitWidth = Math.round((containerWidth - markdownSplitHandleWidth) / 2);
+
+      setMarkdownEditorWidth((currentWidth) => (
+        markdownSplitManuallyResizedRef.current
+          ? Math.min(currentWidth, nextMaxWidth)
+          : Math.max(markdownPanelMinWidth, Math.min(nextMaxWidth, idealSplitWidth))
+      ));
+    };
+
+    const observer = new ResizeObserver(() => {
+      clampMarkdownEditorWidth();
+    });
+
+    observer.observe(container);
+    clampMarkdownEditorWidth();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [getMarkdownEditorMaxWidth, markdownSplitContainerRef]);
 
   const handleFormat = useCallback(() => {
     if (!editorRef.current) {
@@ -168,6 +225,7 @@ export function useWorkspaceLayout({
     searchVisible,
     confirmDialog,
     markdownViewMode,
+    markdownEditorWidth,
     setTerminalVisible,
     setHelpOpen,
     setSearchVisible,
@@ -177,6 +235,7 @@ export function useWorkspaceLayout({
     requestConfirm,
     handleExplorerDragStart,
     handleTerminalDragStart,
+    handleMarkdownSplitDragStart,
     handleFormat,
     handleToggleExplorer,
     handleToggleTerminal,
