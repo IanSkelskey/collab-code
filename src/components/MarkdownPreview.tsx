@@ -11,6 +11,7 @@ import './MarkdownPreview.css';
 interface MarkdownPreviewProps {
   content: string;
   filePath: string;
+  fontSize: number;
   fs: VirtualFS;
 }
 
@@ -222,7 +223,7 @@ function resolveWorkspaceLink(filePath: string, href: string): string | null {
   return joinVfsPath(getParentPath(filePath), pathPart);
 }
 
-export default function MarkdownPreview({ content, filePath, fs }: MarkdownPreviewProps) {
+export default function MarkdownPreview({ content, filePath, fontSize, fs }: MarkdownPreviewProps) {
   const monaco = useMonaco();
   const { theme } = useTheme();
   const previewRef = useRef<HTMLDivElement>(null);
@@ -370,6 +371,7 @@ export default function MarkdownPreview({ content, filePath, fs }: MarkdownPrevi
           ref={previewRef}
           onClick={handleClick}
           className="markdown-preview cc-preview-content mx-auto min-h-full w-full max-w-4xl"
+          style={{ fontSize: `${fontSize}px` }}
           dangerouslySetInnerHTML={{ __html: renderedHtml }}
         />
       </div>

@@ -260,6 +260,7 @@ function AppContent({
                           <MarkdownPreview
                             content={markdownContent}
                             filePath={fs.activeFile}
+                            fontSize={layout.fontSize}
                             fs={fs}
                           />
                         </div>
