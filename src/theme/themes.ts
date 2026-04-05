@@ -71,7 +71,7 @@ const darkTheme: AppThemeDefinition = {
     magenta: '#c084fc',
     cyan: '#67e8f9',
     white: '#e5e7eb',
-    brightBlack: '#6b7280',
+    brightBlack: '#76808f',
     brightRed: '#fca5a5',
     brightGreen: '#6ee7b7',
     brightYellow: '#fcd34d',
