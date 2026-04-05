@@ -16,17 +16,37 @@ interface ServerInfoState {
   pythonVersion: string | null;
 }
 
-const shortcuts: { keys: string; desc: string }[] = [
-  { keys: 'Ctrl + Enter', desc: 'Run code' },
-  { keys: 'Ctrl + S', desc: 'Download current file' },
-  { keys: 'Ctrl + Shift + S', desc: 'Download workspace as .zip' },
-  { keys: 'Ctrl + Shift + F', desc: 'Search workspace' },
-  { keys: 'Alt + N', desc: 'New file' },
-  { keys: 'Alt + Shift + N', desc: 'New folder' },
-  { keys: 'Alt + Shift + F', desc: 'Format document' },
-  { keys: 'Ctrl + B', desc: 'Toggle file explorer' },
-  { keys: 'Ctrl + `', desc: 'Toggle terminal' },
-  { keys: 'Up / Down', desc: 'Terminal command history' },
+interface ShortcutItem {
+  keys: string;
+  desc: string;
+}
+
+interface ShortcutGroup {
+  title: string;
+  items: ShortcutItem[];
+  columns?: 1 | 2;
+}
+
+const shortcutGroups: ShortcutGroup[] = [
+  {
+    title: 'Workspace',
+    items: [
+      { keys: 'Ctrl/Cmd + B', desc: 'Toggle Explorer' },
+      { keys: 'Ctrl/Cmd + Shift + F', desc: 'Toggle workspace search' },
+      { keys: 'Ctrl/Cmd + `', desc: 'Toggle terminal' },
+      { keys: 'Ctrl/Cmd + S', desc: 'Download current file' },
+      { keys: 'Ctrl/Cmd + Shift + S', desc: 'Download workspace as .zip' },
+    ],
+  },
+  {
+    title: 'Editor & Files',
+    items: [
+      { keys: 'Ctrl/Cmd + Enter', desc: 'Run the active editor' },
+      { keys: 'Alt + Shift + F', desc: 'Format the active document' },
+      { keys: 'Alt + N', desc: 'Create a new file from Explorer' },
+      { keys: 'Alt + Shift + N', desc: 'Create a new folder in Explorer' },
+    ],
+  },
 ];
 
 const tips: Array<{ title: string; items: string[] }> = [
@@ -115,23 +135,23 @@ export default function HelpModal({ onClose }: HelpModalProps) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="cc-card flex h-[35rem] max-h-[85vh] w-[460px] max-w-[92vw] flex-col overflow-hidden rounded-lg">
-        <div className="cc-divider border-b px-4 pt-3 sm:px-5 sm:pt-4">
-          <div className="mb-2.5 flex items-center justify-between">
-            <h2 className="cc-text-primary flex items-center gap-2 text-sm font-semibold">
-              <HelpCircleIcon className="h-4 w-4 text-[var(--cc-accent)]" strokeWidth={2} />
+      <div className="cc-card flex h-[38rem] max-h-[88vh] w-[92vw] max-w-[52rem] flex-col overflow-hidden rounded-xl sm:h-[40rem] lg:h-[44rem]">
+        <div className="cc-divider border-b px-5 pt-4 sm:px-6 sm:pt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="cc-text-primary flex items-center gap-2.5 text-base font-semibold">
+              <HelpCircleIcon className="h-[1.125rem] w-[1.125rem] text-[var(--cc-accent)]" strokeWidth={2} />
               Help
             </h2>
             <button
               onClick={onClose}
               aria-label="Close help dialog"
               title="Close help dialog"
-              className="cc-icon-button -m-1 cursor-pointer p-1"
+              className="cc-icon-button -m-1 cursor-pointer rounded-md p-1.5"
             >
               <CloseIcon className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-4">
             <TabButton
               active={tab === 'about'}
               activeClassName="border-sky-400 text-sky-400"
@@ -168,19 +188,19 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         </div>
 
         <div
-          className="flex-1 min-h-0 overflow-y-auto px-4 py-2.5 sm:px-5 sm:py-3"
+          className="flex-1 min-h-0 overflow-y-auto px-5 py-3.5 sm:px-6 sm:py-4"
           style={{ scrollbarGutter: 'stable' }}
         >
           {tab === 'about' && (
-            <div className="space-y-4">
-              <div className="flex flex-col items-center pt-1 text-center">
+            <div className="space-y-5">
+              <div className="flex flex-col items-center pt-2 text-center">
                 <img
                   src="/collab-code/logo.svg"
                   alt="Collab Code"
-                  className="mb-3 h-16 w-16 sm:h-20 sm:w-20"
+                  className="mb-4 h-[4.5rem] w-[4.5rem] sm:h-[5.5rem] sm:w-[5.5rem]"
                 />
-                <h3 className="cc-text-primary text-sm font-semibold">Collab Code</h3>
-                <p className="cc-text-muted mt-2 max-w-[360px] text-xs leading-relaxed">
+                <h3 className="cc-text-primary text-base font-semibold">Collab Code</h3>
+                <p className="cc-text-muted mt-3 max-w-[40rem] text-sm leading-relaxed">
                   Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
                   Share a room link, edit the same workspace, use one shared terminal session, and run
                   Java and Python together from the browser. New rooms can start with a Java starter,
@@ -189,7 +209,7 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                 </p>
               </div>
 
-              <div className="grid gap-2.5">
+              <div className="grid gap-3">
                 <InfoCard label="Server Java Runtime">
                   <ServerRuntimeVersion
                     status={serverInfo.status}
@@ -211,38 +231,57 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           )}
 
           {tab === 'shortcuts' && (
-            <div className="grid min-h-full content-center gap-2 sm:grid-cols-2">
-              {shortcuts.map((shortcut) => (
-                <ShortcutCard key={shortcut.keys} shortcut={shortcut} />
-              ))}
+            <div className="mx-auto flex min-h-full w-full max-w-[46rem] flex-col justify-center gap-3.5">
+              <p className="cc-text-muted text-xs leading-relaxed">
+                <span className="cc-text-primary font-medium">Ctrl/Cmd</span> shortcuts work with either
+                Control or Command. This list focuses on the app-level shortcuts that are most useful to discover.
+              </p>
+              <div className="grid gap-3 lg:grid-cols-2">
+                {shortcutGroups.map((group) => (
+                  <ShortcutSection key={group.title} group={group} />
+                ))}
+              </div>
             </div>
           )}
 
           {tab === 'tips' && (
-            <div className="grid min-h-full content-center gap-2.5">
-              {tips.map((section) => (
-                <TipSection key={section.title} title={section.title} items={section.items} />
-              ))}
+            <div className="mx-auto grid min-h-full w-full max-w-[46rem] content-center gap-3 lg:grid-cols-2">
+              <TipSection
+                title={tips[0].title}
+                items={tips[0].items}
+                className="lg:col-span-2"
+                splitItemsOnDesktop
+              />
+              <TipSection
+                title={tips[1].title}
+                items={tips[1].items}
+              />
+              <TipSection
+                title={tips[2].title}
+                items={tips[2].items}
+              />
             </div>
           )}
 
           {tab === 'involved' && (
-            <div className="flex min-h-full flex-col items-center justify-center">
-              <div className="cc-text-muted mb-1.5 text-center text-xs">
-                <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute.
+            <div className="mx-auto flex min-h-full w-full max-w-[42rem] flex-col items-center justify-start pt-8 sm:pt-10">
+              <div className="cc-panel w-full rounded-2xl border px-5 py-6 text-center sm:px-7 sm:py-7">
+                <div className="cc-text-muted mb-2 text-sm">
+                  <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute.
+                </div>
+                <p className="cc-text-muted mx-auto max-w-[34rem] text-sm leading-relaxed">
+                  Sponsor to support ongoing development, open an issue for bugs or ideas, and star the repo
+                  or send a PR if you would like to contribute.
+                </p>
+                <GetInvolvedActions className="mt-5 sm:justify-center" />
               </div>
-              <p className="cc-text-muted mb-4 max-w-[360px] text-center text-[11px] leading-snug">
-                Sponsor to support ongoing development, open an issue for bugs or ideas, and star the repo
-                or send a PR if you would like to contribute.
-              </p>
-              <GetInvolvedActions />
             </div>
           )}
         </div>
 
-        <div className="cc-divider flex flex-col items-center gap-1 border-t px-4 py-2 sm:gap-1.5 sm:px-5 sm:py-2.5">
-          <div className="cc-text-muted font-mono text-xs">v{__APP_VERSION__}</div>
-          <span className="cc-text-muted text-xs">
+        <div className="cc-divider flex flex-col items-center gap-1.5 border-t px-5 py-3 sm:px-6 sm:py-3.5">
+          <div className="cc-text-muted font-mono text-sm">v{__APP_VERSION__}</div>
+          <span className="cc-text-muted text-sm">
             Made with <span className="text-red-400">&#9829;</span> by{' '}
             <a
               href="https://github.com/IanSkelskey"
@@ -275,7 +314,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`cursor-pointer border-b-2 pb-2 text-xs font-medium transition-colors ${
+      className={`cursor-pointer border-b-2 pb-2.5 text-sm font-medium transition-colors ${
         active ? activeClassName : inactiveClassName
       }`}
     >
@@ -292,24 +331,43 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <div className="cc-panel rounded-lg border px-3 py-2.5">
-      <div className="cc-section-label mb-1.5 text-[10px] font-semibold">
+    <div className="cc-panel rounded-xl border px-4 py-3.5">
+      <div className="cc-section-label mb-2 text-[11px] font-semibold">
         {label}
       </div>
-      <div className="cc-text-secondary text-xs">{children}</div>
+      <div className="cc-text-secondary text-sm">{children}</div>
     </div>
   );
 }
 
-function ShortcutCard({
-  shortcut,
+function ShortcutSection({
+  group,
 }: {
-  shortcut: { keys: string; desc: string };
+  group: ShortcutGroup;
 }) {
   return (
-    <div className="cc-panel flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-      <div className="cc-text-primary min-w-0 text-[11px] font-medium leading-snug">{shortcut.desc}</div>
-      <kbd className="cc-kbd shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono">
+    <div className="cc-panel rounded-xl border px-4 py-3">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-accent)]">
+        {group.title}
+      </div>
+      <div className={group.columns === 2 ? 'grid gap-x-6 gap-y-1.5 sm:grid-cols-2' : 'grid gap-y-1.5'}>
+        {group.items.map((shortcut) => (
+          <ShortcutRow key={`${group.title}-${shortcut.keys}-${shortcut.desc}`} shortcut={shortcut} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShortcutRow({
+  shortcut,
+}: {
+  shortcut: ShortcutItem;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-0.5">
+      <div className="cc-text-primary min-w-0 text-sm leading-snug">{shortcut.desc}</div>
+      <kbd className="cc-kbd shrink-0 rounded-md px-2 py-1 text-[11px] font-mono whitespace-nowrap">
         {shortcut.keys}
       </kbd>
     </div>
@@ -319,20 +377,24 @@ function ShortcutCard({
 function TipSection({
   title,
   items,
+  className,
+  splitItemsOnDesktop = false,
 }: {
   title: string;
   items: string[];
+  className?: string;
+  splitItemsOnDesktop?: boolean;
 }) {
   return (
-    <div className="cc-panel rounded-lg border px-3 py-2.5">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-accent)]">
+    <div className={`cc-panel rounded-xl border px-4 py-3 ${className ?? ''}`}>
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-accent)]">
         {title}
       </div>
-      <div className="space-y-1.5">
+      <div className={splitItemsOnDesktop ? 'grid gap-x-6 gap-y-2 lg:grid-cols-2' : 'space-y-2'}>
         {items.map((item) => (
-          <div key={item} className="flex items-start gap-2">
-            <div className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--cc-accent)] opacity-70" />
-            <p className="cc-text-secondary text-[11px] leading-snug">{item}</p>
+          <div key={item} className="flex items-start gap-2.5">
+            <div className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--cc-accent)] opacity-70" />
+            <p className="cc-text-secondary text-sm leading-relaxed">{item}</p>
           </div>
         ))}
       </div>
