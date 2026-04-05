@@ -121,9 +121,11 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             </h2>
             <button
               onClick={onClose}
+              aria-label="Close help dialog"
+              title="Close help dialog"
               className="cc-icon-button -m-1 cursor-pointer p-1"
             >
-              <CloseIcon className="h-4 w-4" />
+              <CloseIcon className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
           <div className="flex flex-wrap gap-3">
