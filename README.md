@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0--beta--6-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta-5" />
+  <img src="https://img.shields.io/badge/version-1.0.0--beta--7-blue?style=flat&labelColor=555" alt="Version 1.0.0-beta-7" />
 </p>
 
 <p align="center">
