@@ -33,6 +33,9 @@
   --cc-success: #34d399;
   --cc-warning: #fbbf24;
   --cc-danger: #f87171;
+  --cc-danger-button-bg: #dc2626;
+  --cc-danger-button-hover: #b91c1c;
+  --cc-danger-button-contrast: #ffffff;
   --cc-backdrop: rgba(2, 6, 12, 0.64);
   --cc-shadow-sm: 0 8px 20px rgba(3, 8, 18, 0.18);
   --cc-shadow-md: 0 16px 36px rgba(3, 8, 18, 0.28);
@@ -244,12 +247,12 @@ select {
 }
 
 .cc-button-danger {
-  background: var(--cc-danger);
-  color: #fff;
+  background: var(--cc-danger-button-bg, var(--cc-danger));
+  color: var(--cc-danger-button-contrast, #fff);
 }
 
 .cc-button-danger:hover {
-  background: color-mix(in srgb, var(--cc-danger) 88%, #fff 12%);
+  background: var(--cc-danger-button-hover, color-mix(in srgb, var(--cc-danger) 88%, #fff 12%));
 }
 
 .cc-icon-button {
