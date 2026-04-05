@@ -69,6 +69,7 @@ const javaRunner = {
       cleanup,
       setActiveProcess,
       setTimeoutHandle,
+      refreshInactivityTimeout,
       ws,
     } = context;
 
@@ -128,7 +129,7 @@ const javaRunner = {
         send,
         cleanup,
         setActiveProcess,
-        setTimeoutHandle,
+        refreshInactivityTimeout,
         ws,
         runtimeLabel: 'Java',
       });

@@ -234,6 +234,7 @@ const pythonRunner = {
       cleanup,
       setActiveProcess,
       setTimeoutHandle,
+      refreshInactivityTimeout,
       ws,
     } = context;
 
@@ -333,7 +334,7 @@ const pythonRunner = {
           send,
           cleanup,
           setActiveProcess,
-          setTimeoutHandle,
+          refreshInactivityTimeout,
           ws,
           runtimeLabel: 'Python',
         });

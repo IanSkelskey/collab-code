@@ -1,8 +1,6 @@
 const { spawn } = require('child_process');
 const { collectSyncedFiles } = require('./workspace.cjs');
 
-const EXEC_TIMEOUT_MS = 30000;
-
 function runProcess(context) {
   const {
     command,
@@ -15,7 +13,7 @@ function runProcess(context) {
     send,
     cleanup,
     setActiveProcess,
-    setTimeoutHandle,
+    refreshInactivityTimeout = () => {},
     ws,
     runtimeLabel,
   } = context;
@@ -27,18 +25,15 @@ function runProcess(context) {
   });
   setActiveProcess(child);
 
-  setTimeoutHandle(setTimeout(() => {
-    if (child.exitCode === null && !child.killed) {
-      send({ type: 'stderr', data: '\n[Execution timed out after 30 seconds]\n' });
-      child.kill('SIGKILL');
-    }
-  }, EXEC_TIMEOUT_MS));
+  refreshInactivityTimeout();
 
   child.stdout.on('data', (data) => {
+    refreshInactivityTimeout();
     send({ type: 'stdout', data: data.toString() });
   });
 
   child.stderr.on('data', (data) => {
+    refreshInactivityTimeout();
     send({ type: 'stderr', data: data.toString() });
   });
 

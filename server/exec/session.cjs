@@ -16,6 +16,8 @@ const {
   writeProjectFiles,
 } = require('./workspace.cjs');
 
+const EXEC_INACTIVITY_TIMEOUT_MS = 30000;
+
 function handleExecConnection(ws) {
   let activeProcess = null;
   let tmpDir = null;
@@ -40,6 +42,29 @@ function handleExecConnection(ws) {
       try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
       tmpDir = null;
     }
+  }
+
+  function refreshInactivityTimeout() {
+    if (!activeProcess) {
+      return;
+    }
+
+    const processToTrack = activeProcess;
+    const handle = setTimeout(() => {
+      if (activeProcess !== processToTrack) {
+        return;
+      }
+
+      if (processToTrack.exitCode === null && !processToTrack.killed) {
+        send({ type: 'stderr', data: '\n[Execution timed out after 30 seconds of inactivity]\n' });
+        try { processToTrack.kill('SIGKILL'); } catch {}
+      }
+    }, EXEC_INACTIVITY_TIMEOUT_MS);
+
+    if (timeout && timeout !== handle) {
+      clearTimeout(timeout);
+    }
+    timeout = handle;
   }
 
   function beginExecution(message) {
@@ -97,6 +122,7 @@ function handleExecConnection(ws) {
         }
         timeout = handle || null;
       },
+      refreshInactivityTimeout,
       ws,
     });
   }
@@ -117,6 +143,7 @@ function handleExecConnection(ws) {
     if (message.type === 'stdin') {
       if (activeProcess && activeProcess.stdin.writable) {
         activeProcess.stdin.write(message.data);
+        refreshInactivityTimeout();
       }
       return;
     }
