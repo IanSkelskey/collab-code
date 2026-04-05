@@ -29,7 +29,7 @@ export function FolderIcon({ open }: { open: boolean }) {
 
 export function FileIcon({ name }: { name: string }) {
   const lang = getLanguageForFile(name);
-  const color = lang?.iconColor ?? 'text-zinc-400';
+  const color = lang?.iconColor ?? 'cc-text-muted';
   const iconKey = lang?.iconName ?? lang?.id;
   const IconComp = iconKey ? iconsByName[iconKey] : undefined;
 
@@ -69,8 +69,8 @@ export function InlineInput({
         defaultValue={defaultValue}
         autoFocus
         ref={(el) => el?.select()}
-        className={`bg-zinc-800 text-zinc-100 text-xs px-1 py-0.5 rounded border outline-none w-full ${
-          error ? 'border-red-500 focus:border-red-400' : 'border-zinc-600 focus:border-emerald-400'
+        className={`cc-input-shell cc-input w-full rounded px-1 py-0.5 text-xs outline-none ${
+          error ? 'border-red-500 focus:border-red-400' : ''
         }`}
         onBlur={(e) => {
           const val = e.target.value.trim();
@@ -171,11 +171,11 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
   return (
     <>
       <div
-        className={`flex items-center gap-1 px-2 py-[3px] cursor-pointer select-none text-xs
-          hover:bg-zinc-700/50 transition-colors group
-          ${isActive ? 'bg-zinc-700/70 text-white' : ''}
-          ${isSelected ? 'bg-emerald-500/12 text-white' : 'text-zinc-300'}
-          ${isDropTarget ? 'bg-emerald-500/20 outline outline-1 outline-emerald-500/50' : ''}
+        className={`group flex cursor-pointer select-none items-center gap-1 px-2 py-[3px] text-xs transition-colors
+          hover:bg-[var(--cc-bg-hover)]
+          ${isActive ? 'bg-[var(--cc-bg-hover-strong)] text-[var(--cc-text-primary)]' : ''}
+          ${isSelected ? 'bg-[var(--cc-bg-selection)] text-[var(--cc-text-primary)]' : 'cc-text-secondary'}
+          ${isDropTarget ? 'bg-[var(--cc-bg-selection)] outline outline-1 outline-[var(--cc-accent)]' : ''}
         `}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
         onClick={(e) => onNodeClick(e, node)}
@@ -210,7 +210,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
             }}
             disabled={running}
             title={`Run ${getLanguageForFile(node.name)?.extractEntryPointName?.(node.name) ?? node.name}`}
-            className="ml-auto p-0.5 rounded text-emerald-500 hover:text-emerald-400 hover:bg-zinc-700 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30 cursor-pointer shrink-0"
+            className="ml-auto shrink-0 cursor-pointer rounded p-0.5 text-[var(--cc-accent)] opacity-0 transition-all hover:bg-[var(--cc-bg-hover)] hover:opacity-100 disabled:opacity-30 group-hover:opacity-100"
           >
             <PlayIcon className="w-3 h-3" />
           </button>

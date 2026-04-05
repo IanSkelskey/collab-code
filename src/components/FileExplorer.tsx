@@ -278,7 +278,7 @@ export default function FileExplorer({
   ]);
 
   return (
-    <div className="relative h-full flex flex-col bg-[#0d1117] border-r border-zinc-700/50">
+    <div className="cc-sidebar-shell cc-divider relative flex h-full flex-col border-r">
       <FileExplorerHeader
         onCreateFile={handleCreateRootFile}
         onCreateFolder={handleCreateRootFolder}
@@ -301,7 +301,7 @@ export default function FileExplorer({
           ))}
 
           {(!fs.tree.children || fs.tree.children.length === 0) && (
-            <div className="px-3 py-4 text-xs text-zinc-500 text-center">
+            <div className="cc-text-faint px-3 py-4 text-center text-xs">
               No files yet
             </div>
           )}
@@ -337,7 +337,7 @@ export default function FileExplorer({
           )}
 
           {dragTarget === ROOT_PATH && (
-            <div className="mx-2 mt-1 border border-dashed border-emerald-500/50 rounded bg-emerald-500/10 px-2 py-2 text-[10px] text-emerald-400 text-center pointer-events-none">
+            <div className="pointer-events-none mx-2 mt-1 rounded border border-dashed border-[var(--cc-accent)] bg-[var(--cc-bg-selection)] px-2 py-2 text-center text-[10px] text-[var(--cc-accent)]">
               Drop here to move to root
             </div>
           )}

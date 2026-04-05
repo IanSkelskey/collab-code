@@ -21,7 +21,7 @@ export default function ModalOverlay({ onClose, children }: ModalOverlayProps) {
   return (
     <div
       onClick={handleBackdrop}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-[2px]"
+      className="cc-overlay fixed inset-0 z-[100] flex items-center justify-center"
     >
       {children}
     </div>

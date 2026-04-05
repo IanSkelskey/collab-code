@@ -71,6 +71,23 @@ export function HeartIcon(props: IconProps) {
   );
 }
 
+export function SunIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2.25M12 19.25v2.25M4.75 4.75l1.6 1.6M17.65 17.65l1.6 1.6M2.5 12h2.25M19.25 12h2.25M4.75 19.25l1.6-1.6M17.65 6.35l1.6-1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M20.2 14.4A8.8 8.8 0 1 1 9.6 3.8a7 7 0 1 0 10.6 10.6Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // ── Terminal / Prompt ──
 
 export function TerminalIcon(props: IconProps) {

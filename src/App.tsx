@@ -156,7 +156,7 @@ function AppContent({
 
   return (
     <div
-      className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-hidden"
+      className="cc-app-shell flex h-[100dvh] w-screen flex-col overflow-hidden"
       {...dragHandlers}
     >
       <Toolbar
@@ -212,9 +212,9 @@ function AppContent({
             <div
               onMouseDown={layout.handleExplorerDragStart}
               onTouchStart={layout.handleExplorerDragStart}
-              className="w-3 shrink-0 cursor-col-resize flex items-center justify-center group touch-none border-r border-zinc-700/50"
+              className="cc-divider group flex w-3 shrink-0 cursor-col-resize items-center justify-center border-r touch-none"
             >
-              <div className="h-10 w-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+              <div className="h-10 w-[2px] rounded-full bg-[var(--cc-border-strong)] transition-colors group-hover:bg-[var(--cc-accent)]" />
             </div>
           </>
         )}
@@ -253,7 +253,7 @@ function AppContent({
                         <div
                           className={`min-h-0 min-w-0 flex-1 ${
                             showMarkdownEditor
-                              ? 'border-t border-zinc-700/50 lg:border-l lg:border-t-0'
+                              ? 'cc-divider border-t lg:border-l lg:border-t-0'
                               : ''
                           }`}
                         >
@@ -277,50 +277,50 @@ function AppContent({
                 </div>
               </>
             ) : fs.loading ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-zinc-500 select-none">
-                <div className="w-6 h-6 border-2 border-zinc-600 border-t-emerald-400 rounded-full animate-spin" />
-                <p className="text-xs text-zinc-500">Loading workspace...</p>
+              <div className="cc-text-muted flex h-full flex-col items-center justify-center gap-3 select-none">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--cc-border-strong)] border-t-[var(--cc-accent)]" />
+                <p className="text-xs">Loading workspace...</p>
               </div>
             ) : fs.files.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
+              <div className="cc-text-muted flex h-full flex-col items-center justify-center gap-4 px-4 select-none">
                 <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-zinc-300">Choose how to start this room</p>
-                  <p className="text-xs text-zinc-500 max-w-sm">
+                  <p className="cc-text-secondary text-sm font-medium">Choose how to start this room</p>
+                  <p className="max-w-sm text-xs">
                     Create a starter file for Java or Python, or open the Explorer to build your own workspace.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     onClick={() => handleCreateStarterFile('java')}
-                    className="px-4 py-2 rounded-md text-xs font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white transition-colors cursor-pointer"
+                    className="cc-button-primary cursor-pointer rounded-md px-4 py-2 text-xs font-medium"
                   >
                     New Main.java
                   </button>
                   <button
                     onClick={() => handleCreateStarterFile('python')}
-                    className="px-4 py-2 rounded-md text-xs font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 text-zinc-100 transition-colors cursor-pointer"
+                    className="cc-button-secondary cursor-pointer rounded-md px-4 py-2 text-xs font-medium"
                   >
                     New main.py
                   </button>
                 </div>
                 <button
                   onClick={() => layout.setExplorerVisible(true)}
-                  className="text-xs text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                  className="cc-button-ghost cursor-pointer rounded-md px-2 py-1 text-xs"
                 >
                   Open Explorer (Ctrl+B)
                 </button>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-4 text-zinc-500 select-none px-4">
+              <div className="cc-text-muted flex h-full flex-col items-center justify-center gap-4 px-4 select-none">
                 <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-zinc-400">No open editors</p>
-                  <p className="text-xs text-zinc-600">
+                  <p className="cc-text-secondary text-sm font-medium">No open editors</p>
+                  <p className="cc-text-faint text-xs">
                     Open a file from the Explorer{' '}
                     <button
                       onClick={layout.handleToggleExplorer}
-                      className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                      className="cursor-pointer text-[var(--cc-accent)] transition-colors hover:opacity-80"
                     >
                       (Ctrl+B)
                     </button>
@@ -330,11 +330,11 @@ function AppContent({
             )}
           </div>
 
-          <div className="shrink-0 bg-[#161b22] border-t border-zinc-700/50 flex items-center">
+          <div className="cc-topbar cc-divider flex shrink-0 items-center border-t">
             <button
               onClick={layout.handleToggleTerminal}
               title="Toggle Terminal (Ctrl+`)"
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-manipulation"
+              className="cc-button-ghost flex cursor-pointer touch-manipulation items-center gap-1.5 px-3 py-1 text-xs font-medium"
             >
               <TerminalIcon className="w-3.5 h-3.5" strokeWidth={2} />
               Terminal
@@ -346,13 +346,13 @@ function AppContent({
                 onTouchStart={layout.handleTerminalDragStart}
                 className="flex-1 h-full cursor-row-resize flex items-center justify-center group py-1"
               >
-                <div className="w-10 h-[2px] bg-zinc-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+                <div className="h-[2px] w-10 rounded-full bg-[var(--cc-border-strong)] transition-colors group-hover:bg-[var(--cc-accent)]" />
               </div>
             )}
           </div>
 
           {layout.terminalVisible && (
-            <div style={{ height: layout.terminalHeight }} className="shrink-0 bg-[#1a1a2e] overflow-hidden">
+            <div style={{ height: layout.terminalHeight }} className="shrink-0 overflow-hidden">
               <Terminal
                 ref={terminalRef}
                 onRunRequested={handleRun}
@@ -385,10 +385,10 @@ function AppContent({
       {layout.helpOpen && <HelpModal onClose={() => layout.setHelpOpen(false)} />}
 
       {osDragActive && (
-        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-          <div className="mx-4 max-w-md w-full border-2 border-dashed border-emerald-400/60 bg-[#0d1117]/80 rounded-lg px-6 py-8 text-center">
-            <p className="text-sm text-emerald-300 font-medium">Drop files or folders to import</p>
-            <p className="text-[11px] text-zinc-400 mt-1">They&apos;ll be added under ~/</p>
+        <div className="cc-overlay pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
+          <div className="mx-4 w-full max-w-md rounded-lg border-2 border-dashed border-[var(--cc-accent)] bg-[var(--cc-bg-panel)] px-6 py-8 text-center shadow-[var(--cc-shadow-lg)]">
+            <p className="text-sm font-medium text-[var(--cc-accent)]">Drop files or folders to import</p>
+            <p className="cc-text-muted mt-1 text-[11px]">They&apos;ll be added under ~/</p>
           </div>
         </div>
       )}

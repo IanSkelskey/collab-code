@@ -21,20 +21,20 @@ export default function FileExplorerSelectionTray({
 
       {selectedCount > 1 && (
         <div className="pointer-events-none absolute inset-x-2 bottom-3 z-20 flex justify-center">
-          <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-[#161b22]/95 px-3 py-2 shadow-lg shadow-black/40 backdrop-blur-sm">
-            <span className="text-[11px] font-medium text-zinc-200">
+          <div className="cc-menu pointer-events-auto inline-flex items-center gap-2 rounded-full px-3 py-2">
+            <span className="cc-text-primary text-[11px] font-medium">
               {selectedCount} selected
             </span>
             <button
               onClick={onDelete}
-              className="rounded-full px-2 py-1 text-[10px] font-medium text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors cursor-pointer"
+              className="cursor-pointer rounded-full px-2 py-1 text-[10px] font-medium text-[var(--cc-danger)] transition-colors hover:bg-[var(--cc-bg-hover)]"
               title={`Delete ${selectedCount} selected items`}
             >
               Delete
             </button>
             <button
               onClick={onClear}
-              className="rounded-full px-2 py-1 text-[10px] font-medium text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors cursor-pointer"
+              className="cc-button-ghost cursor-pointer rounded-full px-2 py-1 text-[10px] font-medium"
               title="Clear selection"
             >
               Clear

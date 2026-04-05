@@ -39,14 +39,14 @@ function ToastItem({
   const Icon = isActionable ? UndoIcon : InfoCircleIcon;
   const toneClasses = isActionable
     ? {
-        badge: 'bg-emerald-500/10 text-emerald-400',
-        button: 'border-zinc-600 bg-zinc-700/70 text-emerald-300 hover:border-zinc-500 hover:bg-zinc-600/80 hover:text-emerald-200',
-        progress: 'bg-emerald-400/80',
+        badge: 'bg-[var(--cc-bg-selection)] text-[var(--cc-accent)]',
+        button: 'cc-button-secondary text-[var(--cc-accent)]',
+        progress: 'bg-[var(--cc-accent)]',
       }
     : {
-        badge: 'bg-zinc-700/80 text-zinc-300',
-        button: 'border-zinc-600 bg-zinc-700/70 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-600/80 hover:text-zinc-100',
-        progress: 'bg-zinc-500/70',
+        badge: 'bg-[var(--cc-bg-hover)] text-[var(--cc-text-secondary)]',
+        button: 'cc-button-secondary',
+        progress: 'bg-[var(--cc-text-faint)]',
       };
 
   useEffect(() => {
@@ -66,7 +66,7 @@ function ToastItem({
   };
 
   return (
-    <div className="pointer-events-auto w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-zinc-700 bg-[#1e2030] shadow-xl shadow-black/40 animate-[toastIn_180ms_ease-out]">
+    <div className="cc-card pointer-events-auto w-[min(22rem,calc(100vw-1.5rem))] animate-[toastIn_180ms_ease-out] overflow-hidden rounded-lg">
       <div className="px-3 py-2.5">
         <div className="flex items-start gap-2.5">
           <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${toneClasses.badge}`}>
@@ -74,7 +74,7 @@ function ToastItem({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="pt-0.5 text-xs leading-relaxed text-zinc-200 break-words">
+            <p className="cc-text-primary break-words pt-0.5 text-xs leading-relaxed">
               {toast.label}
             </p>
           </div>
@@ -83,7 +83,7 @@ function ToastItem({
             {toast.action && (
               <button
                 onClick={handleAction}
-                className={`rounded-md border px-2 py-1 text-[10px] font-medium transition-colors cursor-pointer ${toneClasses.button}`}
+                className={`cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium ${toneClasses.button}`}
               >
                 {toast.action.label}
               </button>
@@ -91,7 +91,7 @@ function ToastItem({
             <button
               onClick={() => onDismiss(toast.id)}
               aria-label="Dismiss notification"
-              className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-700/60 hover:text-zinc-200 transition-colors cursor-pointer"
+              className="cc-icon-button flex h-6 w-6 cursor-pointer items-center justify-center rounded-md"
             >
               <CloseIcon className="h-3 w-3" />
             </button>
@@ -99,7 +99,7 @@ function ToastItem({
         </div>
       </div>
 
-      <div className="h-[2px] bg-zinc-800/90">
+      <div className="h-[2px] bg-[var(--cc-bg-canvas)]">
         <div
           className={`h-full origin-left ${toneClasses.progress}`}
           style={{ transform: `scaleX(${progress / 100})` }}

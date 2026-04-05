@@ -17,6 +17,8 @@ import { useEditorDropGuard } from '../hooks/useEditorDropGuard';
 import { useEditorOptions } from '../hooks/useEditorOptions';
 import { useRemoteMonacoSelections } from '../hooks/useRemoteMonacoSelections';
 import { registerEditorFormatters } from '../services/editorFormatters';
+import { useTheme } from '../theme/ThemeProvider';
+import { registerMonacoThemes } from '../theme/monacoThemes';
 
 export interface EditorHandle {
   getCode: () => string;
@@ -38,6 +40,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   ref,
 ) {
   const { ydoc, awareness } = useCollab();
+  const { theme } = useTheme();
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const activeFile = fs?.activeFile ?? null;
@@ -78,6 +81,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   const handleMount: OnMount = (editorInstance, monaco) => {
     setMonacoEditor(editorInstance);
     monacoRef.current = monaco;
+    registerMonacoThemes(monaco);
     registerEditorFormatters(monaco);
   };
 
@@ -86,15 +90,23 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
     monacoEditor.updateOptions({ fontSize });
   }, [fontSize, monacoEditor]);
 
+  useEffect(() => {
+    if (!monacoEditor || !monacoRef.current) {
+      return;
+    }
+
+    monacoRef.current.editor.setTheme(theme.monacoTheme);
+  }, [monacoEditor, theme.monacoTheme]);
+
   return (
     <div className="h-full w-full">
       <MonacoEditor
         defaultLanguage={primaryLanguage.monacoLanguage}
-        theme="vs-dark"
+        theme={theme.monacoTheme}
         onMount={handleMount}
         options={editorOptions}
         loading={
-          <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
+          <div className="cc-text-muted flex h-full items-center justify-center text-sm">
             Loading editor...
           </div>
         }

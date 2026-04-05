@@ -68,7 +68,7 @@ export function getTerminalExecEvents(ydoc: Y.Doc): Y.Array<TerminalExecEvent> {
 }
 
 export function buildTerminalPrompt(cwd: string): string {
-  return `\x1b[38;2;86;182;194m${cwd} $ \x1b[0m`;
+  return `\x1b[36m${cwd} $ \x1b[0m`;
 }
 
 export function readSharedTerminalSnapshot(ydoc: Y.Doc): SharedTerminalSnapshot {

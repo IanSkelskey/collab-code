@@ -57,7 +57,7 @@ export default function TabBar({ fs }: TabBarProps) {
   return (
     <div
       ref={scrollRef}
-      className="shrink-0 flex items-end bg-[#0d1117] overflow-x-auto overflow-y-hidden scrollbar-none border-b border-zinc-700/50"
+      className="cc-sidebar-shell cc-divider scrollbar-none flex shrink-0 items-end overflow-x-auto overflow-y-hidden border-b"
     >
       {openTabs.map(path => {
         const name = path.split('/').pop() ?? path;
@@ -72,10 +72,10 @@ export default function TabBar({ fs }: TabBarProps) {
             onAuxClick={(e) => handleAuxClick(e, path)}
             onContextMenu={(e) => handleContextMenu(e, path)}
             title={path.replace('~/', '')}
-            className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-r border-zinc-700/30 shrink-0 transition-colors cursor-pointer select-none
+            className={`cc-divider group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-r px-3 py-1.5 text-xs font-medium transition-colors
               ${isActive
-                ? 'bg-[#1e1e2e] text-zinc-100 border-b-0'
-                : 'bg-[#0d1117] text-zinc-500 hover:text-zinc-300 hover:bg-[#161b22]'
+                ? 'bg-[var(--cc-bg-panel-alt)] text-[var(--cc-text-primary)]'
+                : 'cc-text-muted hover:bg-[var(--cc-bg-hover)] hover:text-[var(--cc-text-primary)]'
               }
             `}
           >
@@ -98,14 +98,14 @@ export default function TabBar({ fs }: TabBarProps) {
                   <span
                     key={peer.clientId}
                     title={peer.name}
-                    className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white ring-1 ring-zinc-800"
+                    className="flex h-4 w-4 items-center justify-center rounded-full text-[7px] font-bold text-white ring-1 ring-[var(--cc-bg-panel)]"
                     style={{ backgroundColor: peer.color }}
                   >
                     {peer.name.charAt(0).toUpperCase()}
                   </span>
                 ))}
                 {peers.length > 3 && (
-                  <span className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-zinc-300 bg-zinc-600 ring-1 ring-zinc-800">
+                  <span className="cc-text-secondary flex h-4 w-4 items-center justify-center rounded-full bg-[var(--cc-border-strong)] text-[7px] font-bold ring-1 ring-[var(--cc-bg-panel)]">
                     +{peers.length - 3}
                   </span>
                 )}
@@ -115,7 +115,7 @@ export default function TabBar({ fs }: TabBarProps) {
             {/* Close button */}
             <span
               onClick={(e) => handleClose(e, path)}
-              className={`ml-0.5 p-0.5 rounded hover:bg-zinc-600/60 transition-colors
+              className={`ml-0.5 rounded p-0.5 transition-colors hover:bg-[var(--cc-bg-hover-strong)]
                 ${isActive ? 'opacity-60 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'}
               `}
             >
@@ -128,25 +128,25 @@ export default function TabBar({ fs }: TabBarProps) {
       {/* Context menu */}
       {ctxMenu && (
         <div
-          className="fixed z-50 bg-[#1e1e2e] border border-zinc-700 rounded shadow-xl py-1 text-xs text-zinc-300 min-w-[160px]"
+          className="cc-menu cc-text-secondary fixed z-50 min-w-[160px] rounded py-1 text-xs"
           style={{ left: ctxMenu.x, top: ctxMenu.y }}
           onClick={() => setCtxMenu(null)}
         >
-          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeTab(ctxMenu.path)}>
+          <button className="hover:bg-[var(--cc-bg-hover)] w-full cursor-pointer px-3 py-1.5 text-left" onClick={() => fs.closeTab(ctxMenu.path)}>
             Close
           </button>
-          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeOtherTabs(ctxMenu.path)}>
+          <button className="hover:bg-[var(--cc-bg-hover)] w-full cursor-pointer px-3 py-1.5 text-left" onClick={() => fs.closeOtherTabs(ctxMenu.path)}>
             Close Others
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer"
+            className="hover:bg-[var(--cc-bg-hover)] w-full cursor-pointer px-3 py-1.5 text-left"
             onClick={() => fs.closeTabsToRight(ctxMenu.path)}
             disabled={openTabs.indexOf(ctxMenu.path) === openTabs.length - 1}
           >
             Close to the Right
           </button>
-          <div className="border-t border-zinc-700 my-1" />
-          <button className="w-full text-left px-3 py-1.5 hover:bg-zinc-700/50 cursor-pointer" onClick={() => fs.closeAllTabs()}>
+          <div className="cc-divider my-1 border-t" />
+          <button className="hover:bg-[var(--cc-bg-hover)] w-full cursor-pointer px-3 py-1.5 text-left" onClick={() => fs.closeAllTabs()}>
             Close All
           </button>
         </div>

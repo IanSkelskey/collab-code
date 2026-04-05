@@ -107,7 +107,7 @@ if __name__ == "__main__":
     label: 'XML',
     extensions: ['.xml'],
     monacoLanguage: 'xml',
-    iconColor: 'text-zinc-400',
+    iconColor: 'cc-text-muted',
     mimeType: 'application/xml',
   },
   {
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     label: 'Markdown',
     extensions: ['.md'],
     monacoLanguage: 'markdown',
-    iconColor: 'text-zinc-300',
+    iconColor: 'cc-text-secondary',
     iconName: 'markdown',
     mimeType: 'text/markdown',
   },
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     label: 'C',
     extensions: ['.c', '.h'],
     monacoLanguage: 'c',
-    iconColor: 'text-zinc-400',
+    iconColor: 'cc-text-muted',
     iconName: 'c',
     mimeType: 'text/x-csrc',
     braceFormatted: true,
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     label: 'C++',
     extensions: ['.cpp', '.hpp'],
     monacoLanguage: 'cpp',
-    iconColor: 'text-zinc-400',
+    iconColor: 'cc-text-muted',
     iconName: 'cpp',
     mimeType: 'text/x-c++src',
     braceFormatted: true,
@@ -202,7 +202,7 @@ export function getMonacoLanguage(path: string): string {
 
 /** Get the Tailwind icon color class for a file path */
 export function getIconColor(path: string): string {
-  return getLanguageForFile(path)?.iconColor ?? 'text-zinc-400';
+  return getLanguageForFile(path)?.iconColor ?? 'cc-text-muted';
 }
 
 /** Get the MIME type for a file path */
@@ -210,7 +210,7 @@ export function getMimeType(path: string): string {
   return getLanguageForFile(path)?.mimeType ?? 'text/plain';
 }
 
-/** The primary language — used for defaults, terminal branding, etc. */
+/** The primary language - used for defaults, terminal branding, etc. */
 export const primaryLanguage: LanguageConfig = languages[0];
 
 export { languages };

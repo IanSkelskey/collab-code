@@ -32,28 +32,28 @@ export default function ConfirmDialog({
   return (
     <ModalOverlay onClose={onCancel}>
       <div
-        className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[340px] max-w-[90vw] p-4"
+        className="cc-card w-[380px] max-w-[92vw] rounded-xl p-5"
       >
-        <h3 className="text-sm font-semibold text-zinc-100 mb-1">{title}</h3>
-        <p className="text-xs text-zinc-400 mb-4 leading-relaxed">{message}</p>
-        <div className="flex justify-end gap-2">
+        <h3 className="cc-text-primary mb-1.5 text-[15px] font-semibold">{title}</h3>
+        <p className="cc-text-muted mb-5 text-sm leading-6">{message}</p>
+        <div className="flex flex-wrap items-stretch justify-end gap-2.5">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-700 hover:bg-zinc-600 rounded-md transition-colors cursor-pointer"
+            className="cc-button-secondary min-h-10 cursor-pointer rounded-lg px-4 text-sm font-medium whitespace-nowrap"
           >
             Cancel
           </button>
           {onSecondary && secondaryLabel && (
             <button
               onClick={onSecondary}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-colors cursor-pointer"
+              className="cc-button-primary min-h-10 min-w-[9.5rem] flex-1 cursor-pointer rounded-lg px-4 text-sm font-medium whitespace-nowrap"
             >
               {secondaryLabel}
             </button>
           )}
           <button
             onClick={onConfirm}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-500 rounded-md transition-colors cursor-pointer"
+            className="cc-button-danger min-h-10 cursor-pointer rounded-lg px-4 text-sm font-medium whitespace-nowrap"
           >
             {confirmLabel}
           </button>

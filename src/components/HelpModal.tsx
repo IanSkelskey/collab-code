@@ -94,17 +94,6 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         });
       })
       .catch(() => {
-        if (controller.signal.aborted) {
-          setServerInfo({
-            status: 'error',
-            javaAvailable: null,
-            javaVersion: null,
-            pythonAvailable: null,
-            pythonVersion: null,
-          });
-          return;
-        }
-
         setServerInfo({
           status: 'error',
           javaAvailable: null,
@@ -122,49 +111,49 @@ export default function HelpModal({ onClose }: HelpModalProps) {
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-[#1e2030] border border-zinc-700 rounded-lg shadow-2xl shadow-black/60 w-[460px] max-w-[92vw] h-[35rem] max-h-[85vh] flex flex-col overflow-hidden">
-        <div className="px-4 sm:px-5 pt-3 sm:pt-4 border-b border-zinc-700/60">
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
-              <HelpCircleIcon className="w-4 h-4 text-emerald-400" strokeWidth={2} />
+      <div className="cc-card flex h-[35rem] max-h-[85vh] w-[460px] max-w-[92vw] flex-col overflow-hidden rounded-lg">
+        <div className="cc-divider border-b px-4 pt-3 sm:px-5 sm:pt-4">
+          <div className="mb-2.5 flex items-center justify-between">
+            <h2 className="cc-text-primary flex items-center gap-2 text-sm font-semibold">
+              <HelpCircleIcon className="h-4 w-4 text-[var(--cc-accent)]" strokeWidth={2} />
               Help
             </h2>
             <button
               onClick={onClose}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer p-1 -m-1"
+              className="cc-icon-button -m-1 cursor-pointer p-1"
             >
-              <CloseIcon className="w-4 h-4" />
+              <CloseIcon className="h-4 w-4" />
             </button>
           </div>
           <div className="flex flex-wrap gap-3">
             <TabButton
               active={tab === 'about'}
-              activeClassName="text-sky-400 border-sky-400"
-              inactiveClassName="text-zinc-500 border-transparent hover:text-zinc-300"
+              activeClassName="border-sky-400 text-sky-400"
+              inactiveClassName="cc-text-faint border-transparent hover:text-[var(--cc-text-primary)]"
               onClick={() => setTab('about')}
             >
               About
             </TabButton>
             <TabButton
               active={tab === 'shortcuts'}
-              activeClassName="text-emerald-400 border-emerald-400"
-              inactiveClassName="text-zinc-500 border-transparent hover:text-zinc-300"
+              activeClassName="border-[var(--cc-accent)] text-[var(--cc-accent)]"
+              inactiveClassName="cc-text-faint border-transparent hover:text-[var(--cc-text-primary)]"
               onClick={() => setTab('shortcuts')}
             >
               Shortcuts
             </TabButton>
             <TabButton
               active={tab === 'tips'}
-              activeClassName="text-emerald-400 border-emerald-400"
-              inactiveClassName="text-zinc-500 border-transparent hover:text-zinc-300"
+              activeClassName="border-[var(--cc-accent)] text-[var(--cc-accent)]"
+              inactiveClassName="cc-text-faint border-transparent hover:text-[var(--cc-text-primary)]"
               onClick={() => setTab('tips')}
             >
               Tips
             </TabButton>
             <TabButton
               active={tab === 'involved'}
-              activeClassName="text-pink-400 border-pink-400"
-              inactiveClassName="text-zinc-500 border-transparent hover:text-pink-300"
+              activeClassName="border-pink-400 text-pink-400"
+              inactiveClassName="cc-text-faint border-transparent hover:text-pink-300"
               onClick={() => setTab('involved')}
             >
               Get Involved
@@ -173,19 +162,19 @@ export default function HelpModal({ onClose }: HelpModalProps) {
         </div>
 
         <div
-          className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-2.5 sm:py-3"
+          className="flex-1 min-h-0 overflow-y-auto px-4 py-2.5 sm:px-5 sm:py-3"
           style={{ scrollbarGutter: 'stable' }}
         >
           {tab === 'about' && (
             <div className="space-y-4">
-              <div className="flex flex-col items-center text-center pt-1">
+              <div className="flex flex-col items-center pt-1 text-center">
                 <img
                   src="/collab-code/logo.svg"
                   alt="Collab Code"
-                  className="w-16 h-16 sm:w-20 sm:h-20 mb-3"
+                  className="mb-3 h-16 w-16 sm:h-20 sm:w-20"
                 />
-                <h3 className="text-sm font-semibold text-zinc-100">Collab Code</h3>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400 max-w-[360px]">
+                <h3 className="cc-text-primary text-sm font-semibold">Collab Code</h3>
+                <p className="cc-text-muted mt-2 max-w-[360px] text-xs leading-relaxed">
                   Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
                   Share a room link, edit the same workspace, use one shared terminal session, and run
                   Java and Python together from the browser. New rooms can start with a Java starter,
@@ -232,10 +221,10 @@ export default function HelpModal({ onClose }: HelpModalProps) {
 
           {tab === 'involved' && (
             <div className="flex min-h-full flex-col items-center justify-center">
-              <div className="mb-1.5 text-xs text-zinc-400 text-center">
+              <div className="cc-text-muted mb-1.5 text-center text-xs">
                 <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute.
               </div>
-              <p className="mb-4 text-[11px] leading-snug text-zinc-400/90 text-center max-w-[360px]">
+              <p className="cc-text-muted mb-4 max-w-[360px] text-center text-[11px] leading-snug">
                 Sponsor to support ongoing development, open an issue for bugs or ideas, and star the repo
                 or send a PR if you would like to contribute.
               </p>
@@ -244,15 +233,15 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           )}
         </div>
 
-        <div className="px-4 sm:px-5 py-2 sm:py-2.5 border-t border-zinc-700/60 flex flex-col items-center gap-1 sm:gap-1.5">
-          <div className="text-xs text-zinc-400 font-mono">v{__APP_VERSION__}</div>
-          <span className="text-xs text-zinc-400">
-            Made with <span className="text-red-400">♥</span> by{' '}
+        <div className="cc-divider flex flex-col items-center gap-1 border-t px-4 py-2 sm:gap-1.5 sm:px-5 sm:py-2.5">
+          <div className="cc-text-muted font-mono text-xs">v{__APP_VERSION__}</div>
+          <span className="cc-text-muted text-xs">
+            Made with <span className="text-red-400">&#9829;</span> by{' '}
             <a
               href="https://github.com/IanSkelskey"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-400 hover:text-emerald-400 transition-colors underline underline-offset-2"
+              className="cc-link underline underline-offset-2 transition-opacity hover:opacity-80"
             >
               Ian Skelskey
             </a>
@@ -279,7 +268,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`pb-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
+      className={`cursor-pointer border-b-2 pb-2 text-xs font-medium transition-colors ${
         active ? activeClassName : inactiveClassName
       }`}
     >
@@ -296,11 +285,11 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2.5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 mb-1.5">
+    <div className="cc-panel rounded-lg border px-3 py-2.5">
+      <div className="cc-section-label mb-1.5 text-[10px] font-semibold">
         {label}
       </div>
-      <div className="text-xs text-zinc-300">{children}</div>
+      <div className="cc-text-secondary text-xs">{children}</div>
     </div>
   );
 }
@@ -311,9 +300,9 @@ function ShortcutCard({
   shortcut: { keys: string; desc: string };
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2">
-      <div className="min-w-0 text-[11px] font-medium leading-snug text-zinc-200">{shortcut.desc}</div>
-      <kbd className="shrink-0 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300">
+    <div className="cc-panel flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+      <div className="cc-text-primary min-w-0 text-[11px] font-medium leading-snug">{shortcut.desc}</div>
+      <kbd className="cc-kbd shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono">
         {shortcut.keys}
       </kbd>
     </div>
@@ -328,15 +317,15 @@ function TipSection({
   items: string[];
 }) {
   return (
-    <div className="rounded-lg border border-zinc-700/80 bg-[#161b22] px-3 py-2.5">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+    <div className="cc-panel rounded-lg border px-3 py-2.5">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-accent)]">
         {title}
       </div>
       <div className="space-y-1.5">
         {items.map((item) => (
           <div key={item} className="flex items-start gap-2">
-            <div className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/70" />
-            <p className="text-[11px] leading-snug text-zinc-300">{item}</p>
+            <div className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--cc-accent)] opacity-70" />
+            <p className="cc-text-secondary text-[11px] leading-snug">{item}</p>
           </div>
         ))}
       </div>
@@ -356,22 +345,22 @@ function ServerRuntimeVersion({
   label: string;
 }) {
   if (status === 'loading' || status === 'idle') {
-    return <span className="text-zinc-400">Checking execution server...</span>;
+    return <span className="cc-text-muted">Checking execution server...</span>;
   }
 
   if (status === 'error') {
-    return <span className="text-amber-300">Unable to reach the execution server.</span>;
+    return <span className="text-[var(--cc-warning)]">Unable to reach the execution server.</span>;
   }
 
   if (!available) {
-    return <span className="text-amber-300">{label} is not available on this server.</span>;
+    return <span className="text-[var(--cc-warning)]">{label} is not available on this server.</span>;
   }
 
   if (!version) {
-    return <span className="font-mono text-zinc-100">{label} available</span>;
+    return <span className="cc-text-primary font-mono">{label} available</span>;
   }
 
-  return <span className="font-mono text-zinc-100 break-all">{version}</span>;
+  return <span className="cc-text-primary break-all font-mono">{version}</span>;
 }
 
 function getServerInfoUrl(): string {

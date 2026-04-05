@@ -14,7 +14,7 @@ export default function GetInvolvedActions({ className = '' }: GetInvolvedAction
         href="https://github.com/sponsors/IanSkelskey"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-700/60 border border-zinc-600 hover:border-pink-500/50 hover:text-pink-300 transition-colors whitespace-nowrap sm:min-w-[120px]"
+        className="cc-button-secondary inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium sm:min-w-[120px] sm:w-auto sm:px-4"
       >
         <HeartIcon className="w-3.5 h-3.5 shrink-0 text-pink-500" />
         Sponsor
@@ -24,9 +24,9 @@ export default function GetInvolvedActions({ className = '' }: GetInvolvedAction
         href="https://github.com/IanSkelskey/collab-code/issues/new/choose"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-emerald-400/50 hover:text-emerald-300 transition-colors whitespace-nowrap sm:min-w-[140px]"
+        className="cc-button-secondary inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium sm:min-w-[140px] sm:w-auto sm:px-4"
       >
-        <InfoCircleIcon className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+        <InfoCircleIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
         Bug/Feature Request
       </a>
 
@@ -34,7 +34,7 @@ export default function GetInvolvedActions({ className = '' }: GetInvolvedAction
         href="https://github.com/IanSkelskey/collab-code"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700 hover:border-blue-400/50 hover:text-blue-300 transition-colors whitespace-nowrap sm:min-w-[100px]"
+        className="cc-button-secondary inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium sm:min-w-[100px] sm:w-auto sm:px-4"
       >
         <MonitorIcon className="w-3.5 h-3.5 shrink-0 text-blue-400" />
         Contribute

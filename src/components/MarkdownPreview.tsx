@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { languages } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { getParentPath, joinVfsPath, normalizeVfsPath } from '../lib/vfsPaths';
+import { useTheme } from '../theme/ThemeProvider';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -222,6 +223,7 @@ function resolveWorkspaceLink(filePath: string, href: string): string | null {
 
 export default function MarkdownPreview({ content, filePath, fs }: MarkdownPreviewProps) {
   const monaco = useMonaco();
+  const { theme } = useTheme();
   const previewRef = useRef<HTMLDivElement>(null);
   const copyResetTimersRef = useRef(new Map<HTMLButtonElement, number>());
   const renderedHtml = useMemo(() => buildPreviewHtml(content), [content]);
@@ -266,7 +268,7 @@ export default function MarkdownPreview({ content, filePath, fs }: MarkdownPrevi
         try {
           await monaco.editor.colorizeElement(codeElement, {
             tabSize: 2,
-            theme: 'vs-dark',
+            theme: theme.monacoTheme,
           });
         } catch {
           // Keep the raw code content visible if Monaco colorization fails.
@@ -275,7 +277,7 @@ export default function MarkdownPreview({ content, filePath, fs }: MarkdownPrevi
     };
 
     void colorizeCodeBlocks();
-  }, [monaco, renderedHtml]);
+  }, [monaco, renderedHtml, theme.monacoTheme]);
 
   const showCopiedState = useCallback((button: HTMLButtonElement) => {
     const existingTimeoutId = copyResetTimersRef.current.get(button);
@@ -352,20 +354,24 @@ export default function MarkdownPreview({ content, filePath, fs }: MarkdownPrevi
 
   if (!content.trim()) {
     return (
-      <div className="h-full w-full overflow-auto bg-[#0f141b] px-5 py-6 text-sm text-zinc-500">
-        Nothing to preview yet.
+      <div className="cc-preview-shell">
+        <div className="cc-preview-empty">
+          <p className="cc-text-muted text-sm">Nothing to preview yet.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full overflow-auto bg-[#0f141b]">
-      <div
-        ref={previewRef}
-        onClick={handleClick}
-        className="markdown-preview mx-auto min-h-full w-full max-w-4xl px-5 py-6"
-        dangerouslySetInnerHTML={{ __html: renderedHtml }}
-      />
+    <div className="cc-preview-shell">
+      <div className="cc-preview-frame">
+        <div
+          ref={previewRef}
+          onClick={handleClick}
+          className="markdown-preview cc-preview-content mx-auto min-h-full w-full max-w-4xl"
+          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+        />
+      </div>
     </div>
   );
 }

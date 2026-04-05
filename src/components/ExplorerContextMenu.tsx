@@ -30,7 +30,7 @@ export default function ExplorerContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-[#1e2030] border border-zinc-700 rounded-md shadow-xl py-1 min-w-[140px]"
+      className="cc-menu fixed z-50 min-w-[140px] rounded-md py-1"
       style={{ left: x, top: y }}
     >
       {items.map((item, index) => (
@@ -40,8 +40,8 @@ export default function ExplorerContextMenu({
             item.onClick();
             onClose();
           }}
-          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-700 transition-colors ${
-            item.danger ? 'text-red-400 hover:text-red-300' : 'text-zinc-200'
+          className={`w-full px-3 py-1.5 text-left text-xs transition-colors hover:bg-[var(--cc-bg-hover)] ${
+            item.danger ? 'text-[var(--cc-danger)]' : 'cc-text-primary'
           }`}
         >
           {item.label}

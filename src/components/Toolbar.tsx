@@ -8,6 +8,7 @@ import {
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
   FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon,
 } from './Icons';
+import ThemePicker from './ThemePicker';
 
 interface ToolbarProps {
   roomId: string;
@@ -100,7 +101,7 @@ export default function Toolbar({
       : 'Run code. Ctrl+Enter runs the active editor.';
 
   return (
-    <header className="flex items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#161b22] border-b border-zinc-700/50 shrink-0">
+    <header className="cc-topbar cc-divider flex shrink-0 items-center justify-between gap-2 border-b px-3 py-1.5 sm:px-4 sm:py-2">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           onClick={() => {
@@ -113,24 +114,24 @@ export default function Toolbar({
               onSecondary: () => { onSaveAll().then(onExitRoom); },
             });
           }}
-          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex cursor-pointer items-center gap-1.5 transition-opacity hover:opacity-80 sm:gap-2"
           title="Back to home"
         >
           <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
           <h1 className="text-sm sm:text-base font-semibold tracking-tight">
-            <span className="text-zinc-100 hidden xs:inline">Collab Code</span>
-            <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5 hidden sm:inline">v{__APP_VERSION__}</span>
+            <span className="cc-text-primary hidden xs:inline">Collab Code</span>
+            <span className="cc-text-muted ml-1.5 hidden font-mono text-xs font-normal sm:inline">v{__APP_VERSION__}</span>
           </h1>
         </button>
 
-        <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+        <div className="cc-divider hidden h-5 w-px border-l sm:block" />
 
         <div ref={runMenuRef} className="relative flex items-stretch">
           <button
             onClick={handlePrimaryRun}
             disabled={running}
             title={runButtonTitle}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-l-md text-sm font-medium bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer touch-manipulation"
+            className="cc-button-primary flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-l-md px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-4 sm:py-2"
           >
             {running ? (
               <SpinnerIcon className="w-4 h-4 animate-spin" />
@@ -143,24 +144,24 @@ export default function Toolbar({
             onClick={() => setRunMenuOpen((open) => !open)}
             disabled={running}
             title="Choose run target"
-            className="px-2 rounded-r-md border-l border-emerald-500/40 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="cc-button-primary cc-divider cursor-pointer rounded-r-md border-l px-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ChevronDownIcon className={`w-4 h-4 transition-transform ${runMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {runMenuOpen && (
-            <div className="absolute left-0 top-full mt-2 z-50 min-w-[260px] max-w-[320px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 overflow-hidden">
-              <div className="px-3 py-2 border-b border-zinc-700/60">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            <div className="cc-menu absolute left-0 top-full z-50 mt-2 min-w-[260px] max-w-[320px] overflow-hidden rounded-lg">
+              <div className="cc-divider border-b px-3 py-2">
+                <div className="cc-section-label text-[10px] font-semibold">
                   Run Targets
                 </div>
-                <div className="mt-1 text-[11px] text-zinc-400">
+                <div className="cc-text-muted mt-1 text-[11px]">
                   Ctrl+Enter always runs the active editor.
                 </div>
               </div>
 
               {runTargets.length === 0 ? (
-                <div className="px-3 py-3 text-xs text-zinc-400">
+                <div className="cc-text-muted px-3 py-3 text-xs">
                   No runnable Java or Python files found.
                 </div>
               ) : (
@@ -173,19 +174,19 @@ export default function Toolbar({
                         key={target.filePath}
                         onClick={() => handleSelectRunTarget(target.filePath)}
                         className={`w-full px-3 py-2 text-left transition-colors cursor-pointer ${
-                          isCurrentTarget ? 'bg-zinc-700/60' : 'hover:bg-zinc-700/40'
+                          isCurrentTarget ? 'bg-[var(--cc-bg-selection)]' : 'hover:bg-[var(--cc-bg-hover)]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-zinc-100">{getBaseName(target.filePath)}</span>
+                          <span className="cc-text-primary text-xs font-medium">{getBaseName(target.filePath)}</span>
                           {isCurrentTarget && (
-                            <span className="text-[10px] uppercase tracking-[0.16em] text-emerald-400">
+                            <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--cc-accent)]">
                               Current
                             </span>
                           )}
                         </div>
-                        <div className="mt-0.5 text-[11px] text-zinc-400 break-all">{target.filePath}</div>
-                        <div className="mt-0.5 text-[10px] text-zinc-500">
+                        <div className="cc-text-muted mt-0.5 break-all text-[11px]">{target.filePath}</div>
+                        <div className="cc-text-faint mt-0.5 text-[10px]">
                           {target.language.label} entry: {target.entryPoint}
                         </div>
                       </button>
@@ -203,24 +204,24 @@ export default function Toolbar({
 
         <div
           className={`w-2 h-2 rounded-full shrink-0 ${
-            connected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+            connected ? 'bg-[var(--cc-accent)]' : 'bg-[var(--cc-warning)] animate-pulse'
           }`}
           title={connected ? 'Connected to server' : 'Connecting...'}
         />
 
-        <span className="text-xs text-zinc-400 hidden sm:inline">
+        <span className="cc-text-muted hidden text-xs sm:inline">
           {peerCount} {peerCount === 1 ? 'peer' : 'peers'}
         </span>
 
-        <div className="w-px h-5 bg-zinc-700 hidden sm:block" />
+        <div className="cc-divider hidden h-5 w-px border-l sm:block" />
 
-        <span className="text-xs text-zinc-500 font-mono hidden md:inline">
+        <span className="cc-text-faint hidden font-mono text-xs md:inline">
           #{roomId}
         </span>
 
         <button
           onClick={handleShare}
-          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer touch-manipulation"
+          className="cc-button-secondary flex cursor-pointer touch-manipulation items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium sm:gap-2 sm:px-4 sm:py-2"
         >
           <LinkIcon className="w-4 h-4" />
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
@@ -282,14 +283,14 @@ export function ActivityBar({
   }, []);
 
   return (
-    <div className="shrink-0 w-10 bg-[#0d1117] border-r border-zinc-700/50 flex flex-col items-center pt-1 pb-2">
+    <div className="cc-sidebar-shell cc-divider flex w-10 shrink-0 flex-col items-center border-r pt-1 pb-2">
       <button
         onClick={onToggleExplorer}
         title="Toggle Explorer (Ctrl+B)"
         className={`p-2 rounded transition-colors cursor-pointer ${
           explorerVisible
-            ? 'text-white bg-zinc-700/50'
-            : 'text-zinc-500 hover:text-zinc-300'
+            ? 'cc-icon-button-active'
+            : 'cc-icon-button'
         }`}
       >
         <ExplorerFolderIcon className="w-5 h-5" />
@@ -300,8 +301,8 @@ export function ActivityBar({
         title="Search Files (Ctrl+Shift+F)"
         className={`p-2 rounded transition-colors cursor-pointer ${
           searchVisible
-            ? 'text-white bg-zinc-700/50'
-            : 'text-zinc-500 hover:text-zinc-300'
+            ? 'cc-icon-button-active'
+            : 'cc-icon-button'
         }`}
       >
         <SearchIcon className="w-5 h-5" />
@@ -313,7 +314,7 @@ export function ActivityBar({
         <button
           onClick={onFormat}
           title="Format Document (Alt+Shift+F)"
-          className="p-2 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+          className="cc-icon-button cursor-pointer rounded p-2"
         >
           <FormatIcon className="w-5 h-5" />
         </button>
@@ -323,46 +324,46 @@ export function ActivityBar({
             onClick={() => { setSaveMenuOpen((open) => !open); setSettingsOpen(false); }}
             title="Export & Copy"
             className={`p-2 rounded transition-colors cursor-pointer ${
-              saveMenuOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
+              saveMenuOpen ? 'cc-icon-button-active' : 'cc-icon-button'
             }`}
           >
             <DownloadIcon className="w-5 h-5" />
           </button>
           {saveMenuOpen && (
-            <div className="absolute left-full bottom-0 ml-2 z-50 min-w-[200px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-1">
+            <div className="cc-menu absolute bottom-0 left-full z-50 ml-2 min-w-[200px] rounded-lg py-1">
               <button
                 onClick={onCopyCode}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                className="cc-text-primary hover:bg-[var(--cc-bg-hover)] flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors"
               >
                 {codeCopied ? (
-                  <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckIcon className="h-4 w-4 shrink-0 text-[var(--cc-accent)]" />
                 ) : (
-                  <CopyIcon className="w-4 h-4 text-zinc-400 shrink-0" />
+                  <CopyIcon className="cc-text-muted h-4 w-4 shrink-0" />
                 )}
                 <span className="font-medium">{codeCopied ? 'Copied!' : 'Copy Code'}</span>
               </button>
-              <div className="mx-2 my-1 border-t border-zinc-700/60" />
+              <div className="cc-divider mx-2 my-1 border-t" />
               <button
                 onClick={() => { onSaveFile(); setSaveMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                className="cc-text-primary hover:bg-[var(--cc-bg-hover)] flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors"
               >
-                <FileDocIcon className="w-4 h-4 text-zinc-400 shrink-0" />
+                <FileDocIcon className="cc-text-muted h-4 w-4 shrink-0" />
                 <div>
-                  <div className="font-medium">Save File <span className="text-zinc-400 font-normal ml-1">Ctrl+S</span></div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                  <div className="font-medium">Save File <span className="cc-text-muted ml-1 font-normal">Ctrl+S</span></div>
+                  <div className="cc-text-muted mt-0.5 text-[10px]">
                     Download {activeFileName ?? 'current file'}
                   </div>
                 </div>
               </button>
-              <div className="mx-2 my-1 border-t border-zinc-700/60" />
+              <div className="cc-divider mx-2 my-1 border-t" />
               <button
                 onClick={() => { void onSaveAll(); setSaveMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700/60 transition-colors text-left cursor-pointer"
+                className="cc-text-primary hover:bg-[var(--cc-bg-hover)] flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors"
               >
-                <ArchiveIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                <ArchiveIcon className="h-4 w-4 shrink-0 text-[var(--cc-accent)]" />
                 <div>
-                  <div className="font-medium">Save All <span className="text-emerald-400">.zip</span> <span className="text-zinc-400 font-normal ml-1">Ctrl+Shift+S</span></div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                  <div className="font-medium">Save All <span className="text-[var(--cc-accent)]">.zip</span> <span className="cc-text-muted ml-1 font-normal">Ctrl+Shift+S</span></div>
+                  <div className="cc-text-muted mt-0.5 text-[10px]">
                     Download entire workspace
                   </div>
                 </div>
@@ -376,27 +377,30 @@ export function ActivityBar({
             onClick={() => { setSettingsOpen((open) => !open); setSaveMenuOpen(false); }}
             title="Settings"
             className={`p-2 rounded transition-colors cursor-pointer ${
-              settingsOpen ? 'text-white bg-zinc-700/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
+              settingsOpen ? 'cc-icon-button-active' : 'cc-icon-button'
             }`}
           >
             <GearIcon className="w-5 h-5" />
           </button>
           {settingsOpen && (
-            <div className="absolute left-full bottom-0 ml-2 z-50 min-w-[160px] bg-[#1e2030] border border-zinc-700 rounded-lg shadow-xl shadow-black/40 py-3 px-3">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Font Size</div>
+            <div className="cc-menu absolute bottom-0 left-full z-50 ml-2 min-w-[220px] rounded-lg px-3 py-3">
+              <div className="cc-section-label mb-2 text-[10px] font-semibold">Appearance</div>
+              <ThemePicker className="mb-3" />
+              <div className="cc-divider mb-3 border-t" />
+              <div className="cc-section-label mb-2 text-[10px] font-semibold">Font Size</div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={onFontSizeDown}
                   title="Decrease font size"
-                  className="px-2 py-1 rounded text-xs font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer leading-none"
+                  className="cc-button-secondary cursor-pointer rounded px-2 py-1 text-xs font-bold leading-none"
                 >
                   A-
                 </button>
-                <span className="text-xs text-zinc-300 font-mono min-w-[2ch] text-center">{fontSize}</span>
+                <span className="cc-text-secondary min-w-[2ch] text-center font-mono text-xs">{fontSize}</span>
                 <button
                   onClick={onFontSizeUp}
                   title="Increase font size"
-                  className="px-2 py-1 rounded text-sm font-bold bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 transition-colors cursor-pointer leading-none"
+                  className="cc-button-secondary cursor-pointer rounded px-2 py-1 text-sm font-bold leading-none"
                 >
                   A+
                 </button>
@@ -408,7 +412,7 @@ export function ActivityBar({
         <button
           onClick={onHelpOpen}
           title="Help & Shortcuts"
-          className="p-2 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50 transition-colors cursor-pointer"
+          className="cc-icon-button cursor-pointer rounded p-2"
         >
           <HelpCircleIcon className="w-5 h-5" />
         </button>

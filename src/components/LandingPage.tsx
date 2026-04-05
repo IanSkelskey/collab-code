@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
 import GetInvolvedActions from './GetInvolvedActions';
 import RoomTemplateDialog from './RoomTemplateDialog';
+import ThemePicker from './ThemePicker';
 import type { RoomTemplateId } from '../config/roomTemplates';
 
 function generateRoomId(): string {
@@ -35,13 +36,17 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
   }, [joinId, onJoinRoom]);
 
   return (
-    <div className="h-[100dvh] w-screen flex flex-col bg-[#0d1117] text-white overflow-auto">
-      <header className="shrink-0 flex items-center gap-2 px-4 py-3 sm:px-6 bg-[#161b22] border-b border-zinc-700/50">
-        <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
-        <h1 className="text-base font-semibold tracking-tight text-zinc-100">
-          Collab Code
-          <span className="text-xs text-zinc-400 font-normal font-mono ml-1.5">v{__APP_VERSION__}</span>
-        </h1>
+    <div className="cc-app-shell flex h-[100dvh] w-screen flex-col overflow-auto">
+      <header className="cc-topbar cc-divider flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-2">
+          <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
+          <h1 className="text-base font-semibold tracking-tight">
+            <span className="cc-text-primary">Collab Code</span>
+            <span className="cc-text-muted ml-1.5 font-mono text-xs font-normal">v{__APP_VERSION__}</span>
+          </h1>
+        </div>
+
+        <ThemePicker compact />
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-12">
@@ -52,15 +57,15 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
               alt="Collab Code"
               className="w-20 h-20 sm:w-24 sm:h-24"
             />
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
+            <h2 className="cc-text-primary text-2xl font-bold tracking-tight sm:text-3xl">
               Collab Code
             </h2>
-            <span className="text-xs text-zinc-500 font-mono -mt-2">v{__APP_VERSION__}</span>
-            <p className="text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
+            <span className="cc-text-faint -mt-2 font-mono text-xs">v{__APP_VERSION__}</span>
+            <p className="cc-text-muted max-w-lg text-sm leading-relaxed sm:text-base">
               A minimal, collaborative coding room for Java and Python, built for tutors and students.
               No installs, no accounts - just share a link and start coding together in real time.
             </p>
-            <p className="text-xs text-zinc-500 text-center italic">
+            <p className="cc-text-faint text-center text-xs italic">
               Creating a room opens a starter picker for Java, Python, or a blank workspace.
             </p>
           </div>
@@ -68,19 +73,19 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
           <div className="w-full max-w-xs flex flex-col gap-4">
             <button
               onClick={handleCreate}
-              className="w-full px-5 py-3 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 transition-colors cursor-pointer"
+              className="cc-button-primary w-full cursor-pointer rounded-lg px-5 py-3 text-sm font-semibold"
             >
               Create a Room
             </button>
 
-            <p className="text-center text-[11px] leading-relaxed text-zinc-500">
+            <p className="cc-text-faint text-center text-[11px] leading-relaxed">
               You&apos;ll choose the room starter after clicking create.
             </p>
 
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-zinc-700/60" />
-              <span className="text-xs text-zinc-500 uppercase tracking-wider">or join</span>
-              <div className="flex-1 h-px bg-zinc-700/60" />
+              <div className="cc-divider flex-1 border-t" />
+              <span className="cc-section-label text-xs">or join</span>
+              <div className="cc-divider flex-1 border-t" />
             </div>
 
             <form
@@ -92,12 +97,12 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
                 value={joinId}
                 onChange={(event) => setJoinId(event.target.value)}
                 placeholder="Room code"
-                className="flex-1 min-w-0 px-3 py-2.5 rounded-lg text-sm bg-[#161b22] border border-zinc-700 text-zinc-200 placeholder-zinc-500 outline-none focus:border-emerald-500 transition-colors"
+                className="cc-input-shell cc-input flex-1 min-w-0 rounded-lg px-3 py-2.5 text-sm outline-none"
               />
               <button
                 type="submit"
                 disabled={!joinId.trim()}
-                className="px-4 py-2.5 rounded-lg text-sm font-medium bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="cc-button-secondary cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Join
               </button>
@@ -106,21 +111,21 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
 
           <div className="grid grid-cols-3 gap-4 text-center w-full max-w-sm pt-2">
             <div className="flex flex-col items-center gap-1.5">
-              <UsersIcon className="w-5 h-5 text-emerald-400" />
-              <span className="text-[11px] text-zinc-500">Real-time collaboration</span>
+              <UsersIcon className="h-5 w-5 text-[var(--cc-accent)]" />
+              <span className="cc-text-faint text-[11px]">Real-time collaboration</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <TerminalIcon className="w-5 h-5 text-emerald-400" strokeWidth={1.5} />
-              <span className="text-[11px] text-zinc-500">Run Java or Python</span>
+              <TerminalIcon className="h-5 w-5 text-[var(--cc-accent)]" strokeWidth={1.5} />
+              <span className="cc-text-faint text-[11px]">Run Java or Python</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <MonitorIcon className="w-5 h-5 text-emerald-400" />
-              <span className="text-[11px] text-zinc-500">No setup needed</span>
+              <MonitorIcon className="h-5 w-5 text-[var(--cc-accent)]" />
+              <span className="cc-text-faint text-[11px]">No setup needed</span>
             </div>
           </div>
 
           <div className="mt-8 flex flex-col items-center gap-2 w-full max-w-sm">
-            <div className="text-xs text-zinc-400 text-center">
+            <div className="cc-text-muted text-center text-xs">
               <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute!
             </div>
             <GetInvolvedActions />
@@ -128,15 +133,15 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
         </div>
       </main>
 
-      <footer className="shrink-0 flex flex-col items-center gap-2 py-3 text-[11px] text-zinc-600 border-t border-zinc-800/50">
+      <footer className="cc-topbar cc-divider flex shrink-0 flex-col items-center gap-2 border-t py-3 text-[11px]">
         <div>Built for CS educators &amp; students</div>
-        <div className="text-zinc-500">
-          Made with <span className="text-red-400">&#10084;&#65039;</span> by{' '}
+        <div className="cc-text-faint">
+          Made with <span className="text-red-400">&#9829;</span> by{' '}
           <a
             href="https://github.com/IanSkelskey"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-zinc-400 hover:text-emerald-400 transition-colors underline underline-offset-2"
+            className="cc-link underline underline-offset-2 transition-opacity hover:opacity-80"
           >
             Ian Skelskey
           </a>

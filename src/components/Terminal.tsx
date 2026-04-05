@@ -27,6 +27,7 @@ import {
   createTerminalDataHandler,
   createTerminalKeyGuard,
 } from '../services/terminalInput';
+import { useTheme } from '../theme/ThemeProvider';
 
 export interface TerminalHandle {
   write: (text: string) => void;
@@ -53,10 +54,12 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
   ref,
 ) {
   const { ydoc } = useCollab();
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<XTerminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const initialFontSizeRef = useRef(fontSize ?? (window.innerWidth < 640 ? 11 : 13));
+  const initialTerminalThemeRef = useRef(theme.terminalTheme);
   const onRunRef = useRef(onRunRequested);
   const fsRef = useRef(fs);
   const pushToastRef = useRef(pushToast);
@@ -196,12 +199,7 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
       cursorBlink: true,
       fontSize: initialFontSizeRef.current,
       fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
-      theme: {
-        background: '#1a1a2e',
-        foreground: '#e0e0e0',
-        cursor: '#56b6c2',
-        selectionBackground: '#3e4451',
-      },
+      theme: initialTerminalThemeRef.current,
       convertEol: true,
       allowProposedApi: true,
     });
@@ -321,7 +319,21 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     }
   }, [fontSize]);
 
-  return <div ref={containerRef} className="h-full w-full p-1 sm:p-2" />;
+  useEffect(() => {
+    const terminal = termRef.current;
+    if (!terminal) {
+      return;
+    }
+
+    terminal.options.theme = theme.terminalTheme;
+    scheduleRenderTerminalView();
+  }, [scheduleRenderTerminalView, theme.terminalTheme]);
+
+  return (
+    <div className="cc-terminal-shell">
+      <div ref={containerRef} className="cc-terminal-canvas" />
+    </div>
+  );
 });
 
 export default Terminal;
