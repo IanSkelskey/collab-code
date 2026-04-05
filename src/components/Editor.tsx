@@ -19,6 +19,7 @@ import { useRemoteMonacoSelections } from '../hooks/useRemoteMonacoSelections';
 import { registerEditorFormatters } from '../services/editorFormatters';
 import { useTheme } from '../theme/ThemeProvider';
 import { registerMonacoThemes } from '../theme/monacoThemes';
+import './Editor.css';
 
 export interface EditorHandle {
   getCode: () => string;

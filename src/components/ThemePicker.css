@@ -1,0 +1,67 @@
+.cc-theme-option {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+.cc-theme-picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cc-theme-picker-compact {
+  gap: 0.25rem;
+}
+
+.cc-theme-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--cc-border);
+  background: color-mix(in srgb, var(--cc-bg-elevated) 90%, transparent);
+  color: var(--cc-text-secondary);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-theme-option:hover {
+  background: var(--cc-bg-hover);
+  color: var(--cc-text-primary);
+}
+
+.cc-theme-option-active {
+  border-color: var(--cc-accent);
+  background: var(--cc-bg-selection);
+  color: var(--cc-text-primary);
+}
+
+.cc-theme-picker-compact .cc-theme-option {
+  padding: 0.3rem;
+}
+
+.cc-theme-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.15rem;
+  width: 1.15rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.cc-theme-option-active .cc-theme-icon-wrap {
+  background: color-mix(in srgb, var(--cc-accent) 18%, transparent);
+}
+
+.cc-theme-icon {
+  height: 0.8rem;
+  width: 0.8rem;
+}

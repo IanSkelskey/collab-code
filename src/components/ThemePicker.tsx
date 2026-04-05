@@ -1,6 +1,7 @@
 import { useTheme } from '../theme/ThemeProvider';
 import type { AppearancePreference } from '../theme/themes';
 import { MonitorIcon, MoonIcon, SunIcon } from './Icons';
+import './ThemePicker.css';
 
 interface ThemePickerProps {
   compact?: boolean;

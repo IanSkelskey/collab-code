@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { HelpCircleIcon, CloseIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 import GetInvolvedActions from './GetInvolvedActions';
+import './HelpModal.css';
 
 interface HelpModalProps {
   onClose: () => void;

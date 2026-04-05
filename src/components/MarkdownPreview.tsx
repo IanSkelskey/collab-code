@@ -6,6 +6,7 @@ import { languages } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { getParentPath, joinVfsPath, normalizeVfsPath } from '../lib/vfsPaths';
 import { useTheme } from '../theme/ThemeProvider';
+import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
   content: string;

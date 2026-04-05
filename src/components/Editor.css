@@ -1,0 +1,81 @@
+.yRemoteSelection {
+  opacity: 0.3;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid;
+  border-color: inherit;
+  height: 100%;
+}
+
+.yRemoteSelectionHead::after {
+  content: attr(data-name);
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  font-size: 0.7rem;
+  padding: 1px 4px;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+  color: #fff;
+  background-color: inherit;
+  font-family: system-ui, sans-serif;
+}
+
+.ccRemoteSelection {
+  border-radius: 2px;
+}
+
+.ccRemoteCursorHead {
+  position: absolute;
+  border-left: 2px solid;
+  border-color: inherit;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ccRemoteCursorHead::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: -2px;
+  padding: 1px 5px;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+  color: #fff;
+  background-color: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.3;
+  font-family: system-ui, sans-serif;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.ccRemoteCursorHeadLabeled::after {
+  animation: ccRemoteCursorLabelFade 2600ms ease-out both;
+}
+
+.ccRemoteCursorHeadSecondary::after {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes ccRemoteCursorLabelFade {
+  0%,
+  46% {
+    opacity: 0.96;
+    visibility: visible;
+  }
+  78% {
+    opacity: 0.34;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CloseIcon, InfoCircleIcon, UndoIcon } from './Icons';
 import type { AppToast } from '../types/toast';
+import './ToastContainer.css';
 
 const TOAST_DURATION = 5000;
 const INFO_TOAST_DURATION = 2500;

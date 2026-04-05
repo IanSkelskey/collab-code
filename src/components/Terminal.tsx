@@ -8,6 +8,7 @@ import {
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal as XTerminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
+import './Terminal.css';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { useCollab } from '../context/CollabContext';
 import type { PushToast } from '../types/toast';

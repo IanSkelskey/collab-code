@@ -1,0 +1,6 @@
+.cc-kbd {
+  background: color-mix(in srgb, var(--cc-bg-input) 96%, transparent);
+  border: 1px solid var(--cc-border);
+  color: var(--cc-text-secondary);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
