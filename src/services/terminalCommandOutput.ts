@@ -3,6 +3,7 @@ import type { TermWriter } from './terminalCommandTypes';
 const ANSI_RESET = '\x1b[0m';
 const ANSI_ACCENT = '\x1b[1;36m';
 const ANSI_COMMAND = '\x1b[1;32m';
+const ANSI_MUTED = '\x1b[90m';
 
 function wrapAnsi(code: string, text: string): string {
   return `${code}${text}${ANSI_RESET}`;
@@ -30,7 +31,11 @@ export function writeWarning(term: TermWriter, message: string): void {
 }
 
 export function writeMuted(term: TermWriter, message: string): void {
-  term.writeln(wrapAnsi('\x1b[2m', message));
+  term.writeln(formatMuted(message));
+}
+
+export function formatMuted(message: string): string {
+  return wrapAnsi(ANSI_MUTED, message);
 }
 
 export function writeDirectoryEntry(term: TermWriter, entry: string): void {

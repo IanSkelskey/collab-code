@@ -380,6 +380,11 @@ select {
   border-radius: 0.5rem;
 }
 
+[data-theme="cc-light"] .cc-terminal-canvas .xterm-dim {
+  color: #58697f !important;
+  opacity: 1 !important;
+}
+
 .cc-preview-shell {
   height: 100%;
   width: 100%;

@@ -7,6 +7,7 @@ import type { VirtualFS } from './useVirtualFS';
 import { InteractiveExecutor, type SupportedExecutionLanguage } from '../services/interactiveExec';
 import { getLanguageForFile, type LanguageConfig } from '../config/languages';
 import { getBaseName, normalizeVfsPath, stripVfsRoot } from '../lib/vfsPaths';
+import { formatMuted } from '../services/terminalCommandOutput';
 import {
   createTerminalRunId,
   getTerminalStateMap,
@@ -257,8 +258,8 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
       executorRef.current = null;
     };
 
-    terminalRef.current?.writeln(`\x1b[2mTarget file: ${target.filePath}\x1b[0m`);
-    terminalRef.current?.writeln(`\x1b[2mEntry point: ${target.entryPoint}\x1b[0m`);
+    terminalRef.current?.writeln(formatMuted(`Target file: ${target.filePath}`));
+    terminalRef.current?.writeln(formatMuted(`Entry point: ${target.entryPoint}`));
 
     executor.execute(allFiles, {
       onCompileStart() {
@@ -325,7 +326,7 @@ export function useExecution({ ydoc, fs, terminalRef, editorRef, setTerminalVisi
           count += 1;
         }
         if (count > 0) {
-          terminalRef.current?.writeln(`\x1b[2m[${count} file(s) synced to workspace]\x1b[0m`);
+          terminalRef.current?.writeln(formatMuted(`[${count} file(s) synced to workspace]`));
         }
       },
 

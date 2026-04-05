@@ -42,7 +42,7 @@ export function registerMonacoThemes(monaco: Monaco): void {
       'editor.lineHighlightBackground': '#eef4fb',
       'editor.selectionBackground': '#cfe5ff',
       'editor.inactiveSelectionBackground': '#e2edf8',
-      'editorLineNumber.foreground': '#90a0b5',
+      'editorLineNumber.foreground': '#58697f',
       'editorLineNumber.activeForeground': '#2d4056',
       'editorCursor.foreground': '#047857',
       'editorWhitespace.foreground': '#d7e2ee',
