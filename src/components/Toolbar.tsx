@@ -101,7 +101,7 @@ export default function Toolbar({
       : 'Run code. Ctrl+Enter runs the active editor.';
 
   return (
-    <header className="cc-topbar cc-divider flex shrink-0 items-center justify-between gap-2 border-b px-3 py-1.5 sm:px-4 sm:py-2">
+    <header className="cc-topbar cc-divider relative z-30 flex shrink-0 items-center justify-between gap-2 overflow-visible border-b px-3 py-1.5 sm:px-4 sm:py-2">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           onClick={() => {
