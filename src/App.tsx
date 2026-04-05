@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useRoom } from './hooks/useRoom';
 import { useToast } from './hooks/useToast';
 import { usePeerPresenceToasts } from './hooks/usePeerPresenceToasts';
+import { useFollowCollaborator } from './hooks/useFollowCollaborator';
 import { useVirtualFS } from './hooks/useVirtualFS';
 import { useWorkspaceImport } from './hooks/useWorkspaceImport';
 import { useWorkspaceLayout } from './hooks/useWorkspaceLayout';
@@ -64,6 +65,19 @@ function AppContent({
     containerRef,
     pushToast,
   });
+  const {
+    peers,
+    followedPeer,
+    followedPeerId,
+    toggleFollowPeer,
+    stopFollowing,
+  } = useFollowCollaborator({
+    awareness,
+    ydoc,
+    fs,
+    pushToast,
+    navigateToFile: layout.navigateToFile,
+  });
 
   const {
     running,
@@ -92,6 +106,7 @@ function AppContent({
   const markdownContent = fs.activeFile ? (fs.readFile(fs.activeFile) ?? '') : '';
   const showMarkdownEditor = !markdownActive || layout.markdownViewMode !== 'preview';
   const showMarkdownPreview = markdownActive && layout.markdownViewMode !== 'write';
+  const editorLockLabel = followedPeer ? `Following ${followedPeer.name}` : null;
 
   const handleFormatCompleted = useCallback(() => {
     pushToast('Document formatted');
@@ -163,6 +178,9 @@ function AppContent({
         roomId={roomId}
         connected={connected}
         peerCount={peerCount}
+        peers={peers}
+        followedPeer={followedPeer}
+        followedPeerId={followedPeerId}
         running={running}
         onRun={() => handleRun()}
         currentRunTarget={currentRunTarget}
@@ -171,7 +189,8 @@ function AppContent({
         onExitRoom={onExitRoom}
         onSaveAll={handleSaveAll}
         onConfirmLeave={(options) => layout.setConfirmDialog(options)}
-        fs={fs}
+        onToggleFollowPeer={toggleFollowPeer}
+        onStopFollowing={stopFollowing}
       />
 
       <div ref={containerRef} className="flex-1 flex min-h-0">
@@ -196,7 +215,7 @@ function AppContent({
           <>
             <div style={{ width: layout.explorerWidth }} className="shrink-0 overflow-hidden">
               {layout.searchVisible ? (
-                <SearchPanel fs={fs} onNavigateTo={layout.handleSearchNavigateTo} />
+                <SearchPanel fs={fs} onNavigateTo={layout.navigateToFile} />
               ) : (
                 <FileExplorer
                   fs={fs}
@@ -245,6 +264,8 @@ function AppContent({
                           onRun={handleRunActiveFile}
                           onFormat={handleFormatCompleted}
                           fontSize={layout.fontSize}
+                          interactionLockedLabel={editorLockLabel}
+                          onStopFollowing={followedPeer ? stopFollowing : null}
                           fs={fs}
                         />
                       </div>
@@ -272,6 +293,8 @@ function AppContent({
                       onRun={handleRunActiveFile}
                       onFormat={handleFormatCompleted}
                       fontSize={layout.fontSize}
+                      interactionLockedLabel={editorLockLabel}
+                      onStopFollowing={followedPeer ? stopFollowing : null}
                       fs={fs}
                     />
                   )}

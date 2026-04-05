@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCollab } from '../context/CollabContext';
-import usePeers from '../hooks/usePeers';
-import { PencilIcon } from './Icons';
-import type { VirtualFS } from '../hooks/useVirtualFS';
+import { EyeIcon, PencilIcon } from './Icons';
+import type { PeerState } from '../types';
 
 interface PeerAvatarsProps {
-  fs?: VirtualFS;
+  peers: PeerState[];
+  followedPeerId: number | null;
+  onToggleFollowPeer: (peer: PeerState) => void;
 }
 
-export default function PeerAvatars({ fs }: PeerAvatarsProps) {
+export default function PeerAvatars({
+  peers,
+  followedPeerId,
+  onToggleFollowPeer,
+}: PeerAvatarsProps) {
   const { userName, userColor, setUserName, setUserColor, peerColors, awareness } = useCollab();
-  const { peers } = usePeers();
   const localClientId = awareness?.clientID ?? -1;
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -53,18 +57,12 @@ export default function PeerAvatars({ fs }: PeerAvatarsProps) {
     setEditing(false);
   };
 
-  const handleGoToPeer = (file: string | undefined) => {
-    if (file && fs) {
-      fs.openFile(file);
-    }
-  };
-
   return (
     <div className="flex items-center gap-0.5 sm:gap-1">
       {peers.map((peer) => {
         const isMe = peer.clientId === localClientId;
-        const peerFile = !isMe ? peer.activeFile : undefined;
-        const peerFileName = peerFile?.split('/').pop();
+        const isFollowing = !isMe && followedPeerId === peer.clientId;
+        const peerFileName = !isMe ? peer.activeFile?.split('/').pop() : undefined;
 
         return (
           <div
@@ -72,16 +70,25 @@ export default function PeerAvatars({ fs }: PeerAvatarsProps) {
             className="group relative"
           >
             <div
-              onClick={isMe ? handleStartEdit : peerFile ? () => handleGoToPeer(peerFile) : undefined}
-              className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold text-white sm:h-7 sm:w-7 sm:text-xs ${
-                isMe || peerFile ? 'cursor-pointer' : 'cursor-default'
-              }`}
+              onClick={isMe ? handleStartEdit : () => {
+                setEditing(false);
+                onToggleFollowPeer(peer);
+              }}
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 text-[10px] font-bold text-white sm:h-7 sm:w-7 sm:text-xs"
               style={{
                 backgroundColor: peer.color,
-                borderColor: isMe ? '#fff' : 'transparent',
-                opacity: isMe ? 1 : 0.85,
+                borderColor: isMe ? '#fff' : isFollowing ? 'var(--cc-accent)' : 'transparent',
+                opacity: isMe || isFollowing ? 1 : 0.85,
               }}
-              title={isMe ? `${peer.name} (you) - click to edit` : peerFile ? `${peer.name} - click to go to ${peerFileName}` : peer.name}
+              title={
+                isMe
+                  ? `${peer.name} (you) - click to edit`
+                  : isFollowing
+                    ? `${peer.name} - following live. Click to stop`
+                    : peerFileName
+                      ? `${peer.name} - click to follow live at ${peerFileName}`
+                      : `${peer.name} - click to follow live`
+              }
             >
               {peer.name.charAt(0).toUpperCase()}
               {isMe && !editing && (
@@ -89,11 +96,28 @@ export default function PeerAvatars({ fs }: PeerAvatarsProps) {
                   <PencilIcon className="h-3 w-3 text-white" />
                 </div>
               )}
+              {!isMe && (
+                <div
+                  className={`absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--cc-bg-panel)] transition-all sm:h-4 sm:w-4 ${
+                    isFollowing
+                      ? 'bg-[var(--cc-accent)] text-[var(--cc-bg-panel)] opacity-100'
+                      : 'bg-[var(--cc-bg-elevated)] text-[var(--cc-text-muted)] opacity-0 group-hover:opacity-90'
+                  }`}
+                >
+                  <EyeIcon className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
+                </div>
+              )}
             </div>
 
             {!editing && (
               <div className="cc-menu cc-text-primary pointer-events-none absolute -bottom-8 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100">
-                {isMe ? `${peer.name} (you)` : peerFile ? `${peer.name} -> ${peerFileName}` : peer.name}
+                {isMe
+                  ? `${peer.name} (you)`
+                  : isFollowing
+                    ? `Following ${peer.name}${peerFileName ? ` -> ${peerFileName}` : ''}`
+                    : peerFileName
+                      ? `Follow ${peer.name} -> ${peerFileName}`
+                      : `Follow ${peer.name}`}
               </div>
             )}
 

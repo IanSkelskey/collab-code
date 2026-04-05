@@ -108,7 +108,7 @@ export function useWorkspaceLayout({
     });
   }, []);
 
-  const handleSearchNavigateTo = useCallback((file: string, line: number, col: number) => {
+  const navigateToFile = useCallback((file: string, line?: number, col?: number) => {
     if (pendingNavigationRef.current !== null) {
       window.clearTimeout(pendingNavigationRef.current);
       pendingNavigationRef.current = null;
@@ -119,13 +119,21 @@ export function useWorkspaceLayout({
       setMarkdownViewMode('write');
     }
 
+    const hasPosition = typeof line === 'number' && typeof col === 'number';
+
     if (fs.activeFile === file && !shouldOpenEditor) {
-      editorRef.current?.revealLine(line, col);
+      if (hasPosition) {
+        editorRef.current?.revealLine(line, col);
+      }
       return;
     }
 
     if (fs.activeFile !== file) {
       fs.openFile(file);
+    }
+
+    if (!hasPosition) {
+      return;
     }
 
     pendingNavigationRef.current = window.setTimeout(() => {
@@ -173,7 +181,7 @@ export function useWorkspaceLayout({
     handleToggleExplorer,
     handleToggleTerminal,
     handleToggleSearch,
-    handleSearchNavigateTo,
+    navigateToFile,
     handleFontSizeUp,
     handleFontSizeDown,
   };

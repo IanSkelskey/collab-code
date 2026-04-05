@@ -34,6 +34,8 @@ const tips: Array<{ title: string; items: string[] }> = [
     title: 'Starting Rooms',
     items: [
       'Share the URL to invite collaborators instantly.',
+      'Click a peer avatar to follow their file and cursor live during tutoring or demos.',
+      'Following a presenter locks your editor until you stop following.',
       'New rooms can start with Java, Python, or a blank workspace.',
       'Blank rooms include one-click Java and Python starter buttons.',
     ],

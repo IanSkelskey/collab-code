@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PeerAvatars from './PeerAvatars';
-import type { VirtualFS } from '../hooks/useVirtualFS';
 import type { ExecutionTarget } from '../hooks/useExecution';
 import { getBaseName } from '../lib/vfsPaths';
+import type { PeerState } from '../types';
 import {
   SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
-  FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon,
+  FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon, EyeIcon, CloseIcon,
 } from './Icons';
 import ThemePicker from './ThemePicker';
 
@@ -14,6 +14,9 @@ interface ToolbarProps {
   roomId: string;
   connected: boolean;
   peerCount: number;
+  peers: PeerState[];
+  followedPeer: PeerState | null;
+  followedPeerId: number | null;
   running: boolean;
   onRun: () => void;
   currentRunTarget: ExecutionTarget | null;
@@ -21,7 +24,8 @@ interface ToolbarProps {
   onRunTargetSelect: (filePath: string) => void;
   onExitRoom: () => void;
   onSaveAll: () => Promise<void>;
-  fs?: VirtualFS;
+  onToggleFollowPeer: (peer: PeerState) => void;
+  onStopFollowing: () => void;
   onConfirmLeave: (opts: {
     title: string;
     message: string;
@@ -36,6 +40,9 @@ export default function Toolbar({
   roomId,
   connected,
   peerCount,
+  peers,
+  followedPeer,
+  followedPeerId,
   running,
   onRun,
   currentRunTarget,
@@ -43,8 +50,9 @@ export default function Toolbar({
   onRunTargetSelect,
   onExitRoom,
   onSaveAll,
+  onToggleFollowPeer,
+  onStopFollowing,
   onConfirmLeave,
-  fs,
 }: ToolbarProps) {
   const [copied, setCopied] = useState(false);
   const [runMenuOpen, setRunMenuOpen] = useState(false);
@@ -199,8 +207,41 @@ export default function Toolbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
-        <PeerAvatars fs={fs} />
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <PeerAvatars
+          peers={peers}
+          followedPeerId={followedPeerId}
+          onToggleFollowPeer={onToggleFollowPeer}
+        />
+
+        {!followedPeer && peerCount > 1 && (
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
+            <span className="cc-text-muted text-[10px]">
+              Click an avatar to follow
+            </span>
+          </div>
+        )}
+
+        {followedPeer && (
+          <div className="cc-divider hidden min-w-0 max-w-[16rem] items-center gap-1.5 rounded-full border border-[var(--cc-accent)] bg-[var(--cc-bg-selection)] px-2 py-1 md:flex">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
+            <div className="min-w-0">
+              <div className="cc-text-primary truncate text-[11px] font-medium">
+                Following {followedPeer.name}
+              </div>
+            </div>
+            <span className="cc-text-muted hidden text-[10px] lg:inline">Locked</span>
+            <button
+              onClick={onStopFollowing}
+              title={`Stop following ${followedPeer.name}`}
+              aria-label={`Stop following ${followedPeer.name}`}
+              className="cc-icon-button -mr-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+            >
+              <CloseIcon className="h-3 w-3" />
+            </button>
+          </div>
+        )}
 
         <div
           className={`w-2 h-2 rounded-full shrink-0 ${

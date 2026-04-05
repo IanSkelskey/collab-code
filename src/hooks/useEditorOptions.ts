@@ -8,9 +8,12 @@ function getViewportWidth(): number {
 function buildEditorOptions(
   fontSize: number,
   viewportWidth: number,
+  readOnly: boolean,
 ): editor.IStandaloneEditorConstructionOptions {
   return {
     fontSize,
+    readOnly,
+    domReadOnly: readOnly,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     automaticLayout: true,
@@ -27,7 +30,7 @@ function buildEditorOptions(
   };
 }
 
-export function useEditorOptions(fontSize: number): editor.IStandaloneEditorConstructionOptions {
+export function useEditorOptions(fontSize: number, readOnly = false): editor.IStandaloneEditorConstructionOptions {
   const [viewportWidth, setViewportWidth] = useState(getViewportWidth);
 
   useEffect(() => {
@@ -39,5 +42,5 @@ export function useEditorOptions(fontSize: number): editor.IStandaloneEditorCons
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return useMemo(() => buildEditorOptions(fontSize, viewportWidth), [fontSize, viewportWidth]);
+  return useMemo(() => buildEditorOptions(fontSize, viewportWidth, readOnly), [fontSize, readOnly, viewportWidth]);
 }

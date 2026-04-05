@@ -19,6 +19,7 @@ import { useRemoteMonacoSelections } from '../hooks/useRemoteMonacoSelections';
 import { registerEditorFormatters } from '../services/editorFormatters';
 import { useTheme } from '../theme/ThemeProvider';
 import { registerMonacoThemes } from '../theme/monacoThemes';
+import { CloseIcon, EyeIcon } from './Icons';
 import './Editor.css';
 
 export interface EditorHandle {
@@ -33,11 +34,13 @@ interface EditorProps {
   onRun?: () => void;
   onFormat?: () => void;
   fontSize?: number;
+  interactionLockedLabel?: string | null;
+  onStopFollowing?: (() => void) | null;
   fs?: VirtualFS;
 }
 
 const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
-  { onRun, onFormat, fontSize = 14, fs },
+  { onRun, onFormat, fontSize = 14, interactionLockedLabel = null, onStopFollowing = null, fs },
   ref,
 ) {
   const { ydoc, awareness } = useCollab();
@@ -45,7 +48,8 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   const [monacoEditor, setMonacoEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const activeFile = fs?.activeFile ?? null;
-  const editorOptions = useEditorOptions(fontSize);
+  const interactionLocked = Boolean(interactionLockedLabel);
+  const editorOptions = useEditorOptions(fontSize, interactionLocked);
 
   const { getBindingTarget } = useEditorBinding({
     monacoEditor,
@@ -67,6 +71,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
     awareness,
     ydoc,
     getBindingTarget,
+    disabled: interactionLocked,
   });
 
   useEditorActions({
@@ -88,8 +93,28 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
 
   useEffect(() => {
     if (!monacoEditor) return;
-    monacoEditor.updateOptions({ fontSize });
-  }, [fontSize, monacoEditor]);
+    monacoEditor.updateOptions({
+      fontSize,
+      readOnly: interactionLocked,
+      domReadOnly: interactionLocked,
+    });
+  }, [fontSize, interactionLocked, monacoEditor]);
+
+  useEffect(() => {
+    if (!interactionLocked || !monacoEditor) {
+      return;
+    }
+
+    const domNode = monacoEditor.getDomNode();
+    if (!domNode) {
+      return;
+    }
+
+    const activeElement = domNode.ownerDocument.activeElement;
+    if (activeElement instanceof HTMLElement && domNode.contains(activeElement)) {
+      activeElement.blur();
+    }
+  }, [interactionLocked, monacoEditor]);
 
   useEffect(() => {
     if (!monacoEditor || !monacoRef.current) {
@@ -100,7 +125,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
   }, [monacoEditor, theme.monacoTheme]);
 
   return (
-    <div className="h-full w-full">
+    <div className={`cc-editor-shell h-full w-full ${interactionLocked ? 'cc-editor-locked' : ''}`}>
       <MonacoEditor
         defaultLanguage={primaryLanguage.monacoLanguage}
         theme={theme.monacoTheme}
@@ -112,6 +137,26 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
           </div>
         }
       />
+      {interactionLocked && (
+        <div className="cc-editor-lock">
+          <div className="cc-editor-lock-chip">
+            <EyeIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
+            <span className="cc-text-primary truncate text-[11px] font-medium">{interactionLockedLabel}</span>
+            <span className="cc-text-muted hidden text-[10px] sm:inline">Editing locked</span>
+            {onStopFollowing && (
+              <button
+                type="button"
+                onClick={onStopFollowing}
+                title="Stop following"
+                aria-label="Stop following"
+                className="cc-icon-button cc-editor-lock-stop flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+              >
+                <CloseIcon className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 });

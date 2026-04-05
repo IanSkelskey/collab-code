@@ -20,6 +20,13 @@ interface UseRemoteMonacoSelectionsOptions {
   awareness: Awareness | null;
   ydoc: Y.Doc;
   getBindingTarget: () => EditorBindingTarget;
+  disabled?: boolean;
+}
+
+function clearLocalSelections(awareness: Awareness): void {
+  awareness.setLocalStateField(REMOTE_SELECTIONS_FIELD, []);
+  awareness.setLocalStateField(LEGACY_SELECTION_FIELD, null);
+  awareness.setLocalStateField(REMOTE_SELECTION_ACTIVITY_FIELD, null);
 }
 
 export function useRemoteMonacoSelections({
@@ -28,6 +35,7 @@ export function useRemoteMonacoSelections({
   awareness,
   ydoc,
   getBindingTarget,
+  disabled = false,
 }: UseRemoteMonacoSelectionsOptions) {
   const remoteDecorationIdsRef = useRef<string[]>([]);
   const remoteStylesRef = useRef<HTMLStyleElement | null>(null);
@@ -47,15 +55,18 @@ export function useRemoteMonacoSelections({
   useEffect(() => {
     if (!awareness) return;
 
+    if (disabled) {
+      clearLocalSelections(awareness);
+      return;
+    }
+
     return () => {
-      awareness.setLocalStateField(REMOTE_SELECTIONS_FIELD, []);
-      awareness.setLocalStateField(LEGACY_SELECTION_FIELD, null);
-      awareness.setLocalStateField(REMOTE_SELECTION_ACTIVITY_FIELD, null);
+      clearLocalSelections(awareness);
     };
-  }, [awareness]);
+  }, [awareness, disabled]);
 
   useEffect(() => {
-    if (!monacoEditor || !awareness) return;
+    if (!monacoEditor || !awareness || disabled) return;
 
     const model = monacoEditor.getModel();
     if (!model) return;
@@ -77,7 +88,7 @@ export function useRemoteMonacoSelections({
     return () => {
       disposable.dispose();
     };
-  }, [awareness, getBindingTarget, monacoEditor]);
+  }, [awareness, disabled, getBindingTarget, monacoEditor]);
 
   useEffect(() => {
     if (!monacoEditor || !awareness) return;
