@@ -97,6 +97,4 @@ export function printHelp(term: TermWriter): void {
 export function printWelcome(term: TermWriter): void {
   printWelcomeBanner(term);
   term.writeln('');
-  printHelp(term);
-  term.writeln('');
 }
