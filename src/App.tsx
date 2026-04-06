@@ -8,6 +8,7 @@ import { useServerStatus } from './hooks/useServerStatus';
 import { useToast } from './hooks/useToast';
 import { usePeerPresenceToasts } from './hooks/usePeerPresenceToasts';
 import { useFollowCollaborator } from './hooks/useFollowCollaborator';
+import { useAudioPreferences } from './hooks/useAudioPreferences';
 import { useVirtualFS } from './hooks/useVirtualFS';
 import { useWorkspaceImport } from './hooks/useWorkspaceImport';
 import { useWorkspaceLayout } from './hooks/useWorkspaceLayout';
@@ -64,6 +65,12 @@ function AppContent({
   const [dismissedServerBannerKey, setDismissedServerBannerKey] = useState<string | null>(null);
   const [helpInitialTab, setHelpInitialTab] = useState<HelpModalTab>('about');
   const { toasts, pushToast, dismissToast } = useToast();
+  const {
+    presenceSoundsEnabled,
+    presenceSoundVolume,
+    setPresenceSoundsEnabled,
+    setPresenceSoundVolume,
+  } = useAudioPreferences();
   const layout = useWorkspaceLayout({
     fs,
     editorRef,
@@ -160,6 +167,8 @@ function AppContent({
     awareness,
     connected,
     pushToast,
+    presenceSoundsEnabled,
+    presenceSoundVolume,
   });
 
   const serverStatus = useServerStatus({ syncStatus: connectionStatus });
@@ -244,6 +253,10 @@ function AppContent({
           onSaveAll={handleSaveAll}
           onFontSizeUp={layout.handleFontSizeUp}
           onFontSizeDown={layout.handleFontSizeDown}
+          presenceSoundsEnabled={presenceSoundsEnabled}
+          presenceSoundVolume={presenceSoundVolume}
+          onPresenceSoundsEnabledChange={setPresenceSoundsEnabled}
+          onPresenceSoundVolumeChange={setPresenceSoundVolume}
           onHelpOpen={() => openHelp('about')}
         />
 

@@ -8,6 +8,7 @@ import {
   SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
   FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon, EyeIcon, CloseIcon,
+  Volume2Icon, VolumeXIcon,
 } from './Icons';
 import ThemePicker from './ThemePicker';
 
@@ -311,6 +312,8 @@ export interface ActivityBarProps {
   searchVisible: boolean;
   codeCopied: boolean;
   fontSize: number;
+  presenceSoundsEnabled: boolean;
+  presenceSoundVolume: number;
   activeFileName: string | null;
   onToggleExplorer: () => void;
   onToggleSearch: () => void;
@@ -320,6 +323,8 @@ export interface ActivityBarProps {
   onSaveAll: () => Promise<void>;
   onFontSizeUp: () => void;
   onFontSizeDown: () => void;
+  onPresenceSoundsEnabledChange: (enabled: boolean) => void;
+  onPresenceSoundVolumeChange: (volume: number) => void;
   onHelpOpen: () => void;
 }
 
@@ -328,6 +333,8 @@ export function ActivityBar({
   searchVisible,
   codeCopied,
   fontSize,
+  presenceSoundsEnabled,
+  presenceSoundVolume,
   activeFileName,
   onToggleExplorer,
   onToggleSearch,
@@ -337,12 +344,15 @@ export function ActivityBar({
   onSaveAll,
   onFontSizeUp,
   onFontSizeDown,
+  onPresenceSoundsEnabledChange,
+  onPresenceSoundVolumeChange,
   onHelpOpen,
 }: ActivityBarProps) {
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveMenuRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const presenceSoundVolumePercent = Math.round(presenceSoundVolume * 100);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -458,27 +468,106 @@ export function ActivityBar({
             <GearIcon className="w-5 h-5" />
           </button>
           {settingsOpen && (
-            <div className="cc-menu absolute bottom-0 left-full z-50 ml-2 min-w-[220px] rounded-lg px-3 py-3">
-              <div className="cc-section-label mb-2 text-[10px] font-semibold">Appearance</div>
-              <ThemePicker className="mb-3" />
-              <div className="cc-divider mb-3 border-t" />
-              <div className="cc-section-label mb-2 text-[10px] font-semibold">Font Size</div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onFontSizeDown}
-                  title="Decrease font size"
-                  className="cc-button-secondary cursor-pointer rounded px-2 py-1 text-xs font-bold leading-none"
-                >
-                  A-
-                </button>
-                <span className="cc-text-secondary min-w-[2ch] text-center font-mono text-xs">{fontSize}</span>
-                <button
-                  onClick={onFontSizeUp}
-                  title="Increase font size"
-                  className="cc-button-secondary cursor-pointer rounded px-2 py-1 text-sm font-bold leading-none"
-                >
-                  A+
-                </button>
+            <div className="cc-menu absolute bottom-0 left-full z-50 ml-2 w-[280px] max-w-[calc(100vw-3rem)] rounded-xl px-3 py-3.5">
+              <div className="space-y-3">
+                <section>
+                  <div className="cc-section-label mb-2 text-[10px] font-semibold">Appearance</div>
+                  <ThemePicker />
+                </section>
+
+                <div className="cc-divider border-t" />
+
+                <section>
+                  <div className="cc-section-label mb-2 text-[10px] font-semibold">Sound</div>
+                  <div className="rounded-xl border border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_88%,transparent)] p-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color:color-mix(in_srgb,var(--cc-bg-selection)_70%,var(--cc-bg-elevated)_30%)] text-[var(--cc-accent)]">
+                          {presenceSoundsEnabled ? (
+                            <Volume2Icon className="h-4 w-4" />
+                          ) : (
+                            <VolumeXIcon className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="cc-text-primary text-xs font-medium">Presence sounds</div>
+                          <div className="cc-text-muted mt-0.5 text-[10px] leading-relaxed">
+                            Play a quiet chime when peers join or leave.
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={presenceSoundsEnabled}
+                        aria-label="Toggle presence sounds"
+                        onClick={() => onPresenceSoundsEnabledChange(!presenceSoundsEnabled)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
+                          presenceSoundsEnabled
+                            ? 'border-[color:color-mix(in_srgb,var(--cc-accent)_48%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-accent)_32%,transparent)]'
+                            : 'border-[var(--cc-border)] bg-[var(--cc-bg-panel-alt)]'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 rounded-full bg-[var(--cc-bg-elevated)] shadow-sm transition-transform ${
+                            presenceSoundsEnabled ? 'translate-x-[1.05rem]' : 'translate-x-[0.18rem]'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className={`mt-3 flex items-center gap-2 ${presenceSoundsEnabled ? '' : 'opacity-50'}`}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={presenceSoundVolumePercent}
+                        disabled={!presenceSoundsEnabled}
+                        onChange={(event) => onPresenceSoundVolumeChange(Number(event.target.value) / 100)}
+                        aria-label="Presence sound volume"
+                        className="h-1.5 flex-1 cursor-pointer accent-[var(--cc-accent)] disabled:cursor-not-allowed"
+                      />
+                      <span className="cc-text-secondary w-9 text-right font-mono text-[10px]">
+                        {presenceSoundVolumePercent}%
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="cc-divider border-t" />
+
+                <section>
+                  <div className="cc-section-label mb-2 text-[10px] font-semibold">Font Size</div>
+                  <div className="rounded-xl border border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_88%,transparent)] p-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="cc-text-primary text-xs font-medium">Editor text</div>
+                        <div className="cc-text-muted mt-0.5 text-[10px]">
+                          Current size: {fontSize}px
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={onFontSizeDown}
+                          title="Decrease font size"
+                          className="cc-button-secondary cursor-pointer rounded-md px-2 py-1 text-xs font-bold leading-none"
+                        >
+                          A-
+                        </button>
+                        <span className="cc-text-secondary min-w-[3ch] text-center font-mono text-xs">{fontSize}</span>
+                        <button
+                          onClick={onFontSizeUp}
+                          title="Increase font size"
+                          className="cc-button-secondary cursor-pointer rounded-md px-2 py-1 text-sm font-bold leading-none"
+                        >
+                          A+
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           )}

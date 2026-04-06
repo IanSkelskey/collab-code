@@ -1,6 +1,6 @@
 import { useTheme } from '../theme/ThemeProvider';
 import type { AppearancePreference } from '../theme/themes';
-import { MonitorIcon, MoonIcon, SunIcon } from './Icons';
+import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from './Icons';
 import './ThemePicker.css';
 
 interface ThemePickerProps {
@@ -8,12 +8,11 @@ interface ThemePickerProps {
   className?: string;
 }
 
-const appearanceOptions = [
-  { id: 'system', label: 'Auto', Icon: MonitorIcon },
+const themeChoices = [
   { id: 'light', label: 'Light', Icon: SunIcon },
   { id: 'dark', label: 'Dark', Icon: MoonIcon },
 ] as const satisfies ReadonlyArray<{
-  id: AppearancePreference;
+  id: Exclude<AppearancePreference, 'system'>;
   label: string;
   Icon: typeof SunIcon;
 }>;
@@ -22,33 +21,75 @@ export default function ThemePicker({
   compact = false,
   className = '',
 }: ThemePickerProps) {
-  const { appearance, setAppearance } = useTheme();
+  const { appearance, theme, setAppearance } = useTheme();
+  const autoEnabled = appearance === 'system';
+  const effectiveAppearance: Exclude<AppearancePreference, 'system'> = autoEnabled
+    ? theme.colorScheme
+    : appearance;
+
+  const handleAutoChange = (enabled: boolean) => {
+    if (enabled) {
+      setAppearance('system');
+      return;
+    }
+
+    setAppearance(effectiveAppearance);
+  };
 
   return (
     <div
       className={`cc-theme-picker ${compact ? 'cc-theme-picker-compact' : ''} ${className}`.trim()}
-      role="group"
-      aria-label="Select appearance"
     >
-      {appearanceOptions.map((option) => {
-        const isActive = option.id === appearance;
+      <div className="cc-theme-switch" role="radiogroup" aria-label="Select appearance">
+        {themeChoices.map((option) => {
+          const isActive = option.id === effectiveAppearance;
 
-        return (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => setAppearance(option.id)}
-            title={`Use ${option.label} appearance`}
-            aria-pressed={isActive}
-            className={`cc-theme-option ${isActive ? 'cc-theme-option-active' : ''}`}
-          >
-            <span className="cc-theme-icon-wrap" aria-hidden="true">
-              <option.Icon className="cc-theme-icon" />
-            </span>
-            {!compact && <span className="truncate">{option.label}</span>}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              title={`Use ${option.label} appearance`}
+              onClick={() => setAppearance(option.id)}
+              className={`cc-theme-choice ${isActive ? 'cc-theme-choice-active' : ''}`}
+            >
+              <option.Icon className="cc-theme-choice-icon" />
+              {!compact && <span className="cc-theme-choice-label">{option.label}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <label className={`cc-theme-auto ${autoEnabled ? 'cc-theme-auto-active' : ''}`}>
+        <input
+          type="checkbox"
+          checked={autoEnabled}
+          onChange={(event) => handleAutoChange(event.target.checked)}
+          className="cc-theme-auto-input"
+        />
+        <span
+          className={`cc-theme-auto-box ${autoEnabled ? 'cc-theme-auto-box-checked' : ''}`}
+          aria-hidden="true"
+        >
+          {autoEnabled && <CheckIcon className="cc-theme-auto-check" />}
+        </span>
+        <MonitorIcon className="cc-theme-auto-icon" />
+        {compact ? (
+          <span className="cc-theme-auto-title">Auto</span>
+        ) : (
+          <span className="cc-theme-auto-copy">
+            <span className="cc-theme-auto-title">Auto</span>
+            <span className="cc-theme-auto-subtitle">Follow your system theme</span>
+          </span>
+        )}
+      </label>
+
+      {!compact && (
+        <p className="cc-theme-status" aria-live="polite">
+          {autoEnabled ? `Currently following ${theme.colorScheme} mode.` : `Locked to ${effectiveAppearance} mode.`}
+        </p>
+      )}
     </div>
   );
 }

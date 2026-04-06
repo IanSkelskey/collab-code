@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import enterSoundUrl from '../../assets/in.mp3';
 import leaveSoundUrl from '../../assets/out.mp3';
+import { useSoundEffect } from './useSoundEffect';
 
 const PRESENCE_BOOTSTRAP_DELAY_MS = 1500;
-const PRESENCE_SOUND_VOLUME = 0.6;
 
 function getPeerLabel(state: unknown): string {
   if (!state || typeof state !== 'object') {
@@ -35,55 +35,33 @@ function collectRemotePeers(awareness: Awareness): Map<number, string> {
   return peers;
 }
 
-function createPresenceAudio(src: string): HTMLAudioElement | null {
-  if (typeof Audio === 'undefined') {
-    return null;
-  }
-
-  const audio = new Audio(src);
-  audio.preload = 'auto';
-  audio.volume = PRESENCE_SOUND_VOLUME;
-  return audio;
-}
-
-function playPresenceAudio(audio: HTMLAudioElement | null): void {
-  if (!audio) {
-    return;
-  }
-
-  audio.currentTime = 0;
-  void audio.play().catch(() => {
-    // Ignore autoplay or decode failures; presence toasts still provide feedback.
-  });
-}
-
 interface UsePeerPresenceToastsOptions {
   awareness: Awareness | null;
   connected: boolean;
   pushToast: (label: string) => void;
+  presenceSoundsEnabled: boolean;
+  presenceSoundVolume: number;
 }
 
 export function usePeerPresenceToasts({
   awareness,
   connected,
   pushToast,
+  presenceSoundsEnabled,
+  presenceSoundVolume,
 }: UsePeerPresenceToastsOptions): void {
   const knownPeersRef = useRef<Map<number, string>>(new Map());
   const notificationsEnabledRef = useRef(false);
-  const enterAudioRef = useRef<HTMLAudioElement | null>(null);
-  const leaveAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    enterAudioRef.current = createPresenceAudio(enterSoundUrl);
-    leaveAudioRef.current = createPresenceAudio(leaveSoundUrl);
-
-    return () => {
-      enterAudioRef.current?.pause();
-      leaveAudioRef.current?.pause();
-      enterAudioRef.current = null;
-      leaveAudioRef.current = null;
-    };
-  }, []);
+  const { play: playEnterSound } = useSoundEffect({
+    src: enterSoundUrl,
+    volume: presenceSoundVolume,
+    enabled: presenceSoundsEnabled,
+  });
+  const { play: playLeaveSound } = useSoundEffect({
+    src: leaveSoundUrl,
+    volume: presenceSoundVolume,
+    enabled: presenceSoundsEnabled,
+  });
 
   useEffect(() => {
     if (!awareness || !connected) {
@@ -108,14 +86,14 @@ export function usePeerPresenceToasts({
         nextPeers.forEach((name, clientId) => {
           if (!previousPeers.has(clientId)) {
             pushToast(`${name} joined`);
-            playPresenceAudio(enterAudioRef.current);
+            playEnterSound();
           }
         });
 
         previousPeers.forEach((name, clientId) => {
           if (!nextPeers.has(clientId)) {
             pushToast(`${name} left`);
-            playPresenceAudio(leaveAudioRef.current);
+            playLeaveSound();
           }
         });
       }
@@ -131,5 +109,5 @@ export function usePeerPresenceToasts({
       knownPeersRef.current = new Map();
       notificationsEnabledRef.current = false;
     };
-  }, [awareness, connected, pushToast]);
+  }, [awareness, connected, playEnterSound, playLeaveSound, pushToast]);
 }
