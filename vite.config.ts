@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_PROTOCOL_VERSION__: JSON.stringify(pkg.protocolVersion),
   },
   base: '/collab-code/',
   build: {

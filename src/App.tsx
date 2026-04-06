@@ -4,6 +4,7 @@ import { useExecution } from './hooks/useExecution';
 import { useFileExport } from './hooks/useFileExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useRoom } from './hooks/useRoom';
+import { useServerStatus } from './hooks/useServerStatus';
 import { useToast } from './hooks/useToast';
 import { usePeerPresenceToasts } from './hooks/usePeerPresenceToasts';
 import { useFollowCollaborator } from './hooks/useFollowCollaborator';
@@ -18,9 +19,10 @@ import TabBar from './components/TabBar';
 import Toolbar, { ActivityBar } from './components/Toolbar';
 import ConfirmDialog from './components/ConfirmDialog';
 import ToastContainer from './components/ToastContainer';
-import HelpModal from './components/HelpModal';
+import HelpModal, { type HelpModalTab } from './components/HelpModal';
 import LandingPage from './components/LandingPage';
 import SearchPanel from './components/SearchPanel';
+import ServerStatusBanner from './components/ServerStatusBanner';
 import MarkdownModeBar from './components/MarkdownModeBar';
 import MarkdownPreview from './components/MarkdownPreview';
 import { isMarkdownFile } from './config/languages';
@@ -53,12 +55,14 @@ function AppContent({
   onExitRoom: () => void;
   initialRoomTemplate: RoomTemplateId | null;
 }) {
-  const { ydoc, peerCount, roomId, connected, awareness, storageReady } = useCollab();
+  const { ydoc, peerCount, roomId, connected, connectionStatus, awareness, storageReady } = useCollab();
   const fs = useVirtualFS(ydoc, { storageReady, initialRoomTemplate, roomId });
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markdownSplitContainerRef = useRef<HTMLDivElement>(null);
+  const [dismissedServerBannerKey, setDismissedServerBannerKey] = useState<string | null>(null);
+  const [helpInitialTab, setHelpInitialTab] = useState<HelpModalTab>('about');
   const { toasts, pushToast, dismissToast } = useToast();
   const layout = useWorkspaceLayout({
     fs,
@@ -158,6 +162,24 @@ function AppContent({
     pushToast,
   });
 
+  const serverStatus = useServerStatus({ syncStatus: connectionStatus });
+
+  const openHelp = useCallback((tab: HelpModalTab = 'about') => {
+    setHelpInitialTab(tab);
+    layout.setHelpOpen(true);
+  }, [layout]);
+
+  useEffect(() => {
+    if (!serverStatus.banner) {
+      setDismissedServerBannerKey(null);
+      return;
+    }
+
+    setDismissedServerBannerKey((current) => (
+      current === serverStatus.banner?.key ? current : null
+    ));
+  }, [serverStatus.banner]);
+
   useEffect(() => {
     if (import.meta.env.DEV) return;
 
@@ -181,9 +203,9 @@ function AppContent({
     >
       <Toolbar
         roomId={roomId}
-        connected={connected}
         peerCount={peerCount}
         peers={peers}
+        serverStatus={serverStatus}
         followedPeer={followedPeer}
         followedPeerId={followedPeerId}
         running={running}
@@ -196,7 +218,16 @@ function AppContent({
         onConfirmLeave={(options) => layout.setConfirmDialog(options)}
         onToggleFollowPeer={toggleFollowPeer}
         onStopFollowing={stopFollowing}
+        onOpenServerHelp={() => openHelp('server')}
       />
+
+      {serverStatus.banner && dismissedServerBannerKey !== serverStatus.banner.key && (
+        <ServerStatusBanner
+          banner={serverStatus.banner}
+          onOpenHelp={() => openHelp('server')}
+          onDismiss={() => setDismissedServerBannerKey(serverStatus.banner?.key ?? null)}
+        />
+      )}
 
       <div ref={containerRef} className="flex-1 flex min-h-0">
         <ActivityBar
@@ -213,7 +244,7 @@ function AppContent({
           onSaveAll={handleSaveAll}
           onFontSizeUp={layout.handleFontSizeUp}
           onFontSizeDown={layout.handleFontSizeDown}
-          onHelpOpen={() => layout.setHelpOpen(true)}
+          onHelpOpen={() => openHelp('about')}
         />
 
         {(layout.explorerVisible || layout.searchVisible) && (
@@ -432,7 +463,13 @@ function AppContent({
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      {layout.helpOpen && <HelpModal onClose={() => layout.setHelpOpen(false)} />}
+      {layout.helpOpen && (
+        <HelpModal
+          onClose={() => layout.setHelpOpen(false)}
+          serverStatus={serverStatus}
+          initialTab={helpInitialTab}
+        />
+      )}
 
       {osDragActive && (
         <div className="cc-overlay pointer-events-none fixed inset-0 z-40 flex items-center justify-center">

@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { HelpCircleIcon, CloseIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 import GetInvolvedActions from './GetInvolvedActions';
+import type { ServerStatusSnapshot, ServerStatusTone } from '../types/serverStatus';
 import './HelpModal.css';
 
 interface HelpModalProps {
   onClose: () => void;
-}
-
-interface ServerInfoState {
-  status: 'idle' | 'loading' | 'success' | 'error';
-  javaAvailable: boolean | null;
-  javaVersion: string | null;
-  pythonAvailable: boolean | null;
-  pythonVersion: string | null;
+  serverStatus: ServerStatusSnapshot;
+  initialTab?: HelpModalTab;
 }
 
 interface ShortcutItem {
@@ -79,59 +74,18 @@ const tips: Array<{ title: string; items: string[] }> = [
   },
 ];
 
-type Tab = 'about' | 'shortcuts' | 'tips' | 'involved';
+export type HelpModalTab = 'about' | 'server' | 'shortcuts' | 'tips' | 'involved';
 
-export default function HelpModal({ onClose }: HelpModalProps) {
-  const [tab, setTab] = useState<Tab>('about');
-  const [serverInfo, setServerInfo] = useState<ServerInfoState>({
-    status: 'idle',
-    javaAvailable: null,
-    javaVersion: null,
-    pythonAvailable: null,
-    pythonVersion: null,
-  });
-  const serverInfoRef = useRef(serverInfo);
+export default function HelpModal({
+  onClose,
+  serverStatus,
+  initialTab = 'about',
+}: HelpModalProps) {
+  const [tab, setTab] = useState<HelpModalTab>(initialTab);
 
   useEffect(() => {
-    serverInfoRef.current = serverInfo;
-  }, [serverInfo]);
-
-  useEffect(() => {
-    if (tab !== 'about' || serverInfoRef.current.status !== 'idle') {
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      controller.abort();
-    }, 8000);
-    setServerInfo((current) => ({ ...current, status: 'loading' }));
-
-    void fetchServerInfo(controller.signal)
-      .then(async (response) => {
-        setServerInfo({
-          status: 'success',
-          javaAvailable: response.javaAvailable === true,
-          javaVersion: typeof response.javaVersion === 'string' ? response.javaVersion : null,
-          pythonAvailable: response.pythonAvailable === true,
-          pythonVersion: typeof response.pythonVersion === 'string' ? response.pythonVersion : null,
-        });
-      })
-      .catch(() => {
-        setServerInfo({
-          status: 'error',
-          javaAvailable: null,
-          javaVersion: null,
-          pythonAvailable: null,
-          pythonVersion: null,
-        });
-      });
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [tab]);
+    setTab(initialTab);
+  }, [initialTab]);
 
   return (
     <ModalOverlay onClose={onClose}>
@@ -184,6 +138,14 @@ export default function HelpModal({ onClose }: HelpModalProps) {
             >
               Get Involved
             </TabButton>
+            <TabButton
+              active={tab === 'server'}
+              activeClassName="border-[var(--cc-accent)] text-[var(--cc-accent)]"
+              inactiveClassName="cc-text-faint border-transparent hover:text-[var(--cc-text-primary)]"
+              onClick={() => setTab('server')}
+            >
+              Server
+            </TabButton>
           </div>
         </div>
 
@@ -192,8 +154,8 @@ export default function HelpModal({ onClose }: HelpModalProps) {
           style={{ scrollbarGutter: 'stable' }}
         >
           {tab === 'about' && (
-            <div className="space-y-5">
-              <div className="flex flex-col items-center pt-2 text-center">
+            <div className="mx-auto flex min-h-full w-full max-w-[38rem] flex-col items-center justify-center text-center">
+              <div className="flex flex-col items-center">
                 <img
                   src="/collab-code/logo.svg"
                   alt="Collab Code"
@@ -207,24 +169,118 @@ export default function HelpModal({ onClose }: HelpModalProps) {
                   a Python starter, or a blank workspace. Python execution stays isolated in a temporary
                   virtual environment on the server.
                 </p>
+                <div className="cc-panel mt-4 w-full rounded-xl border px-4 py-3">
+                  <p className="cc-text-faint text-xs leading-relaxed">
+                    Use <span className="cc-text-secondary font-medium">Shortcuts</span> for controls,
+                    <span className="cc-text-secondary font-medium"> Tips</span> for workflow help,
+                    and <span className="cc-text-secondary font-medium">Server</span> for backend status.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'server' && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="cc-section-label text-[11px] font-semibold">Server Status</div>
+                  <p className="cc-text-muted mt-1 text-xs">
+                    {serverStatus.checkedAt
+                      ? `Last checked ${formatCheckedAt(serverStatus.checkedAt)}`
+                      : 'Waiting for first status check'}
+                  </p>
+                </div>
+                <button
+                  onClick={serverStatus.refresh}
+                  className="cc-button-secondary cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium"
+                >
+                  Refresh
+                </button>
               </div>
 
-              <div className="grid gap-3">
-                <InfoCard label="Server Java Runtime">
-                  <ServerRuntimeVersion
-                    status={serverInfo.status}
-                    available={serverInfo.javaAvailable}
-                    version={serverInfo.javaVersion}
-                    label="Java"
-                  />
+              <div className="grid gap-3 lg:grid-cols-2">
+                <InfoCard label="Sync Connection">
+                  <StatusBadge tone={serverStatus.summary.tone}>
+                    {serverStatus.summary.label}
+                  </StatusBadge>
+                  <p className="cc-text-muted mt-2 text-xs leading-relaxed">
+                    {serverStatus.summary.detail}
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    <InfoLine label="Connection">
+                      {formatSyncStatus(serverStatus.syncStatus)}
+                    </InfoLine>
+                    <InfoLine label="Service">
+                      {serverStatus.info.service ?? 'Not reported'}
+                    </InfoLine>
+                  </div>
                 </InfoCard>
-                <InfoCard label="Server Python Runtime">
-                  <ServerRuntimeVersion
-                    status={serverInfo.status}
-                    available={serverInfo.pythonAvailable}
-                    version={serverInfo.pythonVersion}
-                    label="Python"
-                  />
+
+                <InfoCard label="Compatibility">
+                  <StatusBadge tone={getCompatibilityTone(serverStatus.compatibility.status)}>
+                    {serverStatus.compatibility.title}
+                  </StatusBadge>
+                  <p className="cc-text-muted mt-2 text-xs leading-relaxed">
+                    {serverStatus.compatibility.detail}
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    <InfoLine label="Frontend">
+                      <span className="cc-text-primary break-all font-mono">v{serverStatus.clientVersion}</span>
+                    </InfoLine>
+                    <InfoLine label="Server">
+                      <span className="cc-text-primary break-all font-mono">
+                        {serverStatus.info.serverVersion ? `v${serverStatus.info.serverVersion}` : 'Not reported'}
+                      </span>
+                    </InfoLine>
+                    <InfoLine label="Protocol">
+                      <span className="cc-text-primary break-all font-mono">
+                        {serverStatus.info.protocolVersion !== null
+                          ? `client v${serverStatus.clientProtocolVersion} / server v${serverStatus.info.protocolVersion}`
+                          : `client v${serverStatus.clientProtocolVersion} / server not reported`}
+                      </span>
+                    </InfoLine>
+                  </div>
+                </InfoCard>
+
+                <InfoCard label="Execution">
+                  <StatusBadge tone={serverStatus.info.executionAllowed === false ? 'warning' : 'success'}>
+                    {getExecutionStatusLabel(serverStatus)}
+                  </StatusBadge>
+                  <p className="cc-text-muted mt-2 text-xs leading-relaxed">
+                    {getExecutionStatusDetail(serverStatus)}
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    <InfoLine label="Sandbox">
+                      {serverStatus.info.executionSandboxStatus ?? 'Not reported'}
+                    </InfoLine>
+                    <InfoLine label="Capabilities">
+                      {serverStatus.info.capabilities.length > 0
+                        ? serverStatus.info.capabilities.join(', ')
+                        : 'Not reported'}
+                    </InfoLine>
+                  </div>
+                </InfoCard>
+
+                <InfoCard label="Server Runtimes">
+                  <div className="space-y-3">
+                    <InfoLine label="Java">
+                      <ServerRuntimeVersion
+                        fetchState={serverStatus.fetchState}
+                        available={serverStatus.info.javaAvailable}
+                        version={serverStatus.info.javaVersion}
+                        label="Java"
+                      />
+                    </InfoLine>
+                    <InfoLine label="Python">
+                      <ServerRuntimeVersion
+                        fetchState={serverStatus.fetchState}
+                        available={serverStatus.info.pythonAvailable}
+                        version={serverStatus.info.pythonVersion}
+                        label="Python"
+                      />
+                    </InfoLine>
+                  </div>
                 </InfoCard>
               </div>
             </div>
@@ -402,22 +458,51 @@ function TipSection({
   );
 }
 
+function StatusBadge({
+  tone,
+  children,
+}: {
+  tone: ServerStatusTone;
+  children: ReactNode;
+}) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusBadgeClassName(tone)}`}>
+      {children}
+    </span>
+  );
+}
+
+function InfoLine({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-xs">
+      <span className="cc-text-faint shrink-0">{label}</span>
+      <span className="cc-text-secondary min-w-0 text-right leading-relaxed">{children}</span>
+    </div>
+  );
+}
+
 function ServerRuntimeVersion({
-  status,
+  fetchState,
   available,
   version,
   label,
 }: {
-  status: ServerInfoState['status'];
+  fetchState: ServerStatusSnapshot['fetchState'];
   available: boolean | null;
   version: string | null;
   label: string;
 }) {
-  if (status === 'loading' || status === 'idle') {
+  if (fetchState === 'loading' || fetchState === 'idle') {
     return <span className="cc-text-muted">Checking execution server...</span>;
   }
 
-  if (status === 'error') {
+  if (fetchState === 'error') {
     return <span className="text-[var(--cc-warning)]">Unable to reach the execution server.</span>;
   }
 
@@ -432,60 +517,86 @@ function ServerRuntimeVersion({
   return <span className="cc-text-primary break-all font-mono">{version}</span>;
 }
 
-function getServerInfoUrl(): string {
-  const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4444';
-  const url = new URL(wsUrl, window.location.href);
-  url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-  url.pathname = url.pathname.replace(/\/$/, '') || '/';
-  url.search = '';
-  url.hash = '';
-  return url.toString();
-}
-
-async function fetchServerInfo(signal: AbortSignal): Promise<{
-  javaAvailable?: boolean;
-  javaVersion?: string | null;
-  pythonAvailable?: boolean;
-  pythonVersion?: string | null;
-}> {
-  const candidates = getServerInfoUrls();
-  let lastError: unknown = null;
-
-  for (const candidate of candidates) {
-    try {
-      const response = await fetch(candidate, { signal });
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      return await response.json() as {
-        javaAvailable?: boolean;
-        javaVersion?: string | null;
-        pythonAvailable?: boolean;
-        pythonVersion?: string | null;
-      };
-    } catch (error) {
-      if (signal.aborted) {
-        throw error;
-      }
-      lastError = error;
-    }
+function getStatusBadgeClassName(tone: ServerStatusTone): string {
+  if (tone === 'success') {
+    return 'border-[color:color-mix(in_srgb,var(--cc-success)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-success)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-success)]';
   }
 
-  throw lastError ?? new Error('Unable to reach execution server');
-}
-
-function getServerInfoUrls(): string[] {
-  const primary = getServerInfoUrl();
-  const urls = new Set<string>([primary]);
-  const primaryUrl = new URL(primary);
-  const localHostnames = new Set(['localhost', '127.0.0.1', '::1']);
-  const shouldTryLocalFallbacks = localHostnames.has(primaryUrl.hostname) || localHostnames.has(window.location.hostname);
-
-  if (shouldTryLocalFallbacks) {
-    urls.add('http://localhost:4444/');
-    urls.add('http://127.0.0.1:4444/');
+  if (tone === 'danger') {
+    return 'border-[color:color-mix(in_srgb,var(--cc-danger)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-danger)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-danger)]';
   }
 
-  return [...urls];
+  if (tone === 'warning') {
+    return 'border-[color:color-mix(in_srgb,var(--cc-warning)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-warning)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-warning)]';
+  }
+
+  return 'border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_92%,transparent)] cc-text-muted';
+}
+
+function getCompatibilityTone(status: ServerStatusSnapshot['compatibility']['status']): ServerStatusTone {
+  if (status === 'protocol-mismatch') {
+    return 'danger';
+  }
+
+  if (status === 'version-mismatch' || status === 'legacy-server') {
+    return 'warning';
+  }
+
+  if (status === 'compatible') {
+    return 'success';
+  }
+
+  return 'neutral';
+}
+
+function formatSyncStatus(syncStatus: ServerStatusSnapshot['syncStatus']): string {
+  if (syncStatus === 'connected') {
+    return 'Connected';
+  }
+
+  if (syncStatus === 'connecting') {
+    return 'Connecting';
+  }
+
+  return 'Disconnected';
+}
+
+function getExecutionStatusLabel(serverStatus: ServerStatusSnapshot): string {
+  if (serverStatus.fetchState === 'loading' || serverStatus.fetchState === 'idle') {
+    return 'Checking execution';
+  }
+
+  if (serverStatus.fetchState === 'error') {
+    return 'Execution unknown';
+  }
+
+  if (serverStatus.info.executionAllowed === false) {
+    return 'Execution disabled';
+  }
+
+  return 'Execution available';
+}
+
+function getExecutionStatusDetail(serverStatus: ServerStatusSnapshot): string {
+  if (serverStatus.fetchState === 'loading' || serverStatus.fetchState === 'idle') {
+    return 'Waiting for the backend status check to report execution support.';
+  }
+
+  if (serverStatus.fetchState === 'error') {
+    return 'The execution server could not be reached, so runtime availability could not be verified.';
+  }
+
+  if (serverStatus.info.executionAllowed === false) {
+    return 'This backend is reachable, but browser-triggered Java and Python execution is currently disabled.';
+  }
+
+  if (serverStatus.info.executionSandboxStatus) {
+    return `Execution is enabled. Isolation mode: ${serverStatus.info.executionSandboxStatus}.`;
+  }
+
+  return 'Execution is enabled on this backend.';
+}
+
+function formatCheckedAt(timestamp: number): string {
+  return new Date(timestamp).toLocaleString();
 }

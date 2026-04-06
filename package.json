@@ -1,7 +1,8 @@
 {
   "name": "collab-code",
   "private": true,
-  "version": "1.0.0-beta-7",
+  "version": "1.0.0",
+  "protocolVersion": 1,
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import type * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
 import type { CollabProvider as SyncProvider } from '../providers/SyncProvider';
+import type { SyncConnectionStatus } from '../types/serverStatus';
 
 export interface CollabContextValue {
   ydoc: Y.Doc;
@@ -10,6 +11,7 @@ export interface CollabContextValue {
   roomId: string;
   peerCount: number;
   connected: boolean;
+  connectionStatus: SyncConnectionStatus;
   storageReady: boolean;
   userName: string;
   userColor: string;
@@ -29,4 +31,3 @@ export function useCollab(): CollabContextValue {
 
   return context;
 }
-

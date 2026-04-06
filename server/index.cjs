@@ -12,6 +12,7 @@
 const http = require('http');
 const { URL } = require('url');
 const WebSocket = require('ws');
+const serverPkg = require('./package.json');
 const {
   handleExecConnection,
   isJavaAvailable,
@@ -26,6 +27,14 @@ const { handleSyncConnection } = require('./sync.cjs');
 
 const PORT = parseInt(process.env.PORT || '4444', 10);
 const HOST = process.env.HOST || '0.0.0.0';
+const SERVER_PROTOCOL_VERSION = Number(serverPkg.protocolVersion) || 1;
+const SERVER_CAPABILITIES = [
+  'status-v2',
+  'collab-sync',
+  'interactive-exec',
+  'files-sync',
+  'python-venv',
+];
 
 // ---------------------------------------------------------------------------
 //  HTTP server
@@ -46,6 +55,9 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({
     status: 'ok',
     service: 'collab-code-sync',
+    serverVersion: serverPkg.version,
+    protocolVersion: SERVER_PROTOCOL_VERSION,
+    capabilities: SERVER_CAPABILITIES,
     javaAvailable: isJavaAvailable(),
     javaVersion: getJavaRuntimeVersion(),
     pythonAvailable: isPythonAvailable(),

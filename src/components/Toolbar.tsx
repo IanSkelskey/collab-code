@@ -3,6 +3,7 @@ import PeerAvatars from './PeerAvatars';
 import type { ExecutionTarget } from '../hooks/useExecution';
 import { getBaseName } from '../lib/vfsPaths';
 import type { PeerState } from '../types';
+import type { ServerStatusSnapshot } from '../types/serverStatus';
 import {
   SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
   FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
@@ -12,9 +13,9 @@ import ThemePicker from './ThemePicker';
 
 interface ToolbarProps {
   roomId: string;
-  connected: boolean;
   peerCount: number;
   peers: PeerState[];
+  serverStatus: ServerStatusSnapshot;
   followedPeer: PeerState | null;
   followedPeerId: number | null;
   running: boolean;
@@ -26,6 +27,7 @@ interface ToolbarProps {
   onSaveAll: () => Promise<void>;
   onToggleFollowPeer: (peer: PeerState) => void;
   onStopFollowing: () => void;
+  onOpenServerHelp: () => void;
   onConfirmLeave: (opts: {
     title: string;
     message: string;
@@ -38,9 +40,9 @@ interface ToolbarProps {
 
 export default function Toolbar({
   roomId,
-  connected,
   peerCount,
   peers,
+  serverStatus,
   followedPeer,
   followedPeerId,
   running,
@@ -52,6 +54,7 @@ export default function Toolbar({
   onSaveAll,
   onToggleFollowPeer,
   onStopFollowing,
+  onOpenServerHelp,
   onConfirmLeave,
 }: ToolbarProps) {
   const [copied, setCopied] = useState(false);
@@ -107,6 +110,9 @@ export default function Toolbar({
     : runTargets.length > 1
       ? 'Choose which runnable file to execute.'
       : 'Run code. Ctrl+Enter runs the active editor.';
+
+  const statusButtonClassName = getServerStatusButtonClassName(serverStatus.summary.tone);
+  const statusDotClassName = getServerStatusDotClassName(serverStatus.summary.tone);
 
   return (
     <header className="cc-topbar cc-divider relative z-30 flex shrink-0 items-center justify-between gap-2 overflow-visible border-b px-3 py-1.5 sm:px-4 sm:py-2">
@@ -243,16 +249,20 @@ export default function Toolbar({
           </div>
         )}
 
-        <div
-          className={`w-2 h-2 rounded-full shrink-0 ${
-            connected ? 'bg-[var(--cc-accent)]' : 'bg-[var(--cc-warning)] animate-pulse'
-          }`}
-          title={connected ? 'Connected to server' : 'Connecting...'}
-        />
-
         <span className="cc-text-muted hidden text-xs sm:inline">
           {peerCount} {peerCount === 1 ? 'peer' : 'peers'}
         </span>
+
+        <div className="cc-divider hidden h-5 w-px border-l sm:block" />
+
+        <button
+          onClick={onOpenServerHelp}
+          title={serverStatus.summary.detail}
+          className={statusButtonClassName}
+        >
+          <span className={statusDotClassName} />
+          <span className="hidden sm:inline">{serverStatus.summary.label}</span>
+        </button>
 
         <div className="cc-divider hidden h-5 w-px border-l sm:block" />
 
@@ -270,6 +280,30 @@ export default function Toolbar({
       </div>
     </header>
   );
+}
+
+function getServerStatusButtonClassName(tone: ServerStatusSnapshot['summary']['tone']): string {
+  const toneClasses = tone === 'success'
+    ? 'border-[color:color-mix(in_srgb,var(--cc-success)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-success)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-success)] hover:bg-[color:color-mix(in_srgb,var(--cc-success)_18%,var(--cc-bg-elevated)_82%)]'
+    : tone === 'danger'
+      ? 'border-[color:color-mix(in_srgb,var(--cc-danger)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-danger)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-danger)] hover:bg-[color:color-mix(in_srgb,var(--cc-danger)_18%,var(--cc-bg-elevated)_82%)]'
+      : tone === 'warning'
+        ? 'border-[color:color-mix(in_srgb,var(--cc-warning)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-warning)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-warning)] hover:bg-[color:color-mix(in_srgb,var(--cc-warning)_18%,var(--cc-bg-elevated)_82%)]'
+        : 'border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_90%,transparent)] cc-text-muted hover:bg-[var(--cc-bg-hover)] hover:text-[var(--cc-text-primary)]';
+
+  return `flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${toneClasses}`;
+}
+
+function getServerStatusDotClassName(tone: ServerStatusSnapshot['summary']['tone']): string {
+  const toneClass = tone === 'success'
+    ? 'bg-[var(--cc-success)]'
+    : tone === 'danger'
+      ? 'bg-[var(--cc-danger)]'
+      : tone === 'warning'
+        ? 'bg-[var(--cc-warning)]'
+        : 'bg-[var(--cc-text-faint)]';
+
+  return `h-2 w-2 shrink-0 rounded-full ${toneClass}`;
 }
 
 export interface ActivityBarProps {

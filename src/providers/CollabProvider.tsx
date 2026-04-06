@@ -12,6 +12,7 @@ import { CollabProvider as SyncProvider } from './SyncProvider';
 import { CollabContext, type CollabContextValue } from '../context/CollabContext';
 import { readLocalStorageItem, writeLocalStorageItem } from '../lib/localStorage';
 import { ensureSharedTerminalInitialized } from '../services/sharedTerminal';
+import type { SyncConnectionStatus } from '../types/serverStatus';
 
 const PEER_COLORS = [
   '#e06c75',
@@ -46,6 +47,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const [peerCount, setPeerCount] = useState(1);
   const [connected, setConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<SyncConnectionStatus>('connecting');
   const [storageReady, setStorageReady] = useState(false);
   const [userName, setUserName] = useState(() => {
     return readLocalStorageItem('collab-code-username') || getRandomName();
@@ -95,6 +97,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     };
 
     const handleStatus = ({ status }: { status: 'connected' | 'connecting' | 'disconnected' }) => {
+      setConnectionStatus(status);
       setConnected(status === 'connected');
     };
 
@@ -131,6 +134,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
       setProvider(null);
       setAwareness(null);
       setConnected(false);
+      setConnectionStatus('disconnected');
       setPeerCount(1);
       setStorageReady(false);
     };
@@ -152,6 +156,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     roomId,
     peerCount,
     connected,
+    connectionStatus,
     storageReady,
     userName,
     userColor,
@@ -164,6 +169,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     roomId,
     peerCount,
     connected,
+    connectionStatus,
     storageReady,
     userName,
     userColor,
