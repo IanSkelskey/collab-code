@@ -54,7 +54,7 @@ function AppContent({
   initialRoomTemplate: RoomTemplateId | null;
 }) {
   const { ydoc, peerCount, roomId, connected, awareness, storageReady } = useCollab();
-  const fs = useVirtualFS(ydoc, { storageReady, initialRoomTemplate });
+  const fs = useVirtualFS(ydoc, { storageReady, initialRoomTemplate, roomId });
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);

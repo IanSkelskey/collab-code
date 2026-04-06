@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject, type SetStateAction } from 'react';
 import type { EditorHandle } from '../components/Editor';
 import { isMarkdownFile } from '../config/languages';
+import { readLocalStorageJson, writeLocalStorageJson } from '../lib/localStorage';
 import { useDragResize } from './useDragResize';
 import type { VirtualFS } from './useVirtualFS';
 
@@ -23,6 +24,52 @@ interface UseWorkspaceLayoutOptions {
 
 export type MarkdownViewMode = 'write' | 'split' | 'preview';
 
+interface StoredWorkspaceLayoutState {
+  fontSize?: number;
+  explorerVisible?: boolean;
+  searchVisible?: boolean;
+  explorerWidth?: number;
+  terminalVisible?: boolean;
+  terminalHeight?: number;
+  markdownViewMode?: MarkdownViewMode;
+  markdownEditorWidth?: number;
+}
+
+const WORKSPACE_LAYOUT_STORAGE_KEY = 'collab-code-workspace-layout';
+
+function isMarkdownViewMode(value: unknown): value is MarkdownViewMode {
+  return value === 'write' || value === 'split' || value === 'preview';
+}
+
+function parseStoredWorkspaceLayout(value: unknown): StoredWorkspaceLayoutState | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const searchVisible = typeof candidate.searchVisible === 'boolean' ? candidate.searchVisible : undefined;
+  const explorerVisible = typeof candidate.explorerVisible === 'boolean' ? candidate.explorerVisible : undefined;
+
+  return {
+    fontSize: typeof candidate.fontSize === 'number' ? candidate.fontSize : undefined,
+    explorerVisible: searchVisible ? false : explorerVisible,
+    searchVisible,
+    explorerWidth: typeof candidate.explorerWidth === 'number' ? candidate.explorerWidth : undefined,
+    terminalVisible: typeof candidate.terminalVisible === 'boolean' ? candidate.terminalVisible : undefined,
+    terminalHeight: typeof candidate.terminalHeight === 'number' ? candidate.terminalHeight : undefined,
+    markdownViewMode: isMarkdownViewMode(candidate.markdownViewMode) ? candidate.markdownViewMode : undefined,
+    markdownEditorWidth: typeof candidate.markdownEditorWidth === 'number' ? candidate.markdownEditorWidth : undefined,
+  };
+}
+
+function readStoredWorkspaceLayout(): StoredWorkspaceLayoutState | null {
+  return readLocalStorageJson(WORKSPACE_LAYOUT_STORAGE_KEY, parseStoredWorkspaceLayout);
+}
+
+function persistWorkspaceLayout(layoutState: StoredWorkspaceLayoutState): void {
+  writeLocalStorageJson(WORKSPACE_LAYOUT_STORAGE_KEY, layoutState);
+}
+
 export function useWorkspaceLayout({
   fs,
   editorRef,
@@ -32,22 +79,27 @@ export function useWorkspaceLayout({
 }: UseWorkspaceLayoutOptions) {
   const markdownPanelMinWidth = 280;
   const markdownSplitHandleWidth = 12;
-  const [fontSize, setFontSize] = useState(window.innerWidth < 640 ? 12 : 14);
-  const [explorerVisible, setExplorerVisible] = useState(() => window.innerWidth >= 768);
-  const [explorerWidth, setExplorerWidth] = useState(() => (window.innerWidth < 640 ? 160 : 200));
-  const [terminalVisible, setTerminalVisible] = useState(true);
-  const [terminalHeight, setTerminalHeight] = useState(250);
+  const storedLayoutRef = useRef<StoredWorkspaceLayoutState | null>(readStoredWorkspaceLayout());
+  const storedLayout = storedLayoutRef.current;
+  const [fontSize, setFontSize] = useState(() => storedLayout?.fontSize ?? (window.innerWidth < 640 ? 12 : 14));
+  const [explorerVisible, setExplorerVisibleState] = useState(() => (
+    storedLayout?.explorerVisible ?? (window.innerWidth >= 768)
+  ));
+  const [explorerWidth, setExplorerWidth] = useState(() => storedLayout?.explorerWidth ?? (window.innerWidth < 640 ? 160 : 200));
+  const [terminalVisible, setTerminalVisible] = useState(() => storedLayout?.terminalVisible ?? true);
+  const [terminalHeight, setTerminalHeight] = useState(() => storedLayout?.terminalHeight ?? 250);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchVisible, setSearchVisibleState] = useState(() => storedLayout?.searchVisible ?? false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [markdownViewMode, setMarkdownViewMode] = useState<MarkdownViewMode>(() => (
-    window.innerWidth < 960 ? 'write' : 'split'
+    storedLayout?.markdownViewMode ?? (window.innerWidth < 960 ? 'write' : 'split')
   ));
   const [markdownEditorWidth, setMarkdownEditorWidth] = useState(() => (
-    Math.max(markdownPanelMinWidth, Math.round((window.innerWidth - markdownSplitHandleWidth) / 2))
+    storedLayout?.markdownEditorWidth
+      ?? Math.max(markdownPanelMinWidth, Math.round((window.innerWidth - markdownSplitHandleWidth) / 2))
   ));
   const pendingNavigationRef = useRef<number | null>(null);
-  const markdownSplitManuallyResizedRef = useRef(false);
+  const markdownSplitManuallyResizedRef = useRef(typeof storedLayout?.markdownEditorWidth === 'number');
 
   const getMarkdownEditorMaxWidth = useCallback(() => {
     const containerWidth = markdownSplitContainerRef.current?.clientWidth ?? window.innerWidth;
@@ -63,6 +115,56 @@ export function useWorkspaceLayout({
         window.clearTimeout(pendingNavigationRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    persistWorkspaceLayout({
+      fontSize,
+      explorerVisible,
+      searchVisible,
+      explorerWidth,
+      terminalVisible,
+      terminalHeight,
+      markdownViewMode,
+      markdownEditorWidth,
+    });
+  }, [
+    explorerVisible,
+    explorerWidth,
+    fontSize,
+    markdownEditorWidth,
+    markdownViewMode,
+    searchVisible,
+    terminalHeight,
+    terminalVisible,
+  ]);
+
+  const setExplorerVisible = useCallback((nextValue: SetStateAction<boolean>) => {
+    setExplorerVisibleState((currentValue) => {
+      const resolvedValue = typeof nextValue === 'function'
+        ? nextValue(currentValue)
+        : nextValue;
+
+      if (resolvedValue) {
+        setSearchVisibleState(false);
+      }
+
+      return resolvedValue;
+    });
+  }, []);
+
+  const setSearchVisible = useCallback((nextValue: SetStateAction<boolean>) => {
+    setSearchVisibleState((currentValue) => {
+      const resolvedValue = typeof nextValue === 'function'
+        ? nextValue(currentValue)
+        : nextValue;
+
+      if (resolvedValue) {
+        setExplorerVisibleState(false);
+      }
+
+      return resolvedValue;
+    });
   }, []);
 
   const requestConfirm = useCallback((
@@ -142,28 +244,16 @@ export function useWorkspaceLayout({
   }, [editorRef, pushToast]);
 
   const handleToggleExplorer = useCallback(() => {
-    setExplorerVisible((isVisible) => {
-      if (!isVisible) {
-        setSearchVisible(false);
-      }
-
-      return !isVisible;
-    });
-  }, []);
+    setExplorerVisible((isVisible) => !isVisible);
+  }, [setExplorerVisible]);
 
   const handleToggleTerminal = useCallback(() => {
     setTerminalVisible((isVisible) => !isVisible);
   }, []);
 
   const handleToggleSearch = useCallback(() => {
-    setSearchVisible((isVisible) => {
-      if (!isVisible) {
-        setExplorerVisible(false);
-      }
-
-      return !isVisible;
-    });
-  }, []);
+    setSearchVisible((isVisible) => !isVisible);
+  }, [setSearchVisible]);
 
   const navigateToFile = useCallback((file: string, line?: number, col?: number) => {
     if (pendingNavigationRef.current !== null) {

@@ -19,6 +19,11 @@ import {
   type AppearancePreference,
   type ThemeId,
 } from './themes';
+import {
+  readLocalStorageItem,
+  removeLocalStorageItem,
+  writeLocalStorageItem,
+} from '../lib/localStorage';
 
 interface ThemeContextValue {
   appearance: AppearancePreference;
@@ -41,20 +46,16 @@ function getPreferredAppearance(): AppearancePreference {
     return defaultAppearancePreference;
   }
 
-  try {
-    const storedAppearance = window.localStorage.getItem(appearanceStorageKey);
-    const resolvedStoredAppearance = resolveAppearancePreference(storedAppearance);
-    if (resolvedStoredAppearance) {
-      return resolvedStoredAppearance;
-    }
+  const storedAppearance = readLocalStorageItem(appearanceStorageKey);
+  const resolvedStoredAppearance = resolveAppearancePreference(storedAppearance);
+  if (resolvedStoredAppearance) {
+    return resolvedStoredAppearance;
+  }
 
-    const legacyStoredTheme = window.localStorage.getItem(themeStorageKey);
-    const resolvedLegacyAppearance = resolveAppearancePreference(legacyStoredTheme);
-    if (resolvedLegacyAppearance) {
-      return resolvedLegacyAppearance;
-    }
-  } catch {
-    // Ignore storage errors and fall back to a safe default.
+  const legacyStoredTheme = readLocalStorageItem(themeStorageKey);
+  const resolvedLegacyAppearance = resolveAppearancePreference(legacyStoredTheme);
+  if (resolvedLegacyAppearance) {
+    return resolvedLegacyAppearance;
   }
 
   return defaultAppearancePreference;
@@ -101,12 +102,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     applyTheme(theme);
 
-    try {
-      window.localStorage.setItem(appearanceStorageKey, appearance);
-      window.localStorage.removeItem(themeStorageKey);
-    } catch {
-      // Ignore storage errors and keep the in-memory theme active.
-    }
+    writeLocalStorageItem(appearanceStorageKey, appearance);
+    removeLocalStorageItem(themeStorageKey);
   }, [appearance, theme]);
 
   const value = useMemo<ThemeContextValue>(() => ({

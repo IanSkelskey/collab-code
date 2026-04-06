@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { getRoomStarterWorkspace, type RoomTemplateId } from '../config/roomTemplates';
+import { readLocalStorageJson, writeLocalStorageJson } from '../lib/localStorage';
 import {
   ROOT_PATH,
   getBaseName,
@@ -50,6 +51,48 @@ export interface VirtualFS {
 interface UseVirtualFSOptions {
   storageReady?: boolean;
   initialRoomTemplate?: RoomTemplateId | null;
+  roomId?: string;
+}
+
+interface StoredWorkspaceSessionState {
+  activeFile: string | null;
+  openTabs: string[];
+}
+
+function getWorkspaceSessionStorageKey(roomId: string): string {
+  return `collab-code-workspace-session:${roomId}`;
+}
+
+function parseStoredWorkspaceSession(value: unknown): StoredWorkspaceSessionState | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const openTabs = Array.isArray(candidate.openTabs)
+    ? candidate.openTabs
+      .filter((path): path is string => typeof path === 'string' && path.trim().length > 0)
+      .map((path) => normalizeVfsPath(path))
+    : [];
+
+  return {
+    activeFile: typeof candidate.activeFile === 'string' && candidate.activeFile.trim().length > 0
+      ? normalizeVfsPath(candidate.activeFile)
+      : null,
+    openTabs: [...new Set(openTabs)],
+  };
+}
+
+function readStoredWorkspaceSession(roomId?: string): StoredWorkspaceSessionState | null {
+  if (!roomId) {
+    return null;
+  }
+
+  return readLocalStorageJson(getWorkspaceSessionStorageKey(roomId), parseStoredWorkspaceSession);
+}
+
+function persistWorkspaceSession(roomId: string, sessionState: StoredWorkspaceSessionState): void {
+  writeLocalStorageJson(getWorkspaceSessionStorageKey(roomId), sessionState);
 }
 
 function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
@@ -117,16 +160,17 @@ function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
 
 export function useVirtualFS(
   ydoc: Y.Doc,
-  { storageReady = false, initialRoomTemplate = null }: UseVirtualFSOptions = {},
+  { storageReady = false, initialRoomTemplate = null, roomId }: UseVirtualFSOptions = {},
 ): VirtualFS {
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
   const fsState = useMemo(() => ydoc.getMap<string>('fs-state'), [ydoc]);
+  const storedSessionRef = useRef<StoredWorkspaceSessionState | null>(readStoredWorkspaceSession(roomId));
 
   const [files, setFiles] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
-  const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [openTabs, setOpenTabs] = useState<string[]>([]);
+  const [activeFile, setActiveFile] = useState<string | null>(() => storedSessionRef.current?.activeFile ?? null);
+  const [openTabs, setOpenTabs] = useState<string[]>(() => storedSessionRef.current?.openTabs ?? []);
   const [cwd, setCwdState] = useState(ROOT_PATH);
   const [contentVersion, setContentVersion] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -298,20 +342,54 @@ export function useVirtualFS(
   }, [fsMap, fsState, initialRoomTemplate, storageReady, ydoc]);
 
   useEffect(() => {
-    if (files.length === 0 || initialFileOpenedRef.current) return;
-    if (activeFile || openTabs.length > 0) {
+    if (!storageReady || initialFileOpenedRef.current) {
+      return;
+    }
+
+    if (files.length === 0) {
+      if (activeFile || openTabs.length > 0) {
+        setActiveFile(null);
+        setOpenTabs([]);
+      }
+
+      setLoading(false);
       initialFileOpenedRef.current = true;
       return;
     }
 
-    const firstFile = files[0];
-    if (!firstFile) return;
+    const existingFiles = new Set(files);
+    const validOpenTabs = openTabs.filter((path) => existingFiles.has(path));
+    const validActiveFile = activeFile && existingFiles.has(activeFile) ? activeFile : null;
+    const restoredActiveFile = storedSessionRef.current?.activeFile;
+    const nextActiveFile = restoredActiveFile && existingFiles.has(restoredActiveFile)
+      ? restoredActiveFile
+      : validActiveFile ?? validOpenTabs[0] ?? files[0] ?? null;
+    const nextOpenTabs = [...new Set(validOpenTabs)];
 
-    setActiveFile(firstFile);
-    setOpenTabs([firstFile]);
+    if (nextActiveFile && !nextOpenTabs.includes(nextActiveFile)) {
+      nextOpenTabs.push(nextActiveFile);
+    }
+
+    setActiveFile(nextActiveFile);
+    setOpenTabs(nextOpenTabs);
     setLoading(false);
     initialFileOpenedRef.current = true;
-  }, [activeFile, files, openTabs]);
+  }, [activeFile, files, openTabs, storageReady]);
+
+  useEffect(() => {
+    if (!roomId || !storageReady || !initialFileOpenedRef.current) {
+      return;
+    }
+
+    const existingFiles = new Set(files);
+    const persistedOpenTabs = openTabs.filter((path) => existingFiles.has(path));
+    const persistedActiveFile = activeFile && existingFiles.has(activeFile) ? activeFile : null;
+
+    persistWorkspaceSession(roomId, {
+      activeFile: persistedActiveFile,
+      openTabs: persistedOpenTabs,
+    });
+  }, [activeFile, files, openTabs, roomId, storageReady]);
 
   const tree = useMemo(() => buildTree(files, dirs), [dirs, files]);
 

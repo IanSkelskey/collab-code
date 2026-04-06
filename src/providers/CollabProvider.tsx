@@ -10,6 +10,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import type { Awareness } from 'y-protocols/awareness';
 import { CollabProvider as SyncProvider } from './SyncProvider';
 import { CollabContext, type CollabContextValue } from '../context/CollabContext';
+import { readLocalStorageItem, writeLocalStorageItem } from '../lib/localStorage';
 import { ensureSharedTerminalInitialized } from '../services/sharedTerminal';
 
 const PEER_COLORS = [
@@ -47,18 +48,19 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const [connected, setConnected] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('collab-code-username') || getRandomName();
+    return readLocalStorageItem('collab-code-username') || getRandomName();
   });
   const [userColor, setUserColor] = useState(() => {
-    return localStorage.getItem('collab-code-color') || PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)];
+    return readLocalStorageItem('collab-code-color')
+      || PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)];
   });
 
   useEffect(() => {
-    localStorage.setItem('collab-code-username', userName);
+    writeLocalStorageItem('collab-code-username', userName);
   }, [userName]);
 
   useEffect(() => {
-    localStorage.setItem('collab-code-color', userColor);
+    writeLocalStorageItem('collab-code-color', userColor);
   }, [userColor]);
 
   useEffect(() => {
