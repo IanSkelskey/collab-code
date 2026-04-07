@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { HelpCircleIcon, CloseIcon } from './Icons';
+import { HelpCircleIcon, CloseIcon, RefreshIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 import GetInvolvedActions from './GetInvolvedActions';
 import type { ServerStatusSnapshot, ServerStatusTone } from '../types/serverStatus';
@@ -193,8 +193,9 @@ export default function HelpModal({
                 </div>
                 <button
                   onClick={serverStatus.refresh}
-                  className="cc-button-secondary cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium"
+                  className="cc-button-secondary cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium flex items-center gap-1.5"
                 >
+                  <RefreshIcon className="h-[1.125rem] w-[1.125rem]" />
                   Refresh
                 </button>
               </div>
