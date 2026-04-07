@@ -1,161 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import { getRoomStarterWorkspace, type RoomTemplateId } from '../config/roomTemplates';
-import { readLocalStorageJson, writeLocalStorageJson } from '../lib/localStorage';
+import type { RoomTemplateId } from '../config/roomTemplates';
 import {
-  ROOT_PATH,
-  getBaseName,
-  getParentPath,
-  isRootPath,
-  joinVfsPath,
-  normalizeVfsPath,
-  stripVfsRoot,
-} from '../lib/vfsPaths';
+  closeOtherWorkspaceTabs,
+  closeWorkspaceTab,
+  closeWorkspaceTabsToRight,
+  deleteWorkspaceFile,
+  EMPTY_WORKSPACE_SESSION_STATE,
+  inferRenamedWorkspacePaths,
+  openWorkspaceFile,
+  persistWorkspaceSession,
+  pruneWorkspaceSessionState,
+  readStoredWorkspaceSession,
+  removeWorkspacePaths,
+  renameWorkspaceSessionPath,
+  renameWorkspaceSessionPathsByMap,
+  resolveInitialWorkspaceSessionState,
+  type StoredWorkspaceSessionState,
+} from '../lib/virtualFsSession';
+import {
+  bootstrapStarterWorkspace,
+  deleteStoreFile,
+  ensureStoreDirectory,
+  getAllStoreFiles,
+  getStoreChangePaths,
+  isDirectoryInStore,
+  listStoreDirectoryEntries,
+  listStoreDirectoryPaths,
+  listStoreFilePaths,
+  pathExistsInStore,
+  removeStoreDirectory,
+  renameStorePath,
+  writeStoreFile,
+} from '../lib/virtualFsStore';
+import { buildVirtualFsTree } from '../lib/virtualFsTree';
+import { ROOT_PATH, joinVfsPath, normalizeVfsPath } from '../lib/vfsPaths';
+import type { VirtualFS } from '../types/virtualFs';
 
-export interface FSNode {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  children?: FSNode[];
-}
-
-export interface VirtualFS {
-  tree: FSNode;
-  files: string[];
-  activeFile: string | null;
-  openTabs: string[];
-  cwd: string;
-  contentVersion: number;
-  loading: boolean;
-  getFileText: (path: string) => Y.Text | null;
-  readFile: (path: string) => string | null;
-  writeFile: (path: string, content?: string) => void;
-  deleteFile: (path: string) => void;
-  mkdir: (path: string) => void;
-  rmdir: (path: string) => boolean;
-  exists: (path: string) => boolean;
-  isDirectory: (path: string) => boolean;
-  isFile: (path: string) => boolean;
-  ls: (dirPath: string) => string[];
-  rename: (oldPath: string, newPath: string) => void;
-  openFile: (path: string) => void;
-  closeTab: (path: string) => void;
-  closeAllTabs: () => void;
-  closeOtherTabs: (path: string) => void;
-  closeTabsToRight: (path: string) => void;
-  setCwd: (path: string) => void;
-  resolve: (relativePath: string) => string;
-  getAllFiles: () => Record<string, string>;
-}
+export type { FSNode, VirtualFS } from '../types/virtualFs';
 
 interface UseVirtualFSOptions {
   storageReady?: boolean;
   initialRoomTemplate?: RoomTemplateId | null;
   roomId?: string;
-}
-
-interface StoredWorkspaceSessionState {
-  activeFile: string | null;
-  openTabs: string[];
-}
-
-function getWorkspaceSessionStorageKey(roomId: string): string {
-  return `collab-code-workspace-session:${roomId}`;
-}
-
-function parseStoredWorkspaceSession(value: unknown): StoredWorkspaceSessionState | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  const openTabs = Array.isArray(candidate.openTabs)
-    ? candidate.openTabs
-      .filter((path): path is string => typeof path === 'string' && path.trim().length > 0)
-      .map((path) => normalizeVfsPath(path))
-    : [];
-
-  return {
-    activeFile: typeof candidate.activeFile === 'string' && candidate.activeFile.trim().length > 0
-      ? normalizeVfsPath(candidate.activeFile)
-      : null,
-    openTabs: [...new Set(openTabs)],
-  };
-}
-
-function readStoredWorkspaceSession(roomId?: string): StoredWorkspaceSessionState | null {
-  if (!roomId) {
-    return null;
-  }
-
-  return readLocalStorageJson(getWorkspaceSessionStorageKey(roomId), parseStoredWorkspaceSession);
-}
-
-function persistWorkspaceSession(roomId: string, sessionState: StoredWorkspaceSessionState): void {
-  writeLocalStorageJson(getWorkspaceSessionStorageKey(roomId), sessionState);
-}
-
-function buildTree(filePaths: string[], dirPaths: string[]): FSNode {
-  const root: FSNode = { name: ROOT_PATH, path: ROOT_PATH, type: 'directory', children: [] };
-  const allDirs = new Set<string>([ROOT_PATH]);
-
-  for (const directoryPath of dirPaths) {
-    const parts = directoryPath.split('/');
-    for (let index = 1; index <= parts.length; index += 1) {
-      allDirs.add(parts.slice(0, index).join('/'));
-    }
-  }
-
-  for (const filePath of filePaths) {
-    const parts = filePath.split('/');
-    for (let index = 1; index < parts.length; index += 1) {
-      allDirs.add(parts.slice(0, index).join('/'));
-    }
-  }
-
-  const nodeMap = new Map<string, FSNode>([[ROOT_PATH, root]]);
-
-  for (const directoryPath of [...allDirs].sort()) {
-    if (directoryPath === ROOT_PATH) continue;
-
-    const directoryNode: FSNode = {
-      name: getBaseName(directoryPath),
-      path: directoryPath,
-      type: 'directory',
-      children: [],
-    };
-
-    nodeMap.set(directoryPath, directoryNode);
-    nodeMap.get(getParentPath(directoryPath))?.children?.push(directoryNode);
-  }
-
-  for (const filePath of filePaths) {
-    const fileNode: FSNode = {
-      name: getBaseName(filePath),
-      path: filePath,
-      type: 'file',
-    };
-
-    nodeMap.get(getParentPath(filePath))?.children?.push(fileNode);
-  }
-
-  function sortChildren(node: FSNode) {
-    if (!node.children) return;
-
-    node.children.sort((left, right) => {
-      if (left.type !== right.type) {
-        return left.type === 'directory' ? -1 : 1;
-      }
-
-      return left.name.localeCompare(right.name);
-    });
-
-    node.children.forEach(sortChildren);
-  }
-
-  sortChildren(root);
-
-  return root;
 }
 
 export function useVirtualFS(
@@ -169,8 +56,10 @@ export function useVirtualFS(
 
   const [files, setFiles] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
-  const [activeFile, setActiveFile] = useState<string | null>(() => storedSessionRef.current?.activeFile ?? null);
-  const [openTabs, setOpenTabs] = useState<string[]>(() => storedSessionRef.current?.openTabs ?? []);
+  const [workspaceSession, setWorkspaceSession] = useState<StoredWorkspaceSessionState>(() => ({
+    activeFile: storedSessionRef.current?.activeFile ?? null,
+    openTabs: storedSessionRef.current?.openTabs ?? [],
+  }));
   const [cwd, setCwdState] = useState(ROOT_PATH);
   const [contentVersion, setContentVersion] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -178,9 +67,11 @@ export function useVirtualFS(
   const bootstrapResolvedRef = useRef(false);
   const initialFileOpenedRef = useRef(false);
 
+  const { activeFile, openTabs } = workspaceSession;
+
   const refreshState = useCallback(() => {
-    setFiles(Array.from(fsMap.keys()).sort());
-    setDirs(fsDirs.toArray());
+    setFiles(listStoreFilePaths(fsMap));
+    setDirs(listStoreDirectoryPaths(fsDirs));
   }, [fsDirs, fsMap]);
 
   const refreshCwd = useCallback(() => {
@@ -194,78 +85,25 @@ export function useVirtualFS(
     const onFsChange = (event: Y.YMapEvent<Y.Text>) => {
       refreshState();
 
-      const deletedPaths: string[] = [];
-      const addedPaths: string[] = [];
-
-      event.changes.keys.forEach((change, key) => {
-        if (change.action === 'delete') {
-          deletedPaths.push(key);
-        } else if (change.action === 'add') {
-          addedPaths.push(key);
-        }
-      });
+      const { addedPaths, deletedPaths } = getStoreChangePaths(event);
 
       if (deletedPaths.length > 0 && addedPaths.length > 0) {
-        const renamedPaths = new Map<string, string>();
-
-        if (deletedPaths.length === 1 && addedPaths.length === 1) {
-          renamedPaths.set(deletedPaths[0], addedPaths[0]);
-        } else {
-          for (const oldPath of deletedPaths) {
-            const oldName = getBaseName(oldPath);
-            const nextPath = addedPaths.find((newPath) => getBaseName(newPath) === oldName);
-
-            if (nextPath) {
-              renamedPaths.set(oldPath, nextPath);
-            }
-          }
-        }
+        const renamedPaths = inferRenamedWorkspacePaths(deletedPaths, addedPaths);
 
         if (renamedPaths.size > 0) {
-          setOpenTabs((currentTabs) => currentTabs.map((tab) => renamedPaths.get(tab) ?? tab));
-          setActiveFile((currentFile) => (currentFile ? (renamedPaths.get(currentFile) ?? currentFile) : null));
+          setWorkspaceSession((currentState) => renameWorkspaceSessionPathsByMap(currentState, renamedPaths));
         }
 
         const pureDeletes = deletedPaths.filter((deletedPath) => !renamedPaths.has(deletedPath));
         if (pureDeletes.length > 0) {
-          const removedPaths = new Set(pureDeletes);
-          setOpenTabs((currentTabs) => {
-            const nextTabs = currentTabs.filter((tab) => !removedPaths.has(tab));
-
-            if (nextTabs.length !== currentTabs.length) {
-              setActiveFile((currentFile) => {
-                if (currentFile && removedPaths.has(currentFile)) {
-                  return nextTabs[0] ?? null;
-                }
-
-                return currentFile;
-              });
-            }
-
-            return nextTabs;
-          });
+          setWorkspaceSession((currentState) => removeWorkspacePaths(currentState, pureDeletes));
         }
 
         return;
       }
 
       if (deletedPaths.length > 0) {
-        const removedPaths = new Set(deletedPaths);
-        setOpenTabs((currentTabs) => {
-          const nextTabs = currentTabs.filter((tab) => !removedPaths.has(tab));
-
-          if (nextTabs.length !== currentTabs.length) {
-            setActiveFile((currentFile) => {
-              if (currentFile && removedPaths.has(currentFile)) {
-                return nextTabs[0] ?? null;
-              }
-
-              return currentFile;
-            });
-          }
-
-          return nextTabs;
-        });
+        setWorkspaceSession((currentState) => removeWorkspacePaths(currentState, deletedPaths));
       }
     };
 
@@ -299,7 +137,9 @@ export function useVirtualFS(
   }, [fsState, refreshCwd]);
 
   useEffect(() => {
-    if (!storageReady || bootstrapResolvedRef.current) return;
+    if (!storageReady || bootstrapResolvedRef.current) {
+      return;
+    }
 
     bootstrapResolvedRef.current = true;
     setLoading(false);
@@ -312,32 +152,15 @@ export function useVirtualFS(
       return;
     }
 
-    const oldCode = ydoc.getText('code').toString();
-    const starterWorkspace = getRoomStarterWorkspace(initialRoomTemplate);
-
-    if (!starterWorkspace || starterWorkspace.files.length === 0) {
+    const initialPath = bootstrapStarterWorkspace(ydoc, fsMap, initialRoomTemplate);
+    if (!initialPath) {
       return;
     }
 
-    ydoc.transact(() => {
-      for (const file of starterWorkspace.files) {
-        const filePath = joinVfsPath(ROOT_PATH, file.name);
-        const ytext = new Y.Text();
-        const content = file.name === starterWorkspace.initialOpenFileName && oldCode.length > 0
-          ? oldCode
-          : file.content;
-
-        ytext.insert(0, content);
-        fsMap.set(filePath, ytext);
-      }
+    setWorkspaceSession({
+      activeFile: initialPath,
+      openTabs: [initialPath],
     });
-
-    const initialPath = starterWorkspace.initialOpenFileName
-      ? joinVfsPath(ROOT_PATH, starterWorkspace.initialOpenFileName)
-      : joinVfsPath(ROOT_PATH, starterWorkspace.files[0].name);
-
-    setActiveFile(initialPath);
-    setOpenTabs([initialPath]);
     initialFileOpenedRef.current = true;
   }, [fsMap, fsState, initialRoomTemplate, storageReady, ydoc]);
 
@@ -347,51 +170,30 @@ export function useVirtualFS(
     }
 
     if (files.length === 0) {
-      if (activeFile || openTabs.length > 0) {
-        setActiveFile(null);
-        setOpenTabs([]);
-      }
-
+      setWorkspaceSession(EMPTY_WORKSPACE_SESSION_STATE);
       setLoading(false);
       initialFileOpenedRef.current = true;
       return;
     }
 
-    const existingFiles = new Set(files);
-    const validOpenTabs = openTabs.filter((path) => existingFiles.has(path));
-    const validActiveFile = activeFile && existingFiles.has(activeFile) ? activeFile : null;
-    const restoredActiveFile = storedSessionRef.current?.activeFile;
-    const nextActiveFile = restoredActiveFile && existingFiles.has(restoredActiveFile)
-      ? restoredActiveFile
-      : validActiveFile ?? validOpenTabs[0] ?? files[0] ?? null;
-    const nextOpenTabs = [...new Set(validOpenTabs)];
-
-    if (nextActiveFile && !nextOpenTabs.includes(nextActiveFile)) {
-      nextOpenTabs.push(nextActiveFile);
-    }
-
-    setActiveFile(nextActiveFile);
-    setOpenTabs(nextOpenTabs);
+    setWorkspaceSession((currentState) => resolveInitialWorkspaceSessionState({
+      files,
+      currentState,
+      storedState: storedSessionRef.current,
+    }));
     setLoading(false);
     initialFileOpenedRef.current = true;
-  }, [activeFile, files, openTabs, storageReady]);
+  }, [files, storageReady]);
 
   useEffect(() => {
     if (!roomId || !storageReady || !initialFileOpenedRef.current) {
       return;
     }
 
-    const existingFiles = new Set(files);
-    const persistedOpenTabs = openTabs.filter((path) => existingFiles.has(path));
-    const persistedActiveFile = activeFile && existingFiles.has(activeFile) ? activeFile : null;
+    persistWorkspaceSession(roomId, pruneWorkspaceSessionState(workspaceSession, files));
+  }, [files, roomId, storageReady, workspaceSession]);
 
-    persistWorkspaceSession(roomId, {
-      activeFile: persistedActiveFile,
-      openTabs: persistedOpenTabs,
-    });
-  }, [activeFile, files, openTabs, roomId, storageReady]);
-
-  const tree = useMemo(() => buildTree(files, dirs), [dirs, files]);
+  const tree = useMemo(() => buildVirtualFsTree(files, dirs), [dirs, files]);
 
   const getFileText = useCallback((path: string): Y.Text | null => {
     return fsMap.get(normalizeVfsPath(path)) ?? null;
@@ -403,224 +205,58 @@ export function useVirtualFS(
   }, [getFileText]);
 
   const writeFile = useCallback((path: string, content?: string) => {
-    const normalizedPath = normalizeVfsPath(path);
-    const hasContent = content !== undefined;
-
-    if (!fsMap.has(normalizedPath)) {
-      const ytext = new Y.Text();
-      if (hasContent && content.length > 0) {
-        ytext.insert(0, content);
-      }
-      fsMap.set(normalizedPath, ytext);
-      return;
-    }
-
-    if (!hasContent) {
-      return;
-    }
-
-    const ytext = fsMap.get(normalizedPath);
-    if (!ytext) return;
-
-    ydoc.transact(() => {
-      ytext.delete(0, ytext.length);
-      ytext.insert(0, content);
-    });
+    writeStoreFile(ydoc, fsMap, path, content);
   }, [fsMap, ydoc]);
 
   const deleteFile = useCallback((path: string) => {
     const normalizedPath = normalizeVfsPath(path);
 
-    fsMap.delete(normalizedPath);
-
-    setOpenTabs((currentTabs) => {
-      const nextTabs = currentTabs.filter((tab) => tab !== normalizedPath);
-
-      if (activeFile === normalizedPath) {
-        const removedIndex = currentTabs.indexOf(normalizedPath);
-        const nextActiveFile = nextTabs[Math.min(removedIndex, nextTabs.length - 1)]
-          ?? Array.from(fsMap.keys()).filter((key) => key !== normalizedPath).sort()[0]
-          ?? null;
-
-        setActiveFile(nextActiveFile);
-      }
-
-      return nextTabs;
-    });
-  }, [activeFile, fsMap]);
+    deleteStoreFile(fsMap, normalizedPath);
+    setWorkspaceSession((currentState) => deleteWorkspaceFile(
+      currentState,
+      normalizedPath,
+      listStoreFilePaths(fsMap),
+    ));
+  }, [fsMap]);
 
   const mkdir = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    if (!fsDirs.toArray().includes(normalizedPath)) {
-      fsDirs.push([normalizedPath]);
-    }
+    ensureStoreDirectory(fsDirs, path);
   }, [fsDirs]);
 
   const rmdir = useCallback((path: string): boolean => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    if (isRootPath(normalizedPath)) {
-      return false;
-    }
-
-    const hasFiles = Array.from(fsMap.keys()).some((key) => key.startsWith(`${normalizedPath}/`));
-    if (hasFiles) {
-      return false;
-    }
-
-    const existingDirectories = fsDirs.toArray();
-    const directIndex = existingDirectories.indexOf(normalizedPath);
-    if (directIndex >= 0) {
-      fsDirs.delete(directIndex, 1);
-    }
-
-    for (let index = fsDirs.length - 1; index >= 0; index -= 1) {
-      if (fsDirs.get(index).startsWith(`${normalizedPath}/`)) {
-        fsDirs.delete(index, 1);
-      }
-    }
-
-    return true;
+    return removeStoreDirectory(fsMap, fsDirs, path);
   }, [fsDirs, fsMap]);
 
   const exists = useCallback((path: string): boolean => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    if (isRootPath(normalizedPath) || fsMap.has(normalizedPath)) {
-      return true;
-    }
-
-    if (Array.from(fsMap.keys()).some((key) => key.startsWith(`${normalizedPath}/`))) {
-      return true;
-    }
-
-    return fsDirs.toArray().includes(normalizedPath);
+    return pathExistsInStore(fsMap, fsDirs, path);
   }, [fsDirs, fsMap]);
 
   const isDirectory = useCallback((path: string): boolean => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    if (isRootPath(normalizedPath)) {
-      return true;
-    }
-
-    if (fsMap.has(normalizedPath)) {
-      return false;
-    }
-
-    return exists(normalizedPath);
-  }, [exists, fsMap]);
+    return isDirectoryInStore(fsMap, fsDirs, path);
+  }, [fsDirs, fsMap]);
 
   const isFile = useCallback((path: string): boolean => {
     return fsMap.has(normalizeVfsPath(path));
   }, [fsMap]);
 
   const ls = useCallback((dirPath: string): string[] => {
-    const normalizedPath = normalizeVfsPath(dirPath);
-    const prefix = isRootPath(normalizedPath) ? `${ROOT_PATH}/` : `${normalizedPath}/`;
-    const entries = new Set<string>();
-
-    for (const key of fsMap.keys()) {
-      if (!key.startsWith(prefix)) continue;
-
-      const remainder = key.slice(prefix.length);
-      const slashIndex = remainder.indexOf('/');
-      entries.add(slashIndex >= 0 ? `${remainder.slice(0, slashIndex)}/` : remainder);
-    }
-
-    for (const directoryPath of fsDirs.toArray()) {
-      if (!directoryPath.startsWith(prefix)) continue;
-
-      const remainder = directoryPath.slice(prefix.length);
-      const slashIndex = remainder.indexOf('/');
-      entries.add(slashIndex >= 0 ? `${remainder.slice(0, slashIndex)}/` : `${remainder}/`);
-    }
-
-    return [...entries].sort();
+    return listStoreDirectoryEntries(fsMap, fsDirs, dirPath);
   }, [fsDirs, fsMap]);
 
   const rename = useCallback((oldPath: string, newPath: string) => {
     const oldNormalizedPath = normalizeVfsPath(oldPath);
     const newNormalizedPath = normalizeVfsPath(newPath);
 
-    ydoc.transact(() => {
-      if (fsMap.has(oldNormalizedPath)) {
-        const oldText = fsMap.get(oldNormalizedPath);
-        if (!oldText) return;
-
-        const content = oldText.toString();
-        fsMap.delete(oldNormalizedPath);
-
-        const newText = new Y.Text();
-        if (content) {
-          newText.insert(0, content);
-        }
-        fsMap.set(newNormalizedPath, newText);
-        return;
-      }
-
-      const oldPrefix = `${oldNormalizedPath}/`;
-      const keysToMove = Array.from(fsMap.keys()).filter((key) => key.startsWith(oldPrefix));
-
-      for (const key of keysToMove) {
-        const oldText = fsMap.get(key);
-        if (!oldText) continue;
-
-        const content = oldText.toString();
-        fsMap.delete(key);
-
-        const newKey = `${newNormalizedPath}${key.slice(oldNormalizedPath.length)}`;
-        const newText = new Y.Text();
-        if (content) {
-          newText.insert(0, content);
-        }
-        fsMap.set(newKey, newText);
-      }
-
-      const renamedDirectories: string[] = [];
-      for (let index = fsDirs.length - 1; index >= 0; index -= 1) {
-        const directoryPath = fsDirs.get(index);
-        if (directoryPath === oldNormalizedPath || directoryPath.startsWith(oldPrefix)) {
-          renamedDirectories.push(`${newNormalizedPath}${directoryPath.slice(oldNormalizedPath.length)}`);
-          fsDirs.delete(index, 1);
-        }
-      }
-
-      if (renamedDirectories.length > 0) {
-        fsDirs.push(renamedDirectories.reverse());
-      }
-    });
-
-    if (fsMap.has(newNormalizedPath)) {
-      if (activeFile === oldNormalizedPath) {
-        setActiveFile(newNormalizedPath);
-      }
-
-      setOpenTabs((currentTabs) => currentTabs.map((tab) => (
-        tab === oldNormalizedPath ? newNormalizedPath : tab
-      )));
+    if (!renameStorePath(ydoc, fsMap, fsDirs, oldNormalizedPath, newNormalizedPath)) {
       return;
     }
 
-    const oldPrefix = `${oldNormalizedPath}/`;
-
-    setOpenTabs((currentTabs) => currentTabs.map((tab) => {
-      if (tab === oldNormalizedPath) {
-        return newNormalizedPath;
-      }
-
-      if (tab.startsWith(oldPrefix)) {
-        return `${newNormalizedPath}${tab.slice(oldNormalizedPath.length)}`;
-      }
-
-      return tab;
-    }));
-
-    if (activeFile && (activeFile === oldNormalizedPath || activeFile.startsWith(oldPrefix))) {
-      setActiveFile(`${newNormalizedPath}${activeFile.slice(oldNormalizedPath.length)}`);
-    }
-  }, [activeFile, fsDirs, fsMap, ydoc]);
+    setWorkspaceSession((currentState) => renameWorkspaceSessionPath(
+      currentState,
+      oldNormalizedPath,
+      newNormalizedPath,
+    ));
+  }, [fsDirs, fsMap, ydoc]);
 
   const openFile = useCallback((path: string) => {
     const normalizedPath = normalizeVfsPath(path);
@@ -629,56 +265,24 @@ export function useVirtualFS(
       return;
     }
 
-    setActiveFile(normalizedPath);
-    setOpenTabs((currentTabs) => (
-      currentTabs.includes(normalizedPath) ? currentTabs : [...currentTabs, normalizedPath]
-    ));
+    setWorkspaceSession((currentState) => openWorkspaceFile(currentState, normalizedPath));
   }, [fsMap]);
 
   const closeTab = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    setOpenTabs((currentTabs) => {
-      const nextTabs = currentTabs.filter((tab) => tab !== normalizedPath);
-
-      if (activeFile === normalizedPath) {
-        const closingIndex = currentTabs.indexOf(normalizedPath);
-        const nextActiveFile = nextTabs[Math.min(closingIndex, nextTabs.length - 1)] ?? null;
-        setActiveFile(nextActiveFile);
-      }
-
-      return nextTabs;
-    });
-  }, [activeFile]);
+    setWorkspaceSession((currentState) => closeWorkspaceTab(currentState, path));
+  }, []);
 
   const closeAllTabs = useCallback(() => {
-    setOpenTabs([]);
-    setActiveFile(null);
+    setWorkspaceSession(EMPTY_WORKSPACE_SESSION_STATE);
   }, []);
 
   const closeOtherTabs = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
-    setOpenTabs((currentTabs) => currentTabs.filter((tab) => tab === normalizedPath));
-    setActiveFile(normalizedPath);
+    setWorkspaceSession((currentState) => closeOtherWorkspaceTabs(currentState, path));
   }, []);
 
   const closeTabsToRight = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
-
-    setOpenTabs((currentTabs) => {
-      const tabIndex = currentTabs.indexOf(normalizedPath);
-      if (tabIndex < 0) {
-        return currentTabs;
-      }
-
-      const nextTabs = currentTabs.slice(0, tabIndex + 1);
-      if (activeFile && !nextTabs.includes(activeFile)) {
-        setActiveFile(normalizedPath);
-      }
-
-      return nextTabs;
-    });
-  }, [activeFile]);
+    setWorkspaceSession((currentState) => closeWorkspaceTabsToRight(currentState, path));
+  }, []);
 
   const setCwd = useCallback((path: string) => {
     fsState.set('cwd', normalizeVfsPath(path));
@@ -693,13 +297,7 @@ export function useVirtualFS(
   }, [cwd]);
 
   const getAllFiles = useCallback((): Record<string, string> => {
-    const allFiles: Record<string, string> = {};
-
-    for (const [path, ytext] of fsMap.entries()) {
-      allFiles[stripVfsRoot(path)] = ytext.toString();
-    }
-
-    return allFiles;
+    return getAllStoreFiles(fsMap);
   }, [fsMap]);
 
   return {
