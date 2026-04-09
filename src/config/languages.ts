@@ -177,6 +177,15 @@ if __name__ == "__main__":
     iconColor: 'text-green-400',
     iconName: 'sql',
     mimeType: 'text/x-sql',
+  },
+  {
+    id: 'perl',
+    label: 'Perl',
+    extensions: ['.pl', '.pm'],
+    monacoLanguage: 'perl',
+    iconColor: 'text-purple-400',
+    iconName: 'perl',
+    mimeType: 'text/x-perl',
   }
 ];
 

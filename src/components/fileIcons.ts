@@ -11,6 +11,7 @@ import {
   JavaFileIcon,
   JsonFileIcon,
   SqlFileIcon,
+  PerlFileIcon,
 } from './Icons';
 
 export type IconProps = SVGProps<SVGSVGElement>;
@@ -27,4 +28,5 @@ export const iconsByName: Record<string, ComponentType<IconProps>> = {
   java: JavaFileIcon,
   json: JsonFileIcon,
   sql: SqlFileIcon,
+  perl: PerlFileIcon,
 };
