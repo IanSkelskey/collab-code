@@ -15,10 +15,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          monaco: ['monaco-editor', '@monaco-editor/react'],
-          yjs: ['yjs', 'y-indexeddb', 'y-monaco', 'y-websocket'],
-          xterm: ['@xterm/xterm', '@xterm/addon-fit'],
+        manualChunks(id) {
+          if (id.includes('monaco-editor') || id.includes('@monaco-editor/react')) return 'monaco'
+          if (id.includes('yjs') || id.includes('y-indexeddb') || id.includes('y-monaco') || id.includes('y-websocket')) return 'yjs'
+          if (id.includes('@xterm/xterm') || id.includes('@xterm/addon-fit')) return 'xterm'
         },
       },
     },
