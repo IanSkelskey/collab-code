@@ -1,25 +1,15 @@
-<p align="center">
-  <img src="public/logo.svg" alt="Collab Code Logo" width="96" />
-</p>
+![Collab Code OG Image](./public/og-image.png)
 
-<h1 align="center">Collab Code</h1>
+# Collab Code
 
-<p align="center">
-  Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
-</p>
+Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat&labelColor=555" alt="Version 1.0.0" />
-</p>
+![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-blue?style=flat&labelColor=555)
 
-<p align="center">
-  <a href="https://ianskelskey.github.io/collab-code"><img src="https://img.shields.io/badge/Try%20it%20live%20%E2%86%92-059669?style=for-the-badge&logo=rocket&logoColor=white" alt="Try it live" /></a>
-  <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contributing-Guide-111827?style=for-the-badge&logo=github&logoColor=white" alt="Contributing Guide" /></a>
-</p>
+[![Try it live](https://img.shields.io/badge/Try%20it%20live%20%E2%86%92-059669?style=for-the-badge&logo=rocket&logoColor=white)](https://ianskelskey.github.io/collab-code)
+[![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-111827?style=for-the-badge&logo=github&logoColor=white)](./CONTRIBUTING.md)
 
-<p align="center">
-  Share a room link, edit the same workspace in Monaco, use one shared terminal session, manage files together, and run Java or Python from the browser through a lightweight relay server.
-</p>
+Share a room link, edit the same workspace in Monaco, use one shared terminal session, manage files together, and run Java or Python from the browser through a lightweight relay server.
 
 ## Why Collab Code
 
