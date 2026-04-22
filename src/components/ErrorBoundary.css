@@ -1,0 +1,124 @@
+/*
+ * ErrorBoundary.css — fallback styling shown when WorkspaceScreen (or any
+ * descendant) throws during render. Uses collab-code's --cc-* dark palette.
+ */
+
+.cc-error-boundary {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: var(--cc-bg-app);
+  color: var(--cc-text-primary);
+  overflow: auto;
+}
+
+.cc-error-boundary-card {
+  max-width: 36rem;
+  width: 100%;
+  padding: 2.5rem;
+  background: var(--cc-bg-panel);
+  border: 1px solid var(--cc-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--cc-shadow-lg);
+}
+
+.cc-error-boundary-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cc-danger);
+}
+
+.cc-error-boundary-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--cc-text-primary);
+}
+
+.cc-error-boundary-message {
+  margin: 0 0 1.5rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--cc-text-secondary);
+}
+
+.cc-error-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cc-error-boundary-btn {
+  padding: 0.625rem 1.25rem;
+  background: transparent;
+  color: var(--cc-text-primary);
+  border: 1px solid var(--cc-border);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.cc-error-boundary-btn:hover {
+  border-color: var(--cc-accent);
+  color: var(--cc-accent);
+}
+
+.cc-error-boundary-btn:focus-visible {
+  outline: 2px solid var(--cc-accent);
+  outline-offset: 2px;
+}
+
+.cc-error-boundary-btn--primary {
+  background: var(--cc-accent);
+  color: var(--cc-accent-contrast);
+  border-color: var(--cc-accent);
+}
+
+.cc-error-boundary-btn--primary:hover {
+  background: var(--cc-accent-strong);
+  border-color: var(--cc-accent-strong);
+  color: var(--cc-accent-contrast);
+}
+
+.cc-error-boundary-details {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--cc-border-soft);
+  font-size: 0.875rem;
+  color: var(--cc-text-secondary);
+}
+
+.cc-error-boundary-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--cc-text-primary);
+}
+
+.cc-error-boundary-stack {
+  margin: 0.75rem 0 0;
+  padding: 0.875rem 1rem;
+  max-height: 16rem;
+  overflow: auto;
+  background: var(--cc-bg-canvas);
+  border: 1px solid var(--cc-border);
+  border-radius: 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--cc-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

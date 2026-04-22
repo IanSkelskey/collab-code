@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import LandingPage from './components/LandingPage';
 import WorkspaceScreen from './components/WorkspaceScreen';
 import { getRoomStarterWorkspace, type RoomTemplateId } from './config/roomTemplates';
@@ -53,11 +54,13 @@ export default function App() {
   }
 
   return (
-    <CollabProvider key={roomId} roomId={roomId}>
-      <WorkspaceScreen
-        onExitRoom={handleExitRoom}
-        initialRoomTemplate={getInitialRoomTemplate(createdRoomId, createdRoomTemplate, roomId)}
-      />
-    </CollabProvider>
+    <ErrorBoundary resetKey={roomId}>
+      <CollabProvider key={roomId} roomId={roomId}>
+        <WorkspaceScreen
+          onExitRoom={handleExitRoom}
+          initialRoomTemplate={getInitialRoomTemplate(createdRoomId, createdRoomTemplate, roomId)}
+        />
+      </CollabProvider>
+    </ErrorBoundary>
   );
 }
