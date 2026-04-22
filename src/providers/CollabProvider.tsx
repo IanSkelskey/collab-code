@@ -5,6 +5,7 @@ import type { Awareness } from 'y-protocols/awareness';
 import { CollabProvider as SyncProvider } from './SyncProvider';
 import { CollabContext, type CollabContextValue } from '../context/CollabContext';
 import { readLocalStorageItem, writeLocalStorageItem } from '../lib/localStorage';
+import { securePick } from '../lib/secureRandom';
 import { ensureSharedTerminalInitialized } from '../services/sharedTerminal';
 import type { SyncConnectionStatus } from '../types/serverStatus';
 
@@ -24,10 +25,7 @@ const PEER_COLORS = [
 function getRandomName(): string {
   const adjectives = ['Swift', 'Bold', 'Keen', 'Wise', 'Calm', 'Brave', 'Fair', 'Glad'];
   const animals = ['Fox', 'Owl', 'Bear', 'Wolf', 'Hawk', 'Deer', 'Lynx', 'Crane'];
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-
-  return `${adjective} ${animal}`;
+  return `${securePick(adjectives)} ${securePick(animals)}`;
 }
 
 interface CollabProviderProps {
@@ -47,10 +45,7 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     return readLocalStorageItem('collab-code-username') || getRandomName();
   });
   const [userColor, setUserColor] = useState(() => {
-    return (
-      readLocalStorageItem('collab-code-color') ||
-      PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)]
-    );
+    return readLocalStorageItem('collab-code-color') || securePick(PEER_COLORS);
   });
 
   useEffect(() => {

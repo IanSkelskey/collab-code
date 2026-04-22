@@ -5,12 +5,13 @@ import RoomTemplateDialog from './RoomTemplateDialog';
 import ThemePicker from './ThemePicker';
 import type { RoomTemplateId } from '../config/roomTemplates';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { secureRandomToken } from '../lib/secureRandom';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID().slice(0, 8);
   }
-  return Math.random().toString(36).substring(2, 10);
+  return secureRandomToken(8);
 }
 
 interface LandingPageProps {

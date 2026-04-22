@@ -2,6 +2,7 @@ import * as Y from 'yjs';
 import { printWelcome } from './terminalCommands';
 import type { TermWriter } from './terminalCommandTypes';
 import { ROOT_PATH, normalizeVfsPath } from '../lib/vfsPaths';
+import { secureRandomToken } from '../lib/secureRandom';
 
 const TERMINAL_STATE_KEY = 'terminal-state';
 const TERMINAL_TRANSCRIPT_KEY = 'terminal-transcript';
@@ -308,7 +309,7 @@ export function moveCursorEnd(buffer: TerminalLineBuffer): TerminalLineBuffer {
 }
 
 export function createTerminalRunId(clientId: number): string {
-  return `${clientId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${clientId}-${Date.now()}-${secureRandomToken(8)}`;
 }
 
 function applySharedTerminalState(state: Y.Map<unknown>, snapshot: SharedTerminalSnapshot): void {
