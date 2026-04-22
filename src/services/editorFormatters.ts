@@ -49,7 +49,8 @@ function registerBraceFormatter(monaco: Monaco, languageId: string) {
 function registerPythonFormatter(monaco: Monaco) {
   monaco.languages.registerDocumentFormattingEditProvider('python', {
     provideDocumentFormattingEdits(model: editor.ITextModel) {
-      const formatted = model.getValue()
+      const formatted = model
+        .getValue()
         .split('\n')
         .map((line) => line.trimEnd())
         .join('\n');
@@ -74,4 +75,3 @@ export function registerEditorFormatters(monaco: Monaco): void {
     registeredFormatters.add('python');
   }
 }
-

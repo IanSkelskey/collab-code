@@ -28,13 +28,19 @@ export default function App() {
     window.location.hash = nextRoomId;
   }, []);
 
-  const handleCreateRoom = useCallback((nextRoomId: string, templateId: RoomTemplateId) => {
-    navigateToRoom(nextRoomId, templateId);
-  }, [navigateToRoom]);
+  const handleCreateRoom = useCallback(
+    (nextRoomId: string, templateId: RoomTemplateId) => {
+      navigateToRoom(nextRoomId, templateId);
+    },
+    [navigateToRoom],
+  );
 
-  const handleJoinRoom = useCallback((nextRoomId: string) => {
-    navigateToRoom(nextRoomId, null);
-  }, [navigateToRoom]);
+  const handleJoinRoom = useCallback(
+    (nextRoomId: string) => {
+      navigateToRoom(nextRoomId, null);
+    },
+    [navigateToRoom],
+  );
 
   const handleExitRoom = useCallback(() => {
     setCreatedRoomId(null);
@@ -43,12 +49,7 @@ export default function App() {
   }, []);
 
   if (!roomId) {
-    return (
-      <LandingPage
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-      />
-    );
+    return <LandingPage onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />;
   }
 
   return (

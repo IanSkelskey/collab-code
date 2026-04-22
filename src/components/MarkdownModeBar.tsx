@@ -14,9 +14,7 @@ const viewModes: Array<{ mode: MarkdownViewMode; label: string }> = [
 export default function MarkdownModeBar({ mode, onChange }: MarkdownModeBarProps) {
   return (
     <div className="cc-topbar cc-divider flex shrink-0 items-center justify-between gap-3 border-b px-3 py-2">
-      <div className="cc-section-label text-[11px] font-semibold">
-        Markdown
-      </div>
+      <div className="cc-section-label text-[11px] font-semibold">Markdown</div>
 
       <div className="cc-segmented-control flex items-center rounded-lg p-0.5">
         {viewModes.map((viewMode) => {
@@ -27,9 +25,7 @@ export default function MarkdownModeBar({ mode, onChange }: MarkdownModeBarProps
               key={viewMode.mode}
               onClick={() => onChange(viewMode.mode)}
               className={`cc-segmented-button cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-medium ${
-                isActive
-                  ? 'cc-segmented-button-active'
-                  : ''
+                isActive ? 'cc-segmented-button-active' : ''
               }`}
             >
               {viewMode.label}

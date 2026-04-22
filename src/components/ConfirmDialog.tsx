@@ -31,9 +31,7 @@ export default function ConfirmDialog({
 
   return (
     <ModalOverlay onClose={onCancel}>
-      <div
-        className="cc-card w-[380px] max-w-[92vw] rounded-xl p-5"
-      >
+      <div className="cc-card w-[380px] max-w-[92vw] rounded-xl p-5">
         <h3 className="cc-text-primary mb-1.5 text-[15px] font-semibold">{title}</h3>
         <p className="cc-text-muted mb-5 text-sm leading-6">{message}</p>
         <div className="flex flex-wrap items-stretch justify-end gap-2.5">

@@ -60,7 +60,9 @@ export function writeDirectoryListing(term: TermWriter, entries: string[]): void
 
 export function printWelcomeBanner(term: TermWriter): void {
   term.writeln(wrapAnsi(ANSI_ACCENT, 'Collab Code terminal ready.'));
-  term.writeln(`Type ${formatCommand('help')} to see all commands. Use ${formatCommand('clear')} to reset the terminal.`);
+  term.writeln(
+    `Type ${formatCommand('help')} to see all commands. Use ${formatCommand('clear')} to reset the terminal.`,
+  );
   term.writeln(
     `Try ${formatCommand('run')}, ${formatCommand('ls')}, ${formatCommand('cd')}, ${formatCommand('pwd')}, or ${formatCommand('cat <file>')}.`,
   );

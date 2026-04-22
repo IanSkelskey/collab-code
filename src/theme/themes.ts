@@ -196,7 +196,9 @@ export function resolveThemeId(themeId: string | null | undefined): ThemeId | nu
   return null;
 }
 
-export function resolveAppearancePreference(value: string | null | undefined): AppearancePreference | null {
+export function resolveAppearancePreference(
+  value: string | null | undefined,
+): AppearancePreference | null {
   if (!value) {
     return null;
   }

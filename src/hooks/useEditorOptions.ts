@@ -30,7 +30,10 @@ function buildEditorOptions(
   };
 }
 
-export function useEditorOptions(fontSize: number, readOnly = false): editor.IStandaloneEditorConstructionOptions {
+export function useEditorOptions(
+  fontSize: number,
+  readOnly = false,
+): editor.IStandaloneEditorConstructionOptions {
   const [viewportWidth, setViewportWidth] = useState(getViewportWidth);
 
   useEffect(() => {
@@ -42,5 +45,8 @@ export function useEditorOptions(fontSize: number, readOnly = false): editor.ISt
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return useMemo(() => buildEditorOptions(fontSize, viewportWidth, readOnly), [fontSize, readOnly, viewportWidth]);
+  return useMemo(
+    () => buildEditorOptions(fontSize, viewportWidth, readOnly),
+    [fontSize, readOnly, viewportWidth],
+  );
 }

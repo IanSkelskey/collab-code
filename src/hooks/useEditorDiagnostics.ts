@@ -19,18 +19,21 @@ export function useEditorDiagnostics({
 }: UseEditorDiagnosticsOptions) {
   const allMarkersRef = useRef<DiagnosticMarker[]>([]);
 
-  const applyMarkersForFile = useCallback((filePath: string | null) => {
-    const monaco = monacoRef.current;
-    const model = monacoEditor?.getModel();
-    if (!monaco || !model) return;
+  const applyMarkersForFile = useCallback(
+    (filePath: string | null) => {
+      const monaco = monacoRef.current;
+      const model = monacoEditor?.getModel();
+      if (!monaco || !model) return;
 
-    const fileName = filePath ? getBaseName(filePath) : null;
-    const nextMarkers = fileName
-      ? allMarkersRef.current.filter((marker) => !marker.file || marker.file === fileName)
-      : allMarkersRef.current;
+      const fileName = filePath ? getBaseName(filePath) : null;
+      const nextMarkers = fileName
+        ? allMarkersRef.current.filter((marker) => !marker.file || marker.file === fileName)
+        : allMarkersRef.current;
 
-    monaco.editor.setModelMarkers(model, MARKER_OWNER, nextMarkers);
-  }, [monacoEditor, monacoRef]);
+      monaco.editor.setModelMarkers(model, MARKER_OWNER, nextMarkers);
+    },
+    [monacoEditor, monacoRef],
+  );
 
   const clearMarkers = useCallback(() => {
     allMarkersRef.current = [];
@@ -47,21 +50,24 @@ export function useEditorDiagnostics({
     }
   }, [activeFile, applyMarkersForFile]);
 
-  return useMemo(() => ({
-    getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
-    setMarkers: (markers: DiagnosticMarker[]) => {
-      allMarkersRef.current = markers;
-      applyMarkersForFile(activeFile);
-    },
-    clearMarkers,
-    format: () => {
-      monacoEditor?.getAction('editor.action.formatDocument')?.run();
-    },
-    revealLine: (line: number, col: number) => {
-      if (!monacoEditor) return;
-      monacoEditor.revealLineInCenter(line);
-      monacoEditor.setPosition({ lineNumber: line, column: col });
-      monacoEditor.focus();
-    },
-  }), [activeFile, applyMarkersForFile, clearMarkers, monacoEditor]);
+  return useMemo(
+    () => ({
+      getCode: () => monacoEditor?.getModel()?.getValue() ?? '',
+      setMarkers: (markers: DiagnosticMarker[]) => {
+        allMarkersRef.current = markers;
+        applyMarkersForFile(activeFile);
+      },
+      clearMarkers,
+      format: () => {
+        monacoEditor?.getAction('editor.action.formatDocument')?.run();
+      },
+      revealLine: (line: number, col: number) => {
+        if (!monacoEditor) return;
+        monacoEditor.revealLineInCenter(line);
+        monacoEditor.setPosition({ lineNumber: line, column: col });
+        monacoEditor.focus();
+      },
+    }),
+    [activeFile, applyMarkersForFile, clearMarkers, monacoEditor],
+  );
 }

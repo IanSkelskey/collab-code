@@ -9,7 +9,9 @@ interface GetInvolvedActionsProps {
 // - Full-width buttons on small screens, auto width on sm+
 export default function GetInvolvedActions({ className = '' }: GetInvolvedActionsProps) {
   return (
-    <div className={`flex flex-col sm:flex-row gap-2 mt-1 w-full items-stretch sm:items-center ${className}`}>
+    <div
+      className={`flex flex-col sm:flex-row gap-2 mt-1 w-full items-stretch sm:items-center ${className}`}
+    >
       <a
         href="https://github.com/sponsors/IanSkelskey"
         target="_blank"

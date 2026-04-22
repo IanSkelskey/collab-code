@@ -31,18 +31,21 @@ export function useWorkspaceImport({ fs, pushToast }: UseWorkspaceImportOptions)
     }
   }, []);
 
-  const onOsDrop = useCallback(async (event: DragEvent) => {
-    if (!event.dataTransfer.types.includes('Files')) return;
+  const onOsDrop = useCallback(
+    async (event: DragEvent) => {
+      if (!event.dataTransfer.types.includes('Files')) return;
 
-    event.preventDefault();
-    dragCounter.current = 0;
-    setOsDragActive(false);
+      event.preventDefault();
+      dragCounter.current = 0;
+      setOsDragActive(false);
 
-    const importedCount = await importDataTransfer(fs, event.dataTransfer, '~');
-    if (importedCount > 0) {
-      pushToast(importedCount === 1 ? 'Imported 1 file' : `Imported ${importedCount} files`);
-    }
-  }, [fs, pushToast]);
+      const importedCount = await importDataTransfer(fs, event.dataTransfer, '~');
+      if (importedCount > 0) {
+        pushToast(importedCount === 1 ? 'Imported 1 file' : `Imported ${importedCount} files`);
+      }
+    },
+    [fs, pushToast],
+  );
 
   return {
     osDragActive,

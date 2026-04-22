@@ -76,11 +76,7 @@ const tips: Array<{ title: string; items: string[] }> = [
 
 export type HelpModalTab = 'about' | 'server' | 'shortcuts' | 'tips' | 'involved';
 
-export default function HelpModal({
-  onClose,
-  serverStatus,
-  initialTab = 'about',
-}: HelpModalProps) {
+export default function HelpModal({ onClose, serverStatus, initialTab = 'about' }: HelpModalProps) {
   const [tab, setTab] = useState<HelpModalTab>(initialTab);
 
   useEffect(() => {
@@ -93,7 +89,10 @@ export default function HelpModal({
         <div className="cc-divider border-b px-5 pt-4 sm:px-6 sm:pt-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="cc-text-primary flex items-center gap-2.5 text-base font-semibold">
-              <HelpCircleIcon className="h-[1.125rem] w-[1.125rem] text-[var(--cc-accent)]" strokeWidth={2} />
+              <HelpCircleIcon
+                className="h-[1.125rem] w-[1.125rem] text-[var(--cc-accent)]"
+                strokeWidth={2}
+              />
               Help
             </h2>
             <button
@@ -163,17 +162,19 @@ export default function HelpModal({
                 />
                 <h3 className="cc-text-primary text-base font-semibold">Collab Code</h3>
                 <p className="cc-text-muted mt-3 max-w-[40rem] text-sm leading-relaxed">
-                  Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
-                  Share a room link, edit the same workspace, use one shared terminal session, and run
-                  Java and Python together from the browser. New rooms can start with a Java starter,
-                  a Python starter, or a blank workspace. Python execution stays isolated in a temporary
-                  virtual environment on the server.
+                  Collaborative coding rooms for classrooms, tutoring sessions, and pair
+                  programming. Share a room link, edit the same workspace, use one shared terminal
+                  session, and run Java and Python together from the browser. New rooms can start
+                  with a Java starter, a Python starter, or a blank workspace. Python execution
+                  stays isolated in a temporary virtual environment on the server.
                 </p>
                 <div className="cc-panel mt-4 w-full rounded-xl border px-4 py-3">
                   <p className="cc-text-faint text-xs leading-relaxed">
-                    Use <span className="cc-text-secondary font-medium">Shortcuts</span> for controls,
+                    Use <span className="cc-text-secondary font-medium">Shortcuts</span> for
+                    controls,
                     <span className="cc-text-secondary font-medium"> Tips</span> for workflow help,
-                    and <span className="cc-text-secondary font-medium">Server</span> for backend status.
+                    and <span className="cc-text-secondary font-medium">Server</span> for backend
+                    status.
                   </p>
                 </div>
               </div>
@@ -227,11 +228,15 @@ export default function HelpModal({
                   </p>
                   <div className="mt-3 space-y-1.5">
                     <InfoLine label="Frontend">
-                      <span className="cc-text-primary break-all font-mono">v{serverStatus.clientVersion}</span>
+                      <span className="cc-text-primary break-all font-mono">
+                        v{serverStatus.clientVersion}
+                      </span>
                     </InfoLine>
                     <InfoLine label="Server">
                       <span className="cc-text-primary break-all font-mono">
-                        {serverStatus.info.serverVersion ? `v${serverStatus.info.serverVersion}` : 'Not reported'}
+                        {serverStatus.info.serverVersion
+                          ? `v${serverStatus.info.serverVersion}`
+                          : 'Not reported'}
                       </span>
                     </InfoLine>
                     <InfoLine label="Protocol">
@@ -245,7 +250,9 @@ export default function HelpModal({
                 </InfoCard>
 
                 <InfoCard label="Execution">
-                  <StatusBadge tone={serverStatus.info.executionAllowed === false ? 'warning' : 'success'}>
+                  <StatusBadge
+                    tone={serverStatus.info.executionAllowed === false ? 'warning' : 'success'}
+                  >
                     {getExecutionStatusLabel(serverStatus)}
                   </StatusBadge>
                   <p className="cc-text-muted mt-2 text-xs leading-relaxed">
@@ -290,8 +297,9 @@ export default function HelpModal({
           {tab === 'shortcuts' && (
             <div className="mx-auto flex min-h-full w-full max-w-[46rem] flex-col justify-center gap-3.5">
               <p className="cc-text-muted text-xs leading-relaxed">
-                <span className="cc-text-primary font-medium">Ctrl/Cmd</span> shortcuts work with either
-                Control or Command. This list focuses on the app-level shortcuts that are most useful to discover.
+                <span className="cc-text-primary font-medium">Ctrl/Cmd</span> shortcuts work with
+                either Control or Command. This list focuses on the app-level shortcuts that are
+                most useful to discover.
               </p>
               <div className="grid gap-3 lg:grid-cols-2">
                 {shortcutGroups.map((group) => (
@@ -309,14 +317,8 @@ export default function HelpModal({
                 className="lg:col-span-2"
                 splitItemsOnDesktop
               />
-              <TipSection
-                title={tips[1].title}
-                items={tips[1].items}
-              />
-              <TipSection
-                title={tips[2].title}
-                items={tips[2].items}
-              />
+              <TipSection title={tips[1].title} items={tips[1].items} />
+              <TipSection title={tips[2].title} items={tips[2].items} />
             </div>
           )}
 
@@ -324,11 +326,12 @@ export default function HelpModal({
             <div className="mx-auto flex min-h-full w-full max-w-[42rem] flex-col items-center justify-start pt-8 sm:pt-10">
               <div className="cc-panel w-full rounded-2xl border px-5 py-6 text-center sm:px-7 sm:py-7">
                 <div className="cc-text-muted mb-2 text-sm">
-                  <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute.
+                  <span className="font-semibold text-pink-400">Get Involved</span> - Support,
+                  suggest, or contribute.
                 </div>
                 <p className="cc-text-muted mx-auto max-w-[34rem] text-sm leading-relaxed">
-                  Sponsor to support ongoing development, open an issue for bugs or ideas, and star the repo
-                  or send a PR if you would like to contribute.
+                  Sponsor to support ongoing development, open an issue for bugs or ideas, and star
+                  the repo or send a PR if you would like to contribute.
                 </p>
                 <GetInvolvedActions className="mt-5 sm:justify-center" />
               </div>
@@ -380,47 +383,36 @@ function TabButton({
   );
 }
 
-function InfoCard({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function InfoCard({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="cc-panel rounded-xl border px-4 py-3.5">
-      <div className="cc-section-label mb-2 text-[11px] font-semibold">
-        {label}
-      </div>
+      <div className="cc-section-label mb-2 text-[11px] font-semibold">{label}</div>
       <div className="cc-text-secondary text-sm">{children}</div>
     </div>
   );
 }
 
-function ShortcutSection({
-  group,
-}: {
-  group: ShortcutGroup;
-}) {
+function ShortcutSection({ group }: { group: ShortcutGroup }) {
   return (
     <div className="cc-panel rounded-xl border px-4 py-3">
       <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-accent)]">
         {group.title}
       </div>
-      <div className={group.columns === 2 ? 'grid gap-x-6 gap-y-1.5 sm:grid-cols-2' : 'grid gap-y-1.5'}>
+      <div
+        className={group.columns === 2 ? 'grid gap-x-6 gap-y-1.5 sm:grid-cols-2' : 'grid gap-y-1.5'}
+      >
         {group.items.map((shortcut) => (
-          <ShortcutRow key={`${group.title}-${shortcut.keys}-${shortcut.desc}`} shortcut={shortcut} />
+          <ShortcutRow
+            key={`${group.title}-${shortcut.keys}-${shortcut.desc}`}
+            shortcut={shortcut}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ShortcutRow({
-  shortcut,
-}: {
-  shortcut: ShortcutItem;
-}) {
+function ShortcutRow({ shortcut }: { shortcut: ShortcutItem }) {
   return (
     <div className="flex items-center justify-between gap-3 py-0.5">
       <div className="cc-text-primary min-w-0 text-sm leading-snug">{shortcut.desc}</div>
@@ -459,27 +451,17 @@ function TipSection({
   );
 }
 
-function StatusBadge({
-  tone,
-  children,
-}: {
-  tone: ServerStatusTone;
-  children: ReactNode;
-}) {
+function StatusBadge({ tone, children }: { tone: ServerStatusTone; children: ReactNode }) {
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusBadgeClassName(tone)}`}>
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusBadgeClassName(tone)}`}
+    >
       {children}
     </span>
   );
 }
 
-function InfoLine({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function InfoLine({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 text-xs">
       <span className="cc-text-faint shrink-0">{label}</span>
@@ -508,7 +490,9 @@ function ServerRuntimeVersion({
   }
 
   if (!available) {
-    return <span className="text-[var(--cc-warning)]">{label} is not available on this server.</span>;
+    return (
+      <span className="text-[var(--cc-warning)]">{label} is not available on this server.</span>
+    );
   }
 
   if (!version) {
@@ -534,7 +518,9 @@ function getStatusBadgeClassName(tone: ServerStatusTone): string {
   return 'border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_92%,transparent)] cc-text-muted';
 }
 
-function getCompatibilityTone(status: ServerStatusSnapshot['compatibility']['status']): ServerStatusTone {
+function getCompatibilityTone(
+  status: ServerStatusSnapshot['compatibility']['status'],
+): ServerStatusTone {
   if (status === 'protocol-mismatch') {
     return 'danger';
   }

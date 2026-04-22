@@ -94,37 +94,46 @@ export function useFollowCollaborator({
     [followedPeerId, peers],
   );
 
-  const clearFollowTarget = useCallback((peerName?: string, silent = false) => {
-    lastTargetRef.current = null;
-    setFollowedPeerId(null);
+  const clearFollowTarget = useCallback(
+    (peerName?: string, silent = false) => {
+      lastTargetRef.current = null;
+      setFollowedPeerId(null);
 
-    if (!silent) {
-      pushToast(`Stopped following ${peerName ?? 'presenter'}`);
-    }
-  }, [pushToast]);
+      if (!silent) {
+        pushToast(`Stopped following ${peerName ?? 'presenter'}`);
+      }
+    },
+    [pushToast],
+  );
 
-  const stopFollowing = useCallback((silent = false) => {
-    if (followedPeerId === null) {
-      return;
-    }
+  const stopFollowing = useCallback(
+    (silent = false) => {
+      if (followedPeerId === null) {
+        return;
+      }
 
-    clearFollowTarget(followedPeer?.name ?? 'peer', silent);
-  }, [clearFollowTarget, followedPeer?.name, followedPeerId]);
+      clearFollowTarget(followedPeer?.name ?? 'peer', silent);
+    },
+    [clearFollowTarget, followedPeer?.name, followedPeerId],
+  );
 
-  const toggleFollowPeer = useCallback((peer: PeerState) => {
-    lastTargetRef.current = null;
+  const toggleFollowPeer = useCallback(
+    (peer: PeerState) => {
+      lastTargetRef.current = null;
 
-    if (followedPeerId === peer.clientId) {
-      clearFollowTarget(peer.name);
-      return;
-    }
+      if (followedPeerId === peer.clientId) {
+        clearFollowTarget(peer.name);
+        return;
+      }
 
-    setFollowedPeerId(peer.clientId);
-    pushToast(`Following ${peer.name}`, {
-      label: 'Stop',
-      onAction: () => clearFollowTarget(peer.name),
-    });
-  }, [clearFollowTarget, followedPeerId, pushToast]);
+      setFollowedPeerId(peer.clientId);
+      pushToast(`Following ${peer.name}`, {
+        label: 'Stop',
+        onAction: () => clearFollowTarget(peer.name),
+      });
+    },
+    [clearFollowTarget, followedPeerId, pushToast],
+  );
 
   useEffect(() => {
     if (!awareness) {
@@ -148,9 +157,8 @@ export function useFollowCollaborator({
         return;
       }
 
-      const peerFile = isRecord(state) && typeof state.activeFile === 'string'
-        ? state.activeFile
-        : null;
+      const peerFile =
+        isRecord(state) && typeof state.activeFile === 'string' ? state.activeFile : null;
 
       if (!peerFile || !exists(peerFile) || isDirectory(peerFile)) {
         const nextTargetKey = peerFile ? `${peerFile}:open` : 'no-file';

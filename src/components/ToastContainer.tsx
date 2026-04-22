@@ -12,7 +12,7 @@ export default function ToastContainer({
 }: {
   toasts: AppToast[];
   onDismiss: (id: number) => void;
-})  {
+}) {
   return (
     <div
       className="fixed right-3 bottom-3 z-[100] flex flex-col gap-2 items-end pointer-events-none sm:right-4 sm:bottom-4"
@@ -26,13 +26,7 @@ export default function ToastContainer({
   );
 }
 
-function ToastItem({
-  toast,
-  onDismiss,
-}: {
-  toast: AppToast;
-  onDismiss: (id: number) => void;
-}) {
+function ToastItem({ toast, onDismiss }: { toast: AppToast; onDismiss: (id: number) => void }) {
   const [progress, setProgress] = useState(100);
   const startRef = useRef(Date.now());
   const isActionable = Boolean(toast.action);
@@ -70,7 +64,9 @@ function ToastItem({
     <div className="cc-card pointer-events-auto w-[min(22rem,calc(100vw-1.5rem))] animate-[toastIn_180ms_ease-out] overflow-hidden rounded-lg">
       <div className="px-3 py-2.5">
         <div className="flex items-start gap-2.5">
-          <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${toneClasses.badge}`}>
+          <div
+            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${toneClasses.badge}`}
+          >
             <Icon className="h-3.5 w-3.5" />
           </div>
 

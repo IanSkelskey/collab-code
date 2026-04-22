@@ -29,7 +29,12 @@ export function deleteWordBack(term: XTerminal, buffer: TerminalBufferState): vo
   buffer.cursor.current = nextCursor;
 
   const tail = buffer.text.current.slice(nextCursor);
-  term.write('\b'.repeat(deletedLength) + tail + ' '.repeat(deletedLength) + `\x1b[${tail.length + deletedLength}D`);
+  term.write(
+    '\b'.repeat(deletedLength) +
+      tail +
+      ' '.repeat(deletedLength) +
+      `\x1b[${tail.length + deletedLength}D`,
+  );
 }
 
 export function insertAtCursor(term: XTerminal, buffer: TerminalBufferState, text: string): void {
@@ -129,4 +134,3 @@ export function moveCursorEnd(term: XTerminal, buffer: TerminalBufferState): voi
   term.write(`\x1b[${moveDistance}C`);
   buffer.cursor.current = buffer.text.current.length;
 }
-

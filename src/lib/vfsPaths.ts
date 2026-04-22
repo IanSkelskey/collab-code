@@ -62,4 +62,3 @@ export function stripVfsRoot(path: string): string {
 
   return normalized.startsWith(`${ROOT_PATH}/`) ? normalized.slice(2) : normalized;
 }
-

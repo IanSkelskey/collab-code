@@ -29,12 +29,10 @@ function getPeerMeta(state: unknown): { name: string; color: string } {
   }
 
   const user = isRecord(state.user) ? state.user : null;
-  const name = typeof user?.name === 'string' && user.name.trim()
-    ? user.name.trim()
-    : DEFAULT_REMOTE_NAME;
-  const color = typeof user?.color === 'string' && user.color.trim()
-    ? user.color.trim()
-    : DEFAULT_REMOTE_COLOR;
+  const name =
+    typeof user?.name === 'string' && user.name.trim() ? user.name.trim() : DEFAULT_REMOTE_NAME;
+  const color =
+    typeof user?.color === 'string' && user.color.trim() ? user.color.trim() : DEFAULT_REMOTE_COLOR;
 
   return { name, color };
 }
@@ -56,9 +54,13 @@ function selectionKey(selection: ISelection): string {
 
 function hexToRgba(hex: string, alpha: number): string {
   const normalized = hex.trim().replace(/^#/, '');
-  const expanded = normalized.length === 3
-    ? normalized.split('').map((char) => char + char).join('')
-    : normalized;
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
 
   if (!/^[\da-fA-F]{6}$/.test(expanded)) {
     return `rgba(97, 175, 239, ${alpha})`;
@@ -73,11 +75,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 function escapeCssContent(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\r/g, ' ')
-    .replace(/\n/g, ' ');
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, ' ').replace(/\n/g, ' ');
 }
 
 export function getRemoteSelections(state: unknown): RelativeCursorSelection[] {
@@ -101,8 +99,12 @@ export function getOrderedSelections(editorInstance: editor.IStandaloneCodeEdito
   }
 
   const primaryKey = selectionKey(primarySelection);
-  const primarySelections = selections.filter((selection) => selectionKey(selection) === primaryKey);
-  const secondarySelections = selections.filter((selection) => selectionKey(selection) !== primaryKey);
+  const primarySelections = selections.filter(
+    (selection) => selectionKey(selection) === primaryKey,
+  );
+  const secondarySelections = selections.filter(
+    (selection) => selectionKey(selection) !== primaryKey,
+  );
 
   return [...primarySelections, ...secondarySelections];
 }
@@ -141,7 +143,8 @@ export function buildRemotePeerStyles(
 
     const { name, color } = getPeerMeta(state);
     const activityAt = getSelectionActivityAt(state);
-    const elapsed = activityAt == null ? REMOTE_LABEL_ANIMATION_MS : Math.max(0, currentTime - activityAt);
+    const elapsed =
+      activityAt == null ? REMOTE_LABEL_ANIMATION_MS : Math.max(0, currentTime - activityAt);
     const animationDelay = -Math.min(elapsed, REMOTE_LABEL_ANIMATION_MS);
     const selectionFill = hexToRgba(color, 0.18);
     const selectionOutline = hexToRgba(color, 0.45);
@@ -166,4 +169,3 @@ export function buildRemotePeerStyles(
 
   return rules.join('\n');
 }
-

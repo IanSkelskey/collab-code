@@ -70,9 +70,7 @@ function formatLanguageLabel(language: string): string {
     return language.toUpperCase();
   }
 
-  return language
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+  return language.replace(/[-_]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function normalizeCodeLanguage(rawLanguage: string | null | undefined): CodeLanguageMeta {
@@ -89,10 +87,12 @@ function normalizeCodeLanguage(rawLanguage: string | null | undefined): CodeLang
     };
   }
 
-  return codeLanguageAliases.get(normalizedLanguage) ?? {
-    label: formatLanguageLabel(normalizedLanguage),
-    monacoLanguage: normalizedLanguage,
-  };
+  return (
+    codeLanguageAliases.get(normalizedLanguage) ?? {
+      label: formatLanguageLabel(normalizedLanguage),
+      monacoLanguage: normalizedLanguage,
+    }
+  );
 }
 
 function extractCodeLanguage(codeElement: Element): string | null {
@@ -196,7 +196,12 @@ function buildPreviewHtml(markdown: string): string {
 
 function resolveWorkspaceLink(filePath: string, href: string): string | null {
   const trimmedHref = href.trim();
-  if (!trimmedHref || trimmedHref.startsWith('#') || isExternalLink(trimmedHref) || trimmedHref.startsWith('data:')) {
+  if (
+    !trimmedHref ||
+    trimmedHref.startsWith('#') ||
+    isExternalLink(trimmedHref) ||
+    trimmedHref.startsWith('data:')
+  ) {
     return null;
   }
 
@@ -257,25 +262,27 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
         previewElement.querySelectorAll<HTMLElement>('pre > code[data-lang]'),
       );
 
-      await Promise.all(codeElements.map(async (codeElement) => {
-        const requestedLanguage = codeElement.dataset.lang?.trim().toLowerCase() ?? 'plaintext';
-        const supportedLanguage = supportedLanguages.has(requestedLanguage)
-          ? requestedLanguage
-          : 'plaintext';
+      await Promise.all(
+        codeElements.map(async (codeElement) => {
+          const requestedLanguage = codeElement.dataset.lang?.trim().toLowerCase() ?? 'plaintext';
+          const supportedLanguage = supportedLanguages.has(requestedLanguage)
+            ? requestedLanguage
+            : 'plaintext';
 
-        if (supportedLanguage !== requestedLanguage) {
-          codeElement.dataset.lang = supportedLanguage;
-        }
+          if (supportedLanguage !== requestedLanguage) {
+            codeElement.dataset.lang = supportedLanguage;
+          }
 
-        try {
-          await monaco.editor.colorizeElement(codeElement, {
-            tabSize: 2,
-            theme: theme.monacoTheme,
-          });
-        } catch {
-          // Keep the raw code content visible if Monaco colorization fails.
-        }
-      }));
+          try {
+            await monaco.editor.colorizeElement(codeElement, {
+              tabSize: 2,
+              theme: theme.monacoTheme,
+            });
+          } catch {
+            // Keep the raw code content visible if Monaco colorization fails.
+          }
+        }),
+      );
     };
 
     void colorizeCodeBlocks();
@@ -304,55 +311,61 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
     copyResetTimersRef.current.set(button, timeoutId);
   }, []);
 
-  const handleCopyCodeBlock = useCallback(async (button: HTMLButtonElement) => {
-    const codeElement = button
-      .closest('.markdown-code-block')
-      ?.querySelector<HTMLElement>('pre > code');
+  const handleCopyCodeBlock = useCallback(
+    async (button: HTMLButtonElement) => {
+      const codeElement = button
+        .closest('.markdown-code-block')
+        ?.querySelector<HTMLElement>('pre > code');
 
-    const code = codeElement?.textContent ?? '';
-    if (!code) {
-      return;
-    }
+      const code = codeElement?.textContent ?? '';
+      if (!code) {
+        return;
+      }
 
-    try {
-      await navigator.clipboard.writeText(code);
-      showCopiedState(button);
-    } catch {
-      window.prompt('Copy this code:', code);
-    }
-  }, [showCopiedState]);
+      try {
+        await navigator.clipboard.writeText(code);
+        showCopiedState(button);
+      } catch {
+        window.prompt('Copy this code:', code);
+      }
+    },
+    [showCopiedState],
+  );
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    const element = event.target;
-    if (!(element instanceof Element)) {
-      return;
-    }
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const element = event.target;
+      if (!(element instanceof Element)) {
+        return;
+      }
 
-    const copyButton = element.closest('[data-copy-code]');
-    if (copyButton instanceof HTMLButtonElement) {
+      const copyButton = element.closest('[data-copy-code]');
+      if (copyButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        void handleCopyCodeBlock(copyButton);
+        return;
+      }
+
+      const link = element.closest('a[href]');
+      if (!(link instanceof HTMLAnchorElement)) {
+        return;
+      }
+
+      const href = link.getAttribute('href') ?? '';
+      const resolvedPath = resolveWorkspaceLink(filePath, href);
+      if (!resolvedPath) {
+        return;
+      }
+
       event.preventDefault();
-      void handleCopyCodeBlock(copyButton);
-      return;
-    }
+      if (!fs.exists(resolvedPath) || fs.isDirectory(resolvedPath)) {
+        return;
+      }
 
-    const link = element.closest('a[href]');
-    if (!(link instanceof HTMLAnchorElement)) {
-      return;
-    }
-
-    const href = link.getAttribute('href') ?? '';
-    const resolvedPath = resolveWorkspaceLink(filePath, href);
-    if (!resolvedPath) {
-      return;
-    }
-
-    event.preventDefault();
-    if (!fs.exists(resolvedPath) || fs.isDirectory(resolvedPath)) {
-      return;
-    }
-
-    fs.openFile(resolvedPath);
-  }, [filePath, fs, handleCopyCodeBlock]);
+      fs.openFile(resolvedPath);
+    },
+    [filePath, fs, handleCopyCodeBlock],
+  );
 
   if (!content.trim()) {
     return (

@@ -53,7 +53,9 @@ function runProcess(context) {
     send({ type: 'exit', code: exitCode ?? 1 });
     cleanup();
 
-    try { ws.close(); } catch {}
+    try {
+      ws.close();
+    } catch {}
   });
 
   child.on('error', (err) => {

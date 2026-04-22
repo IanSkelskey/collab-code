@@ -1,5 +1,12 @@
 import { createMutex } from 'lib0/mutex';
-import type { IDisposable, IRange, ISelection, Selection, SelectionDirection, editor } from 'monaco-editor';
+import type {
+  IDisposable,
+  IRange,
+  ISelection,
+  Selection,
+  SelectionDirection,
+  editor,
+} from 'monaco-editor';
 import * as Y from 'yjs';
 
 type RelativeSelection = {
@@ -32,7 +39,7 @@ function createRelativeSelections(
   ytext: Y.Text,
 ): RelativeSelection[] {
   const selections = editorInstance.getSelections() ?? [];
-  return selections.map(selection => createRelativeSelection(selection, model, ytext));
+  return selections.map((selection) => createRelativeSelection(selection, model, ytext));
 }
 
 function restoreMonacoSelection(
@@ -79,7 +86,7 @@ export class MonacoBinding {
   private readonly beforeTransaction = () => {
     this.mux(() => {
       this.savedSelections = new Map();
-      this.editors.forEach(editorInstance => {
+      this.editors.forEach((editorInstance) => {
         if (editorInstance.getModel() !== this.monacoModel) return;
         const selections = createRelativeSelections(editorInstance, this.monacoModel, this.ytext);
         if (selections.length > 0) {
@@ -126,7 +133,9 @@ export class MonacoBinding {
 
       this.savedSelections.forEach((selections, editorInstance) => {
         const restoredSelections = selections
-          .map(selection => restoreMonacoSelection(this.monacoModel, this.ytext, selection, this.doc))
+          .map((selection) =>
+            restoreMonacoSelection(this.monacoModel, this.ytext, selection, this.doc),
+          )
           .filter((selection): selection is ISelection => selection !== null);
 
         if (restoredSelections.length > 0) {

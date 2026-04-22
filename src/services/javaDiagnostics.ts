@@ -54,8 +54,7 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
     const severityStr = match[3];
     const message = match[4].trim();
 
-    const severity =
-      severityStr === 'error' ? MarkerSeverity.Error : MarkerSeverity.Warning;
+    const severity = severityStr === 'error' ? MarkerSeverity.Error : MarkerSeverity.Warning;
 
     // Try to find the caret (^) indicator on a subsequent line for column info
     let column = 1;
@@ -104,12 +103,10 @@ export function parseJavaRuntimeErrors(stderr: string): DiagnosticMarker[] {
   let exceptionMessage = '';
   for (const line of lines) {
     const exMatch = line.match(
-      /(?:Exception in thread ".+?" |^)([\w$.]+(?:Exception|Error))(?::\s*(.+))?$/
+      /(?:Exception in thread ".+?" |^)([\w$.]+(?:Exception|Error))(?::\s*(.+))?$/,
     );
     if (exMatch) {
-      exceptionMessage = exMatch[2]
-        ? `${exMatch[1]}: ${exMatch[2]}`
-        : exMatch[1];
+      exceptionMessage = exMatch[2] ? `${exMatch[1]}: ${exMatch[2]}` : exMatch[1];
       break;
     }
   }

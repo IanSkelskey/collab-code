@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type RefObject, type SetStateAction } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import type { EditorHandle } from '../components/Editor';
 import { isMarkdownFile } from '../config/languages';
 import { readLocalStorageJson, writeLocalStorageJson } from '../lib/localStorage';
@@ -47,18 +54,26 @@ function parseStoredWorkspaceLayout(value: unknown): StoredWorkspaceLayoutState 
   }
 
   const candidate = value as Record<string, unknown>;
-  const searchVisible = typeof candidate.searchVisible === 'boolean' ? candidate.searchVisible : undefined;
-  const explorerVisible = typeof candidate.explorerVisible === 'boolean' ? candidate.explorerVisible : undefined;
+  const searchVisible =
+    typeof candidate.searchVisible === 'boolean' ? candidate.searchVisible : undefined;
+  const explorerVisible =
+    typeof candidate.explorerVisible === 'boolean' ? candidate.explorerVisible : undefined;
 
   return {
     fontSize: typeof candidate.fontSize === 'number' ? candidate.fontSize : undefined,
     explorerVisible: searchVisible ? false : explorerVisible,
     searchVisible,
-    explorerWidth: typeof candidate.explorerWidth === 'number' ? candidate.explorerWidth : undefined,
-    terminalVisible: typeof candidate.terminalVisible === 'boolean' ? candidate.terminalVisible : undefined,
-    terminalHeight: typeof candidate.terminalHeight === 'number' ? candidate.terminalHeight : undefined,
-    markdownViewMode: isMarkdownViewMode(candidate.markdownViewMode) ? candidate.markdownViewMode : undefined,
-    markdownEditorWidth: typeof candidate.markdownEditorWidth === 'number' ? candidate.markdownEditorWidth : undefined,
+    explorerWidth:
+      typeof candidate.explorerWidth === 'number' ? candidate.explorerWidth : undefined,
+    terminalVisible:
+      typeof candidate.terminalVisible === 'boolean' ? candidate.terminalVisible : undefined,
+    terminalHeight:
+      typeof candidate.terminalHeight === 'number' ? candidate.terminalHeight : undefined,
+    markdownViewMode: isMarkdownViewMode(candidate.markdownViewMode)
+      ? candidate.markdownViewMode
+      : undefined,
+    markdownEditorWidth:
+      typeof candidate.markdownEditorWidth === 'number' ? candidate.markdownEditorWidth : undefined,
   };
 }
 
@@ -81,25 +96,39 @@ export function useWorkspaceLayout({
   const markdownSplitHandleWidth = 12;
   const storedLayoutRef = useRef<StoredWorkspaceLayoutState | null>(readStoredWorkspaceLayout());
   const storedLayout = storedLayoutRef.current;
-  const [fontSize, setFontSize] = useState(() => storedLayout?.fontSize ?? (window.innerWidth < 640 ? 12 : 14));
-  const [explorerVisible, setExplorerVisibleState] = useState(() => (
-    storedLayout?.explorerVisible ?? (window.innerWidth >= 768)
-  ));
-  const [explorerWidth, setExplorerWidth] = useState(() => storedLayout?.explorerWidth ?? (window.innerWidth < 640 ? 160 : 200));
-  const [terminalVisible, setTerminalVisible] = useState(() => storedLayout?.terminalVisible ?? true);
+  const [fontSize, setFontSize] = useState(
+    () => storedLayout?.fontSize ?? (window.innerWidth < 640 ? 12 : 14),
+  );
+  const [explorerVisible, setExplorerVisibleState] = useState(
+    () => storedLayout?.explorerVisible ?? window.innerWidth >= 768,
+  );
+  const [explorerWidth, setExplorerWidth] = useState(
+    () => storedLayout?.explorerWidth ?? (window.innerWidth < 640 ? 160 : 200),
+  );
+  const [terminalVisible, setTerminalVisible] = useState(
+    () => storedLayout?.terminalVisible ?? true,
+  );
   const [terminalHeight, setTerminalHeight] = useState(() => storedLayout?.terminalHeight ?? 250);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [searchVisible, setSearchVisibleState] = useState(() => storedLayout?.searchVisible ?? false);
+  const [searchVisible, setSearchVisibleState] = useState(
+    () => storedLayout?.searchVisible ?? false,
+  );
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
-  const [markdownViewMode, setMarkdownViewMode] = useState<MarkdownViewMode>(() => (
-    storedLayout?.markdownViewMode ?? (window.innerWidth < 960 ? 'write' : 'split')
-  ));
-  const [markdownEditorWidth, setMarkdownEditorWidth] = useState(() => (
-    storedLayout?.markdownEditorWidth
-      ?? Math.max(markdownPanelMinWidth, Math.round((window.innerWidth - markdownSplitHandleWidth) / 2))
-  ));
+  const [markdownViewMode, setMarkdownViewMode] = useState<MarkdownViewMode>(
+    () => storedLayout?.markdownViewMode ?? (window.innerWidth < 960 ? 'write' : 'split'),
+  );
+  const [markdownEditorWidth, setMarkdownEditorWidth] = useState(
+    () =>
+      storedLayout?.markdownEditorWidth ??
+      Math.max(
+        markdownPanelMinWidth,
+        Math.round((window.innerWidth - markdownSplitHandleWidth) / 2),
+      ),
+  );
   const pendingNavigationRef = useRef<number | null>(null);
-  const markdownSplitManuallyResizedRef = useRef(typeof storedLayout?.markdownEditorWidth === 'number');
+  const markdownSplitManuallyResizedRef = useRef(
+    typeof storedLayout?.markdownEditorWidth === 'number',
+  );
 
   const getMarkdownEditorMaxWidth = useCallback(() => {
     const containerWidth = markdownSplitContainerRef.current?.clientWidth ?? window.innerWidth;
@@ -141,9 +170,7 @@ export function useWorkspaceLayout({
 
   const setExplorerVisible = useCallback((nextValue: SetStateAction<boolean>) => {
     setExplorerVisibleState((currentValue) => {
-      const resolvedValue = typeof nextValue === 'function'
-        ? nextValue(currentValue)
-        : nextValue;
+      const resolvedValue = typeof nextValue === 'function' ? nextValue(currentValue) : nextValue;
 
       if (resolvedValue) {
         setSearchVisibleState(false);
@@ -155,9 +182,7 @@ export function useWorkspaceLayout({
 
   const setSearchVisible = useCallback((nextValue: SetStateAction<boolean>) => {
     setSearchVisibleState((currentValue) => {
-      const resolvedValue = typeof nextValue === 'function'
-        ? nextValue(currentValue)
-        : nextValue;
+      const resolvedValue = typeof nextValue === 'function' ? nextValue(currentValue) : nextValue;
 
       if (resolvedValue) {
         setExplorerVisibleState(false);
@@ -167,14 +192,12 @@ export function useWorkspaceLayout({
     });
   }, []);
 
-  const requestConfirm = useCallback((
-    title: string,
-    message: string,
-    onConfirm: () => void,
-    confirmLabel?: string,
-  ) => {
-    setConfirmDialog({ title, message, onConfirm, confirmLabel });
-  }, []);
+  const requestConfirm = useCallback(
+    (title: string, message: string, onConfirm: () => void, confirmLabel?: string) => {
+      setConfirmDialog({ title, message, onConfirm, confirmLabel });
+    },
+    [],
+  );
 
   const { onDragStart: handleExplorerDragStart } = useDragResize({
     axis: 'horizontal',
@@ -214,11 +237,11 @@ export function useWorkspaceLayout({
       const nextMaxWidth = getMarkdownEditorMaxWidth();
       const idealSplitWidth = Math.round((containerWidth - markdownSplitHandleWidth) / 2);
 
-      setMarkdownEditorWidth((currentWidth) => (
+      setMarkdownEditorWidth((currentWidth) =>
         markdownSplitManuallyResizedRef.current
           ? Math.min(currentWidth, nextMaxWidth)
-          : Math.max(markdownPanelMinWidth, Math.min(nextMaxWidth, idealSplitWidth))
-      ));
+          : Math.max(markdownPanelMinWidth, Math.min(nextMaxWidth, idealSplitWidth)),
+      );
     };
 
     const observer = new ResizeObserver(() => {
@@ -255,39 +278,45 @@ export function useWorkspaceLayout({
     setSearchVisible((isVisible) => !isVisible);
   }, [setSearchVisible]);
 
-  const navigateToFile = useCallback((file: string, line?: number, col?: number) => {
-    if (pendingNavigationRef.current !== null) {
-      window.clearTimeout(pendingNavigationRef.current);
-      pendingNavigationRef.current = null;
-    }
-
-    const shouldOpenEditor = isMarkdownFile(file) && markdownViewMode === 'preview';
-    if (shouldOpenEditor) {
-      setMarkdownViewMode('write');
-    }
-
-    const hasPosition = typeof line === 'number' && typeof col === 'number';
-
-    if (fs.activeFile === file && !shouldOpenEditor) {
-      if (hasPosition) {
-        editorRef.current?.revealLine(line, col);
+  const navigateToFile = useCallback(
+    (file: string, line?: number, col?: number) => {
+      if (pendingNavigationRef.current !== null) {
+        window.clearTimeout(pendingNavigationRef.current);
+        pendingNavigationRef.current = null;
       }
-      return;
-    }
 
-    if (fs.activeFile !== file) {
-      fs.openFile(file);
-    }
+      const shouldOpenEditor = isMarkdownFile(file) && markdownViewMode === 'preview';
+      if (shouldOpenEditor) {
+        setMarkdownViewMode('write');
+      }
 
-    if (!hasPosition) {
-      return;
-    }
+      const hasPosition = typeof line === 'number' && typeof col === 'number';
 
-    pendingNavigationRef.current = window.setTimeout(() => {
-      editorRef.current?.revealLine(line, col);
-      pendingNavigationRef.current = null;
-    }, shouldOpenEditor ? 140 : 100);
-  }, [editorRef, fs, markdownViewMode]);
+      if (fs.activeFile === file && !shouldOpenEditor) {
+        if (hasPosition) {
+          editorRef.current?.revealLine(line, col);
+        }
+        return;
+      }
+
+      if (fs.activeFile !== file) {
+        fs.openFile(file);
+      }
+
+      if (!hasPosition) {
+        return;
+      }
+
+      pendingNavigationRef.current = window.setTimeout(
+        () => {
+          editorRef.current?.revealLine(line, col);
+          pendingNavigationRef.current = null;
+        },
+        shouldOpenEditor ? 140 : 100,
+      );
+    },
+    [editorRef, fs, markdownViewMode],
+  );
 
   const handleFontSizeUp = useCallback(() => {
     setFontSize((currentFontSize) => {

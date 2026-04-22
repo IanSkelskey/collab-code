@@ -16,7 +16,13 @@ export function SpinnerIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-      <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+      <path
+        d="M4 12a8 8 0 018-8"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        className="opacity-75"
+      />
     </svg>
   );
 }
@@ -49,7 +55,11 @@ export function CopyIcon(props: IconProps) {
 export function PencilIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -57,8 +67,16 @@ export function PencilIcon(props: IconProps) {
 export function LinkIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -88,7 +106,10 @@ export function SunIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
       <circle cx="12" cy="12" r="4" />
-      <path d="M12 2.5v2.25M12 19.25v2.25M4.75 4.75l1.6 1.6M17.65 17.65l1.6 1.6M2.5 12h2.25M19.25 12h2.25M4.75 19.25l1.6-1.6M17.65 6.35l1.6-1.6" strokeLinecap="round" />
+      <path
+        d="M12 2.5v2.25M12 19.25v2.25M4.75 4.75l1.6 1.6M17.65 17.65l1.6 1.6M2.5 12h2.25M19.25 12h2.25M4.75 19.25l1.6-1.6M17.65 6.35l1.6-1.6"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -96,7 +117,11 @@ export function SunIcon(props: IconProps) {
 export function MoonIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
-      <path d="M20.2 14.4A8.8 8.8 0 1 1 9.6 3.8a7 7 0 1 0 10.6 10.6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M20.2 14.4A8.8 8.8 0 1 1 9.6 3.8a7 7 0 1 0 10.6 10.6Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -135,26 +160,10 @@ export function TerminalIcon(props: IconProps) {
 export function RefreshIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
-      <path
-        d="M19.5 10.25A7.5 7.5 0 0 0 6.7 6.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4.5 6.25v4.25h4.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4.5 13.75A7.5 7.5 0 0 0 17.3 17.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19.5 17.75v-4.25h-4.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M19.5 10.25A7.5 7.5 0 0 0 6.7 6.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 6.25v4.25h4.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 13.75A7.5 7.5 0 0 0 17.3 17.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19.5 17.75v-4.25h-4.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -213,7 +222,11 @@ export function UndoIcon(props: IconProps) {
 export function FileDocIcon({ children, ...props }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
       {children}
     </svg>
@@ -223,7 +236,11 @@ export function FileDocIcon({ children, ...props }: IconProps) {
 export function FilePlusIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <line x1="12" y1="11" x2="12" y2="17" strokeLinecap="round" />
       <line x1="9" y1="14" x2="15" y2="14" strokeLinecap="round" />
     </svg>
@@ -233,7 +250,11 @@ export function FilePlusIcon(props: IconProps) {
 export function FolderClosedIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -249,7 +270,11 @@ export function FolderOpenIcon(props: IconProps) {
 export function FolderPlusIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <line x1="12" y1="11" x2="12" y2="17" strokeLinecap="round" />
       <line x1="9" y1="14" x2="15" y2="14" strokeLinecap="round" />
     </svg>
@@ -259,7 +284,11 @@ export function FolderPlusIcon(props: IconProps) {
 export function ExplorerFolderIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-      <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H11L9 5H5C3.9 5 3 5.9 3 7Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -309,7 +338,11 @@ export function FormatIcon(props: IconProps) {
 export function DownloadIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
       <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -319,7 +352,15 @@ export function DownloadIcon(props: IconProps) {
 export function ArchiveIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <rect x="2" y="2" width="20" height="20" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path d="M8 2v20" strokeLinecap="round" />
       <path d="M12 10l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -330,7 +371,11 @@ export function GearIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
       <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -340,7 +385,11 @@ export function GearIcon(props: IconProps) {
 export function UsersIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round" />
@@ -351,7 +400,16 @@ export function UsersIcon(props: IconProps) {
 export function MonitorIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect
+        x="2"
+        y="3"
+        width="20"
+        height="14"
+        rx="2"
+        ry="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <line x1="8" y1="21" x2="16" y2="21" strokeLinecap="round" />
       <line x1="12" y1="17" x2="12" y2="21" strokeLinecap="round" />
     </svg>
@@ -464,8 +522,17 @@ export function JavaFileIcon(props: IconProps) {
         <path d="M466.13,18.34s13.44,37.31-22.36,75.9c-35.8,38.64-167.93,61.31-219.3,127.92-51.37,66.6,183.55,166.51,183.55,166.51,0,0,80.52-33.3,67.04-71.94-11.83-34.04-75.87-51.03-49.07-76.5,31.23-29.66,105.1-47.66,136.72-78.19,53.7-51.96-96.57-143.7-96.57-143.7Z" />
         <path d="M671.38,630.35c-26.72,43.64-144.56,76.53-285.9,76.53s-251.29-30.73-282.92-72.2c-48.81,12.61-77.88,28.45-77.88,45.65,0,41.15,165.65,101.33,370.73,101.33s348.93-58.19,348.93-99.33c0-19.23-13.33-38.76-72.96-51.98Z" />
       </g>
-      <path fill="currentColor" d="M646.96,396.69c-7.47-23.06-64.52-32.2-108.55-35.82-11.37-.93-19.91,9.91-17.27,21.33.44,1.9.6,3.94.41,6.13-1.1,12.27-68.94,22.15-149.5,24.14-80.56-1.99-148.39-11.88-149.5-24.14-.19-2.19-.03-4.23.41-6.13,2.64-11.42-5.91-22.26-17.27-21.33-44.03,3.62-101.08,12.75-108.55,35.82-1.34,4.13-1.71,8.2-.68,12.05.21.8.97,3.15.97,3.15.35.89.76,1.77,1.22,2.64l99.39,214.5h0c8.9,19.81,46.99,36.32,142.23,42.14,10.91.67,21.51.91,31.77.82,10.26.09,20.86-.15,31.77-.82,95.24-5.82,133.33-22.33,142.23-42.14h0s99.39-214.5,99.39-214.5c.47-.87.88-1.75,1.22-2.64,0,0,.76-2.35.97-3.15,1.03-3.85.66-7.92-.68-12.05Z" />
-      <path fill="none" stroke="currentColor" strokeMiterlimit="10" strokeWidth="60" d="M600.43,412.9s122.67-46.67,122.67,23.33-192.67,155.33-192.67,155.33" />
+      <path
+        fill="currentColor"
+        d="M646.96,396.69c-7.47-23.06-64.52-32.2-108.55-35.82-11.37-.93-19.91,9.91-17.27,21.33.44,1.9.6,3.94.41,6.13-1.1,12.27-68.94,22.15-149.5,24.14-80.56-1.99-148.39-11.88-149.5-24.14-.19-2.19-.03-4.23.41-6.13,2.64-11.42-5.91-22.26-17.27-21.33-44.03,3.62-101.08,12.75-108.55,35.82-1.34,4.13-1.71,8.2-.68,12.05.21.8.97,3.15.97,3.15.35.89.76,1.77,1.22,2.64l99.39,214.5h0c8.9,19.81,46.99,36.32,142.23,42.14,10.91.67,21.51.91,31.77.82,10.26.09,20.86-.15,31.77-.82,95.24-5.82,133.33-22.33,142.23-42.14h0s99.39-214.5,99.39-214.5c.47-.87.88-1.75,1.22-2.64,0,0,.76-2.35.97-3.15,1.03-3.85.66-7.92-.68-12.05Z"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeMiterlimit="10"
+        strokeWidth="60"
+        d="M600.43,412.9s122.67-46.67,122.67,23.33-192.67,155.33-192.67,155.33"
+      />
     </svg>
   );
 }

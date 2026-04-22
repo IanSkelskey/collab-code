@@ -78,9 +78,15 @@ export function readSharedTerminalSnapshot(ydoc: Y.Doc): SharedTerminalSnapshot 
     initialized: state.get('initialized') === true,
     cwd: normalizeTerminalPath(state.get('cwd')),
     commandBuffer: readString(state.get('commandBuffer')),
-    commandCursor: clampCursor(readNumber(state.get('commandCursor')), readString(state.get('commandBuffer'))),
+    commandCursor: clampCursor(
+      readNumber(state.get('commandCursor')),
+      readString(state.get('commandBuffer')),
+    ),
     execBuffer: readString(state.get('execBuffer')),
-    execCursor: clampCursor(readNumber(state.get('execCursor')), readString(state.get('execBuffer'))),
+    execCursor: clampCursor(
+      readNumber(state.get('execCursor')),
+      readString(state.get('execBuffer')),
+    ),
     history: readHistory(state.get('history')),
     historyIndex: readNumber(state.get('historyIndex'), -1),
     savedInput: readString(state.get('savedInput')),
@@ -166,9 +172,10 @@ export function renderSharedTerminal(snapshot: SharedTerminalSnapshot, transcrip
     return '';
   }
 
-  const activeBuffer = snapshot.mode === 'exec'
-    ? { text: snapshot.execBuffer, cursor: snapshot.execCursor }
-    : { text: snapshot.commandBuffer, cursor: snapshot.commandCursor };
+  const activeBuffer =
+    snapshot.mode === 'exec'
+      ? { text: snapshot.execBuffer, cursor: snapshot.execCursor }
+      : { text: snapshot.commandBuffer, cursor: snapshot.commandCursor };
 
   const prompt = snapshot.mode === 'command' ? buildTerminalPrompt(snapshot.cwd) : '';
   const backtrack = activeBuffer.text.length - activeBuffer.cursor;

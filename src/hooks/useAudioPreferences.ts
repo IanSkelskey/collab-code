@@ -26,22 +26,27 @@ function parseAudioPreferences(value: unknown): AudioPreferencesState | null {
   };
 
   return {
-    presenceSoundsEnabled: typeof candidate.presenceSoundsEnabled === 'boolean'
-      ? candidate.presenceSoundsEnabled
-      : DEFAULT_PRESENCE_SOUNDS_ENABLED,
+    presenceSoundsEnabled:
+      typeof candidate.presenceSoundsEnabled === 'boolean'
+        ? candidate.presenceSoundsEnabled
+        : DEFAULT_PRESENCE_SOUNDS_ENABLED,
     presenceSoundVolume: clampPresenceSoundVolume(candidate.presenceSoundVolume),
   };
 }
 
 function getInitialAudioPreferences(): AudioPreferencesState {
-  return readLocalStorageJson(AUDIO_PREFERENCES_STORAGE_KEY, parseAudioPreferences) ?? {
-    presenceSoundsEnabled: DEFAULT_PRESENCE_SOUNDS_ENABLED,
-    presenceSoundVolume: DEFAULT_PRESENCE_SOUND_VOLUME,
-  };
+  return (
+    readLocalStorageJson(AUDIO_PREFERENCES_STORAGE_KEY, parseAudioPreferences) ?? {
+      presenceSoundsEnabled: DEFAULT_PRESENCE_SOUNDS_ENABLED,
+      presenceSoundVolume: DEFAULT_PRESENCE_SOUND_VOLUME,
+    }
+  );
 }
 
 export function useAudioPreferences() {
-  const [audioPreferences, setAudioPreferences] = useState<AudioPreferencesState>(getInitialAudioPreferences);
+  const [audioPreferences, setAudioPreferences] = useState<AudioPreferencesState>(
+    getInitialAudioPreferences,
+  );
 
   useEffect(() => {
     writeLocalStorageJson(AUDIO_PREFERENCES_STORAGE_KEY, audioPreferences);

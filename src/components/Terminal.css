@@ -9,7 +9,11 @@
   overflow: hidden;
   padding: 0.35rem 0.55rem 0.55rem;
   background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--cc-accent) 8%, transparent) 0, transparent 36%),
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, var(--cc-accent) 8%, transparent) 0,
+      transparent 36%
+    ),
     color-mix(in srgb, var(--cc-bg-terminal) 98%, transparent);
 }
 
@@ -27,7 +31,7 @@
   border-radius: 0.5rem;
 }
 
-[data-theme="cc-light"] .cc-terminal-canvas .xterm-dim {
+[data-theme='cc-light'] .cc-terminal-canvas .xterm-dim {
   color: #58697f !important;
   opacity: 1 !important;
 }

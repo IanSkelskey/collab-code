@@ -1,10 +1,4 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal as XTerminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
@@ -24,10 +18,7 @@ import {
   type SharedTerminalSnapshot,
   updateSharedTerminalState,
 } from '../services/sharedTerminal';
-import {
-  createTerminalDataHandler,
-  createTerminalKeyGuard,
-} from '../services/terminalInput';
+import { createTerminalDataHandler, createTerminalKeyGuard } from '../services/terminalInput';
 import { useTheme } from '../theme/ThemeProvider';
 
 export interface TerminalHandle {
@@ -107,9 +98,9 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     const previousTranscript = renderedTranscriptRef.current;
 
     if (
-      previousSnapshot
-      && previousTranscript === transcript
-      && canPatchActiveLine(terminal, previousSnapshot, snapshot)
+      previousSnapshot &&
+      previousTranscript === transcript &&
+      canPatchActiveLine(terminal, previousSnapshot, snapshot)
     ) {
       patchActiveLine(terminal, snapshot);
       renderedSnapshotRef.current = snapshot;
@@ -143,53 +134,57 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     });
   }, [renderTerminalView]);
 
-  useImperativeHandle(ref, () => ({
-    write(text: string) {
-      appendTerminalOutput(ydoc, text);
-    },
-    writeln(text: string) {
-      appendTerminalOutput(ydoc, `${text}\r\n`);
-    },
-    clear() {
-      clearTerminalTranscript(ydoc);
-      updateSharedTerminalState(ydoc, (current) => ({
-        ...current,
-        commandBuffer: '',
-        commandCursor: 0,
-        execBuffer: '',
-        execCursor: 0,
-        historyIndex: -1,
-        savedInput: '',
-        mode: 'command',
-      }));
-    },
-    enterExecMode(onStdin: (data: string) => void, onKill: () => void) {
-      execStdinCallbackRef.current = onStdin;
-      execKillCallbackRef.current = onKill;
+  useImperativeHandle(
+    ref,
+    () => ({
+      write(text: string) {
+        appendTerminalOutput(ydoc, text);
+      },
+      writeln(text: string) {
+        appendTerminalOutput(ydoc, `${text}\r\n`);
+      },
+      clear() {
+        clearTerminalTranscript(ydoc);
+        updateSharedTerminalState(ydoc, (current) => ({
+          ...current,
+          commandBuffer: '',
+          commandCursor: 0,
+          execBuffer: '',
+          execCursor: 0,
+          historyIndex: -1,
+          savedInput: '',
+          mode: 'command',
+        }));
+      },
+      enterExecMode(onStdin: (data: string) => void, onKill: () => void) {
+        execStdinCallbackRef.current = onStdin;
+        execKillCallbackRef.current = onKill;
 
-      updateSharedTerminalState(ydoc, (current) => ({
-        ...current,
-        mode: 'exec',
-        execBuffer: '',
-        execCursor: 0,
-      }));
-    },
-    exitExecMode(options?: { appendNewline?: boolean }) {
-      execStdinCallbackRef.current = null;
-      execKillCallbackRef.current = null;
+        updateSharedTerminalState(ydoc, (current) => ({
+          ...current,
+          mode: 'exec',
+          execBuffer: '',
+          execCursor: 0,
+        }));
+      },
+      exitExecMode(options?: { appendNewline?: boolean }) {
+        execStdinCallbackRef.current = null;
+        execKillCallbackRef.current = null;
 
-      if (options?.appendNewline !== false) {
-        appendTerminalOutput(ydoc, '\r\n');
-      }
+        if (options?.appendNewline !== false) {
+          appendTerminalOutput(ydoc, '\r\n');
+        }
 
-      updateSharedTerminalState(ydoc, (current) => ({
-        ...current,
-        mode: 'command',
-        execBuffer: '',
-        execCursor: 0,
-      }));
-    },
-  }), [ydoc]);
+        updateSharedTerminalState(ydoc, (current) => ({
+          ...current,
+          mode: 'command',
+          execBuffer: '',
+          execCursor: 0,
+        }));
+      },
+    }),
+    [ydoc],
+  );
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -220,17 +215,21 @@ const Terminal = forwardRef<TerminalHandle, TerminalProps>(function Terminal(
     termRef.current = terminal;
     fitRef.current = fitAddon;
 
-    terminal.attachCustomKeyEventHandler(createTerminalKeyGuard({
-      getSnapshot: () => readSharedTerminalSnapshot(ydoc),
-    }));
+    terminal.attachCustomKeyEventHandler(
+      createTerminalKeyGuard({
+        getSnapshot: () => readSharedTerminalSnapshot(ydoc),
+      }),
+    );
 
-    const dataDisposable = terminal.onData(createTerminalDataHandler({
-      ydoc,
-      getVfs: () => fsRef.current,
-      getOnRun: () => onRunRef.current,
-      getPushToast: () => pushToastRef.current,
-      getRequestConfirm: () => requestConfirmRef.current,
-    }));
+    const dataDisposable = terminal.onData(
+      createTerminalDataHandler({
+        ydoc,
+        getVfs: () => fsRef.current,
+        getOnRun: () => onRunRef.current,
+        getPushToast: () => pushToastRef.current,
+        getRequestConfirm: () => requestConfirmRef.current,
+      }),
+    );
 
     const resizeObserver = new ResizeObserver(() => {
       try {
@@ -348,19 +347,25 @@ function canPatchActiveLine(
     return false;
   }
 
-  if (previousSnapshot.mode !== nextSnapshot.mode && (previousSnapshot.mode === 'exec' || nextSnapshot.mode === 'exec')) {
+  if (
+    previousSnapshot.mode !== nextSnapshot.mode &&
+    (previousSnapshot.mode === 'exec' || nextSnapshot.mode === 'exec')
+  ) {
     return false;
   }
 
-  return getVisibleLineLength(previousSnapshot) < terminal.cols
-    && getVisibleLineLength(nextSnapshot) < terminal.cols;
+  return (
+    getVisibleLineLength(previousSnapshot) < terminal.cols &&
+    getVisibleLineLength(nextSnapshot) < terminal.cols
+  );
 }
 
 function patchActiveLine(terminal: XTerminal, snapshot: SharedTerminalSnapshot): void {
   const syncTerminal = terminal as SyncTerminal;
-  const buffer = snapshot.mode === 'exec'
-    ? { text: snapshot.execBuffer, cursor: snapshot.execCursor }
-    : { text: snapshot.commandBuffer, cursor: snapshot.commandCursor };
+  const buffer =
+    snapshot.mode === 'exec'
+      ? { text: snapshot.execBuffer, cursor: snapshot.execCursor }
+      : { text: snapshot.commandBuffer, cursor: snapshot.commandCursor };
 
   const prompt = snapshot.mode === 'command' ? buildTerminalPrompt(snapshot.cwd) : '';
   const backtrack = buffer.text.length - buffer.cursor;
@@ -382,9 +387,8 @@ function patchActiveLine(terminal: XTerminal, snapshot: SharedTerminalSnapshot):
 
 function getVisibleLineLength(snapshot: SharedTerminalSnapshot): number {
   const promptLength = snapshot.mode === 'command' ? `${snapshot.cwd} $ `.length : 0;
-  const bufferLength = snapshot.mode === 'exec'
-    ? snapshot.execBuffer.length
-    : snapshot.commandBuffer.length;
+  const bufferLength =
+    snapshot.mode === 'exec' ? snapshot.execBuffer.length : snapshot.commandBuffer.length;
 
   return promptLength + bufferLength;
 }

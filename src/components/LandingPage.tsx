@@ -25,10 +25,13 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
     setTemplateDialogOpen(true);
   }, []);
 
-  const handleTemplateSelect = useCallback((templateId: RoomTemplateId) => {
-    setTemplateDialogOpen(false);
-    onCreateRoom(generateRoomId(), templateId);
-  }, [onCreateRoom]);
+  const handleTemplateSelect = useCallback(
+    (templateId: RoomTemplateId) => {
+      setTemplateDialogOpen(false);
+      onCreateRoom(generateRoomId(), templateId);
+    },
+    [onCreateRoom],
+  );
 
   const handleJoin = useCallback(() => {
     const trimmed = joinId.trim().replace(/^#/, '');
@@ -42,7 +45,9 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
           <img src="/collab-code/logo.svg" alt="Collab Code" className="w-7 h-7" />
           <h1 className="text-base font-semibold tracking-tight">
             <span className="cc-text-primary">Collab Code</span>
-            <span className="cc-text-muted ml-1.5 font-mono text-xs font-normal">v{__APP_VERSION__}</span>
+            <span className="cc-text-muted ml-1.5 font-mono text-xs font-normal">
+              v{__APP_VERSION__}
+            </span>
           </h1>
         </div>
 
@@ -62,8 +67,9 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             </h2>
             <span className="cc-text-faint -mt-2 font-mono text-xs">v{__APP_VERSION__}</span>
             <p className="cc-text-muted max-w-lg text-sm leading-relaxed sm:text-base">
-              A minimal, collaborative coding room for Java and Python, built for tutors and students.
-              No installs, no accounts - just share a link and start coding together in real time.
+              A minimal, collaborative coding room for Java and Python, built for tutors and
+              students. No installs, no accounts - just share a link and start coding together in
+              real time.
             </p>
             <p className="cc-text-faint text-center text-xs italic">
               Creating a room opens a starter picker for Java, Python, or a blank workspace.
@@ -89,7 +95,10 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             </div>
 
             <form
-              onSubmit={(event) => { event.preventDefault(); handleJoin(); }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleJoin();
+              }}
               className="flex gap-2"
             >
               <input
@@ -126,7 +135,8 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
 
           <div className="mt-8 flex flex-col items-center gap-2 w-full max-w-sm">
             <div className="cc-text-muted text-center text-xs">
-              <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest, or contribute!
+              <span className="font-semibold text-pink-400">Get Involved</span> - Support, suggest,
+              or contribute!
             </div>
             <GetInvolvedActions />
           </div>

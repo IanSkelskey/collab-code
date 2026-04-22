@@ -107,16 +107,18 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
                       />
                     </div>
 
-                    {showMarkdownEditor && showMarkdownPreview && layout.markdownViewMode === 'split' && (
-                      <div
-                        onMouseDown={layout.handleMarkdownSplitDragStart}
-                        onTouchStart={layout.handleMarkdownSplitDragStart}
-                        className="cc-divider hidden w-3 shrink-0 cursor-col-resize items-center justify-center border-l touch-none lg:flex"
-                        title="Resize markdown split view"
-                      >
-                        <div className="h-10 w-[2px] rounded-full bg-[var(--cc-border-strong)] transition-colors hover:bg-[var(--cc-accent)]" />
-                      </div>
-                    )}
+                    {showMarkdownEditor &&
+                      showMarkdownPreview &&
+                      layout.markdownViewMode === 'split' && (
+                        <div
+                          onMouseDown={layout.handleMarkdownSplitDragStart}
+                          onTouchStart={layout.handleMarkdownSplitDragStart}
+                          className="cc-divider hidden w-3 shrink-0 cursor-col-resize items-center justify-center border-l touch-none lg:flex"
+                          title="Resize markdown split view"
+                        >
+                          <div className="h-10 w-[2px] rounded-full bg-[var(--cc-border-strong)] transition-colors hover:bg-[var(--cc-accent)]" />
+                        </div>
+                      )}
 
                     {showMarkdownPreview && fs.activeFile && (
                       <div
@@ -157,9 +159,12 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
             <div className="cc-text-muted flex h-full flex-col items-center justify-center gap-4 px-4 select-none">
               <img src="/collab-code/logo.svg" alt="Collab Code" className="w-24 h-24 opacity-40" />
               <div className="text-center space-y-1">
-                <p className="cc-text-secondary text-sm font-medium">Choose how to start this room</p>
+                <p className="cc-text-secondary text-sm font-medium">
+                  Choose how to start this room
+                </p>
                 <p className="max-w-sm text-xs">
-                  Create a starter file for Java or Python, or open the Explorer to build your own workspace.
+                  Create a starter file for Java or Python, or open the Explorer to build your own
+                  workspace.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -210,7 +215,9 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
           >
             <TerminalIcon className="w-3.5 h-3.5" strokeWidth={2} />
             Terminal
-            <ChevronDownIcon className={`w-3 h-3 transition-transform ${layout.terminalVisible ? 'rotate-0' : 'rotate-180'}`} />
+            <ChevronDownIcon
+              className={`w-3 h-3 transition-transform ${layout.terminalVisible ? 'rotate-0' : 'rotate-180'}`}
+            />
           </button>
           {layout.terminalVisible && (
             <div

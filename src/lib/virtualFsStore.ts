@@ -216,9 +216,11 @@ export function renameStorePath(
 
   const oldPrefix = `${oldNormalizedPath}/`;
   const fileKeysToMove = Array.from(fsMap.keys()).filter((key) => key.startsWith(oldPrefix));
-  const directoryPaths = fsDirs.toArray().filter((directoryPath) => (
-    directoryPath === oldNormalizedPath || directoryPath.startsWith(oldPrefix)
-  ));
+  const directoryPaths = fsDirs
+    .toArray()
+    .filter(
+      (directoryPath) => directoryPath === oldNormalizedPath || directoryPath.startsWith(oldPrefix),
+    );
 
   if (fileKeysToMove.length === 0 && directoryPaths.length === 0) {
     return false;
@@ -247,7 +249,9 @@ export function renameStorePath(
     for (let index = fsDirs.length - 1; index >= 0; index -= 1) {
       const directoryPath = fsDirs.get(index);
       if (directoryPath === oldNormalizedPath || directoryPath.startsWith(oldPrefix)) {
-        renamedDirectories.push(`${newNormalizedPath}${directoryPath.slice(oldNormalizedPath.length)}`);
+        renamedDirectories.push(
+          `${newNormalizedPath}${directoryPath.slice(oldNormalizedPath.length)}`,
+        );
         fsDirs.delete(index, 1);
       }
     }
@@ -287,9 +291,10 @@ export function bootstrapStarterWorkspace(
     for (const file of starterWorkspace.files) {
       const filePath = joinVfsPath(ROOT_PATH, file.name);
       const ytext = new Y.Text();
-      const content = file.name === starterWorkspace.initialOpenFileName && oldCode.length > 0
-        ? oldCode
-        : file.content;
+      const content =
+        file.name === starterWorkspace.initialOpenFileName && oldCode.length > 0
+          ? oldCode
+          : file.content;
 
       ytext.insert(0, content);
       fsMap.set(filePath, ytext);

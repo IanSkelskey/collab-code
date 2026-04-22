@@ -45,10 +45,7 @@ async function addFile(fs: VirtualFS, baseDir: string, relPath: string, file: Fi
 
 function readEntries(reader: WebkitFileSystemDirectoryReader): Promise<WebkitEntry[]> {
   return new Promise((resolve, reject) => {
-    reader.readEntries(
-      (entries) => resolve(entries as WebkitEntry[]),
-      reject,
-    );
+    reader.readEntries((entries) => resolve(entries as WebkitEntry[]), reject);
   });
 }
 
@@ -63,7 +60,12 @@ async function getEntryFile(entry: WebkitEntry): Promise<File> {
   });
 }
 
-async function traverseEntry(fs: VirtualFS, baseDir: string, entry: WebkitEntry, prefix = ''): Promise<number> {
+async function traverseEntry(
+  fs: VirtualFS,
+  baseDir: string,
+  entry: WebkitEntry,
+  prefix = '',
+): Promise<number> {
   if (isWebkitFileEntry(entry)) {
     const file = await getEntryFile(entry);
     const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
@@ -96,7 +98,11 @@ async function traverseEntry(fs: VirtualFS, baseDir: string, entry: WebkitEntry,
  * Import files/folders from a DataTransfer (OS drag-and-drop) into the virtual FS.
  * Returns number of files created.
  */
-export async function importDataTransfer(fs: VirtualFS, dt: DataTransfer, baseDir: string = '~'): Promise<number> {
+export async function importDataTransfer(
+  fs: VirtualFS,
+  dt: DataTransfer,
+  baseDir: string = '~',
+): Promise<number> {
   let imported = 0;
   const items = dt.items;
 
@@ -121,9 +127,12 @@ export async function importDataTransfer(fs: VirtualFS, dt: DataTransfer, baseDi
   if (dt.files && dt.files.length) {
     const files = Array.from(dt.files);
     for (const f of files) {
-      const rel = 'webkitRelativePath' in f && typeof f.webkitRelativePath === 'string' && f.webkitRelativePath
-        ? f.webkitRelativePath
-        : f.name;
+      const rel =
+        'webkitRelativePath' in f &&
+        typeof f.webkitRelativePath === 'string' &&
+        f.webkitRelativePath
+          ? f.webkitRelativePath
+          : f.name;
       await addFile(fs, baseDir, rel, f);
       imported++;
     }

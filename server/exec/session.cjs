@@ -35,11 +35,15 @@ function handleExecConnection(ws) {
       timeout = null;
     }
     if (activeProcess) {
-      try { activeProcess.kill('SIGKILL'); } catch {}
+      try {
+        activeProcess.kill('SIGKILL');
+      } catch {}
       activeProcess = null;
     }
     if (tmpDir) {
-      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {}
       tmpDir = null;
     }
   }
@@ -57,7 +61,9 @@ function handleExecConnection(ws) {
 
       if (processToTrack.exitCode === null && !processToTrack.killed) {
         send({ type: 'stderr', data: '\n[Execution timed out after 30 seconds of inactivity]\n' });
-        try { processToTrack.kill('SIGKILL'); } catch {}
+        try {
+          processToTrack.kill('SIGKILL');
+        } catch {}
       }
     }, EXEC_INACTIVITY_TIMEOUT_MS);
 

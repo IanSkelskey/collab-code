@@ -19,18 +19,18 @@ export function useKeyboardShortcuts({
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
-        setExplorerVisible(v => {
+        setExplorerVisible((v) => {
           if (!v) setSearchVisible(false);
           return !v;
         });
       }
       if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault();
-        setTerminalVisible(v => !v);
+        setTerminalVisible((v) => !v);
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
-        setSearchVisible(v => {
+        setSearchVisible((v) => {
           if (!v) setExplorerVisible(false);
           return !v;
         });

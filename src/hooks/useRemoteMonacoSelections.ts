@@ -74,8 +74,9 @@ export function useRemoteMonacoSelections({
     const publishLocalSelections = () => {
       const { ytext } = getBindingTarget();
       const activityAt = Date.now();
-      const relativeSelections = getOrderedSelections(monacoEditor)
-        .map((selection) => createRelativeSelection(selection, model, ytext));
+      const relativeSelections = getOrderedSelections(monacoEditor).map((selection) =>
+        createRelativeSelection(selection, model, ytext),
+      );
 
       awareness.setLocalStateField(REMOTE_SELECTIONS_FIELD, relativeSelections);
       awareness.setLocalStateField(LEGACY_SELECTION_FIELD, relativeSelections[0] ?? null);
@@ -139,7 +140,10 @@ export function useRemoteMonacoSelections({
           decorations.push({
             range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
             options: {
-              className: startIndex === endIndex ? undefined : `ccRemoteSelection ccRemoteSelection-${clientId}`,
+              className:
+                startIndex === endIndex
+                  ? undefined
+                  : `ccRemoteSelection ccRemoteSelection-${clientId}`,
               afterContentClassName: isHeadAfterAnchor ? cursorClassName : undefined,
               beforeContentClassName: isHeadAfterAnchor ? undefined : cursorClassName,
             },
@@ -147,7 +151,10 @@ export function useRemoteMonacoSelections({
         });
       });
 
-      remoteDecorationIdsRef.current = monacoEditor.deltaDecorations(remoteDecorationIdsRef.current, decorations);
+      remoteDecorationIdsRef.current = monacoEditor.deltaDecorations(
+        remoteDecorationIdsRef.current,
+        decorations,
+      );
     };
 
     renderRemoteSelections();
@@ -160,7 +167,10 @@ export function useRemoteMonacoSelections({
       if (remoteStylesRef.current) {
         remoteStylesRef.current.textContent = '';
       }
-      remoteDecorationIdsRef.current = monacoEditor.deltaDecorations(remoteDecorationIdsRef.current, []);
+      remoteDecorationIdsRef.current = monacoEditor.deltaDecorations(
+        remoteDecorationIdsRef.current,
+        [],
+      );
     };
   }, [awareness, getBindingTarget, monacoEditor, monacoRef, ydoc]);
 }

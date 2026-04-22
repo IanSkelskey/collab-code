@@ -107,7 +107,8 @@ function getServerStatusUrls(): string[] {
   const urls = new Set<string>([primary]);
   const primaryUrl = new URL(primary);
   const localHostnames = new Set(['localhost', '127.0.0.1', '::1']);
-  const shouldTryLocalFallbacks = localHostnames.has(primaryUrl.hostname) || localHostnames.has(window.location.hostname);
+  const shouldTryLocalFallbacks =
+    localHostnames.has(primaryUrl.hostname) || localHostnames.has(window.location.hostname);
 
   if (shouldTryLocalFallbacks) {
     urls.add('http://localhost:4444/');
@@ -128,7 +129,7 @@ async function fetchServerStatus(signal: AbortSignal): Promise<ServerStatusInfo>
         throw new Error(`Request failed with status ${response.status}`);
       }
 
-      const payload = await response.json() as unknown;
+      const payload = (await response.json()) as unknown;
       return parseServerStatusInfo(payload);
     } catch (error) {
       if (signal.aborted) {
@@ -158,7 +159,8 @@ function buildCompatibilityState(
     return {
       status: 'unknown',
       title: 'Server compatibility unknown',
-      detail: 'Unable to verify the server version or protocol. The app may still work, but compatibility could not be confirmed.',
+      detail:
+        'Unable to verify the server version or protocol. The app may still work, but compatibility could not be confirmed.',
     };
   }
 
@@ -166,7 +168,8 @@ function buildCompatibilityState(
     return {
       status: 'legacy-server',
       title: 'Legacy server status response',
-      detail: 'This server did not report a protocol version. It may be older than this frontend, so newer features may not work as expected.',
+      detail:
+        'This server did not report a protocol version. It may be older than this frontend, so newer features may not work as expected.',
     };
   }
 
@@ -182,7 +185,8 @@ function buildCompatibilityState(
     return {
       status: 'legacy-server',
       title: 'Server version not reported',
-      detail: 'The server status endpoint did not report a backend version. Core features may still work, but this backend may be older than the current frontend.',
+      detail:
+        'The server status endpoint did not report a backend version. Core features may still work, but this backend may be older than the current frontend.',
     };
   }
 
@@ -211,7 +215,8 @@ function buildSummaryState(
     return {
       label: 'Offline',
       tone: 'danger',
-      detail: 'Disconnected from the sync server. Collaboration and code execution may not work until the connection returns.',
+      detail:
+        'Disconnected from the sync server. Collaboration and code execution may not work until the connection returns.',
     };
   }
 
@@ -243,7 +248,8 @@ function buildSummaryState(
     return {
       label: 'Status Unknown',
       tone: 'warning',
-      detail: 'Connected to the sync server, but the status endpoint could not be reached to verify backend health.',
+      detail:
+        'Connected to the sync server, but the status endpoint could not be reached to verify backend health.',
     };
   }
 
@@ -266,7 +272,8 @@ function buildSummaryState(
   return {
     label: 'Healthy',
     tone: 'success',
-    detail: 'Connected to the sync server. Server version, protocol, and execution status look healthy.',
+    detail:
+      'Connected to the sync server. Server version, protocol, and execution status look healthy.',
   };
 }
 
@@ -312,7 +319,8 @@ function buildBannerState(
       key: 'status-check-error',
       tone: 'warning',
       title: 'Unable to verify server status',
-      message: 'The sync connection may still work, but backend health and feature compatibility could not be confirmed.',
+      message:
+        'The sync connection may still work, but backend health and feature compatibility could not be confirmed.',
     };
   }
 
@@ -321,7 +329,8 @@ function buildBannerState(
       key: `execution-disabled:${info.executionSandboxStatus ?? 'unknown'}`,
       tone: 'warning',
       title: 'Code execution is disabled',
-      message: 'Editing and collaboration still work, but running Java or Python from the browser is currently disabled on this server.',
+      message:
+        'Editing and collaboration still work, but running Java or Python from the browser is currently disabled on this server.',
     };
   }
 
@@ -349,11 +358,11 @@ export function useServerStatus({ syncStatus }: UseServerStatusOptions): ServerS
       const controller = new AbortController();
       activeController = controller;
 
-      setState((current) => (
+      setState((current) =>
         current.checkedAt === null && current.fetchState !== 'loading'
           ? { ...current, fetchState: 'loading' }
-          : current
-      ));
+          : current,
+      );
 
       void fetchServerStatus(controller.signal)
         .then((info) => {

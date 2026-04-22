@@ -40,17 +40,12 @@ export default function ServerStatusBanner({
       role="status"
       aria-live="polite"
     >
-      <InfoCircleIcon
-        className="mt-0.5 h-4 w-4 shrink-0"
-        style={{ color: accentColor }}
-      />
+      <InfoCircleIcon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accentColor }} />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-semibold" style={{ color: accentColor }}>
           {banner.title}
         </div>
-        <p className="cc-text-secondary mt-1 text-xs leading-relaxed">
-          {banner.message}
-        </p>
+        <p className="cc-text-secondary mt-1 text-xs leading-relaxed">{banner.message}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <button

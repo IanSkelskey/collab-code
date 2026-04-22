@@ -65,15 +65,16 @@ export default function PeerAvatars({
         const peerFileName = !isMe ? peer.activeFile?.split('/').pop() : undefined;
 
         return (
-          <div
-            key={peer.clientId}
-            className="group relative"
-          >
+          <div key={peer.clientId} className="group relative">
             <div
-              onClick={isMe ? handleStartEdit : () => {
-                setEditing(false);
-                onToggleFollowPeer(peer);
-              }}
+              onClick={
+                isMe
+                  ? handleStartEdit
+                  : () => {
+                      setEditing(false);
+                      onToggleFollowPeer(peer);
+                    }
+              }
               className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 text-[10px] font-bold text-white sm:h-7 sm:w-7 sm:text-xs"
               style={{
                 backgroundColor: peer.color,
@@ -122,7 +123,10 @@ export default function PeerAvatars({
             )}
 
             {isMe && editing && (
-              <div ref={popoverRef} className="cc-menu absolute top-full left-1/2 z-50 mt-1 min-w-[140px] -translate-x-1/2 space-y-2 rounded-lg p-2">
+              <div
+                ref={popoverRef}
+                className="cc-menu absolute top-full left-1/2 z-50 mt-1 min-w-[140px] -translate-x-1/2 space-y-2 rounded-lg p-2"
+              >
                 <input
                   ref={inputRef}
                   value={editValue}

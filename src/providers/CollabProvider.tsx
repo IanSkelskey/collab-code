@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import type { Awareness } from 'y-protocols/awareness';
@@ -53,8 +47,10 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     return readLocalStorageItem('collab-code-username') || getRandomName();
   });
   const [userColor, setUserColor] = useState(() => {
-    return readLocalStorageItem('collab-code-color')
-      || PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)];
+    return (
+      readLocalStorageItem('collab-code-color') ||
+      PEER_COLORS[Math.floor(Math.random() * PEER_COLORS.length)]
+    );
   });
 
   useEffect(() => {
@@ -149,35 +145,34 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     });
   }, [awareness, userName, userColor]);
 
-  const value = useMemo<CollabContextValue>(() => ({
-    ydoc: ydocRef.current,
-    provider,
-    awareness,
-    roomId,
-    peerCount,
-    connected,
-    connectionStatus,
-    storageReady,
-    userName,
-    userColor,
-    peerColors: PEER_COLORS,
-    setUserName,
-    setUserColor,
-  }), [
-    provider,
-    awareness,
-    roomId,
-    peerCount,
-    connected,
-    connectionStatus,
-    storageReady,
-    userName,
-    userColor,
-  ]);
-
-  return (
-    <CollabContext.Provider value={value}>
-      {children}
-    </CollabContext.Provider>
+  const value = useMemo<CollabContextValue>(
+    () => ({
+      ydoc: ydocRef.current,
+      provider,
+      awareness,
+      roomId,
+      peerCount,
+      connected,
+      connectionStatus,
+      storageReady,
+      userName,
+      userColor,
+      peerColors: PEER_COLORS,
+      setUserName,
+      setUserColor,
+    }),
+    [
+      provider,
+      awareness,
+      roomId,
+      peerCount,
+      connected,
+      connectionStatus,
+      storageReady,
+      userName,
+      userColor,
+    ],
   );
+
+  return <CollabContext.Provider value={value}>{children}</CollabContext.Provider>;
 }

@@ -34,12 +34,14 @@ export class InteractiveExecutor {
     this.ws = new WebSocket(execUrl);
 
     this.ws.onopen = () => {
-      this.ws!.send(JSON.stringify({
-        type: 'exec',
-        files,
-        language: options.language,
-        entryPoint: options.entryPoint,
-      }));
+      this.ws!.send(
+        JSON.stringify({
+          type: 'exec',
+          files,
+          language: options.language,
+          entryPoint: options.entryPoint,
+        }),
+      );
     };
 
     this.ws.onmessage = (event) => {

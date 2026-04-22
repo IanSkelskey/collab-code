@@ -74,7 +74,10 @@ function applyTheme(theme: AppThemeDefinition): void {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [appearance, setAppearance] = useState<AppearancePreference>(getPreferredAppearance);
   const [systemThemeId, setSystemThemeId] = useState<ThemeId>(getSystemThemeId);
-  const themeId = useMemo(() => getThemeIdForAppearance(appearance, systemThemeId), [appearance, systemThemeId]);
+  const themeId = useMemo(
+    () => getThemeIdForAppearance(appearance, systemThemeId),
+    [appearance, systemThemeId],
+  );
   const theme = useMemo(() => getThemeDefinition(themeId), [themeId]);
 
   useEffect(() => {
@@ -106,17 +109,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     removeLocalStorageItem(themeStorageKey);
   }, [appearance, theme]);
 
-  const value = useMemo<ThemeContextValue>(() => ({
-    appearance,
-    theme,
-    setAppearance,
-  }), [appearance, theme]);
-
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      appearance,
+      theme,
+      setAppearance,
+    }),
+    [appearance, theme],
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {

@@ -17,10 +17,7 @@ const themeChoices = [
   Icon: typeof SunIcon;
 }>;
 
-export default function ThemePicker({
-  compact = false,
-  className = '',
-}: ThemePickerProps) {
+export default function ThemePicker({ compact = false, className = '' }: ThemePickerProps) {
   const { appearance, theme, setAppearance } = useTheme();
   const autoEnabled = appearance === 'system';
   const effectiveAppearance: Exclude<AppearancePreference, 'system'> = autoEnabled
@@ -87,7 +84,9 @@ export default function ThemePicker({
 
       {!compact && (
         <p className="cc-theme-status" aria-live="polite">
-          {autoEnabled ? `Currently following ${theme.colorScheme} mode.` : `Locked to ${effectiveAppearance} mode.`}
+          {autoEnabled
+            ? `Currently following ${theme.colorScheme} mode.`
+            : `Locked to ${effectiveAppearance} mode.`}
         </p>
       )}
     </div>

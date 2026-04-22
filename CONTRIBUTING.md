@@ -41,23 +41,23 @@ If you run the frontend by itself against a non-local relay server, set `VITE_WS
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Start the Vite frontend |
-| `npm run dev:server` | Start the local relay / Java execution server |
-| `npm run dev:all` | Start frontend and server together |
-| `npm run build` | Type-check and build the frontend |
-| `npm run lint` | Run ESLint |
-| `npm run preview` | Preview the production frontend build |
-| `npm run start:server` | Start the relay server without Vite |
+| Command                | Purpose                                       |
+| ---------------------- | --------------------------------------------- |
+| `npm run dev`          | Start the Vite frontend                       |
+| `npm run dev:server`   | Start the local relay / Java execution server |
+| `npm run dev:all`      | Start frontend and server together            |
+| `npm run build`        | Type-check and build the frontend             |
+| `npm run lint`         | Run ESLint                                    |
+| `npm run preview`      | Preview the production frontend build         |
+| `npm run start:server` | Start the relay server without Vite           |
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|---|---|---|
+| Variable      | Description                        | Default               |
+| ------------- | ---------------------------------- | --------------------- |
 | `VITE_WS_URL` | WebSocket URL for the relay server | `ws://localhost:4444` |
-| `PORT` | Relay server port | `4444` |
-| `HOST` | Relay server bind address | `0.0.0.0` |
+| `PORT`        | Relay server port                  | `4444`                |
+| `HOST`        | Relay server bind address          | `0.0.0.0`             |
 
 ## Local Collaboration Testing
 
@@ -84,54 +84,54 @@ The relay server does three main jobs:
 
 ## Repo Map
 
-| Path | Purpose |
-|---|---|
-| `src/components/` | UI components |
-| `src/hooks/` | stateful UI / app hooks |
-| `src/services/` | pure-ish business logic and helpers |
-| `src/context/` | React context contracts |
-| `src/providers/` | app/provider composition |
-| `src/config/` | language and app configuration |
-| `src/lib/` | shared low-level utilities |
-| `src/types/` | shared TypeScript types |
-| `server/` | relay server and interactive Java execution |
+| Path              | Purpose                                     |
+| ----------------- | ------------------------------------------- |
+| `src/components/` | UI components                               |
+| `src/hooks/`      | stateful UI / app hooks                     |
+| `src/services/`   | pure-ish business logic and helpers         |
+| `src/context/`    | React context contracts                     |
+| `src/providers/`  | app/provider composition                    |
+| `src/config/`     | language and app configuration              |
+| `src/lib/`        | shared low-level utilities                  |
+| `src/types/`      | shared TypeScript types                     |
+| `server/`         | relay server and interactive Java execution |
 
 ## User-Facing Reference
 
 ### Terminal commands
 
-| Command | Description |
-|---|---|
-| `run` | Run the current Java or Python target |
-| `ls [dir]` | List files in the current or specified directory |
-| `cd <dir>` | Change working directory |
-| `mkdir <dir>` | Create a directory |
-| `touch <file>` | Create an empty file |
-| `rm <file>` | Remove a file |
-| `rm -r <dir>` | Remove a directory recursively |
-| `mv <src> <dest>` | Move or rename a file or directory |
-| `cp <src> <dest>` | Copy a file |
-| `cat <file>` | Print file contents |
-| `pwd` | Print working directory |
-| `clear` | Clear the terminal |
-| `reset` | Clear room data and reload |
-| `help` | Show available commands |
+| Command           | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `run`             | Run the current Java or Python target            |
+| `ls [dir]`        | List files in the current or specified directory |
+| `cd <dir>`        | Change working directory                         |
+| `mkdir <dir>`     | Create a directory                               |
+| `touch <file>`    | Create an empty file                             |
+| `rm <file>`       | Remove a file                                    |
+| `rm -r <dir>`     | Remove a directory recursively                   |
+| `mv <src> <dest>` | Move or rename a file or directory               |
+| `cp <src> <dest>` | Copy a file                                      |
+| `cat <file>`      | Print file contents                              |
+| `pwd`             | Print working directory                          |
+| `clear`           | Clear the terminal                               |
+| `reset`           | Clear room data and reload                       |
+| `help`            | Show available commands                          |
 
 When running Python, the relay creates a fresh virtual environment for each execution. If a `requirements.txt` exists alongside the selected entry file or in one of its parent folders, it is installed into that temporary environment before the script starts.
 
 ### Keyboard shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl+Enter` | Run code |
-| `Ctrl+S` | Download current file |
+| Shortcut       | Action                       |
+| -------------- | ---------------------------- |
+| `Ctrl+Enter`   | Run code                     |
+| `Ctrl+S`       | Download current file        |
 | `Ctrl+Shift+S` | Download workspace as `.zip` |
-| `Ctrl+Shift+F` | Search workspace |
-| `Alt+N` | Start creating a new file |
-| `Alt+Shift+N` | Start creating a new folder |
-| `Alt+Shift+F` | Format the current document |
-| `Ctrl+B` | Toggle the file explorer |
-| `` Ctrl+` `` | Toggle the terminal |
+| `Ctrl+Shift+F` | Search workspace             |
+| `Alt+N`        | Start creating a new file    |
+| `Alt+Shift+N`  | Start creating a new folder  |
+| `Alt+Shift+F`  | Format the current document  |
+| `Ctrl+B`       | Toggle the file explorer     |
+| `` Ctrl+` ``   | Toggle the terminal          |
 
 ## Deployment Notes
 

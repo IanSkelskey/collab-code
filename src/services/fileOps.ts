@@ -123,7 +123,7 @@ export function deleteDirWithConfirm(
   pushToast?: PushToast,
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void,
 ): void {
-  const allFiles = vfs.files.filter(f => f.startsWith(path + '/'));
+  const allFiles = vfs.files.filter((f) => f.startsWith(path + '/'));
   if (allFiles.length === 0) {
     vfs.rmdir(path);
     return;
@@ -140,15 +140,12 @@ export function deleteDirWithConfirm(
       }
       for (const f of allFiles) vfs.deleteFile(f);
       vfs.rmdir(path);
-      pushToast?.(
-        `Deleted ${dirName}/`,
-        () => {
-          vfs.mkdir(path);
-          for (const [p, c] of Object.entries(snapshot)) {
-            vfs.writeFile(p, c);
-          }
-        },
-      );
+      pushToast?.(`Deleted ${dirName}/`, () => {
+        vfs.mkdir(path);
+        for (const [p, c] of Object.entries(snapshot)) {
+          vfs.writeFile(p, c);
+        }
+      });
     },
   );
 }
@@ -173,11 +170,13 @@ function sortByPathDepthDesc(left: string, right: string): number {
 }
 
 export function getTopLevelPaths(paths: Iterable<string>): string[] {
-  const normalizedPaths = [...new Set(
-    Array.from(paths)
-      .map((path) => normalizeVfsPath(path))
-      .filter((path) => !isRootPath(path)),
-  )].sort(sortByPathDepthAsc);
+  const normalizedPaths = [
+    ...new Set(
+      Array.from(paths)
+        .map((path) => normalizeVfsPath(path))
+        .filter((path) => !isRootPath(path)),
+    ),
+  ].sort(sortByPathDepthAsc);
 
   return normalizedPaths.filter((path, index) => {
     return !normalizedPaths.slice(0, index).some((candidate) => path.startsWith(`${candidate}/`));
@@ -346,13 +345,10 @@ export function deletePathsWithUndo(
         vfs.rmdir(dirPath);
       });
 
-    pushToast?.(
-      `Deleted ${topLevelPaths.length} items`,
-      () => {
-        restorePathSnapshot(vfs, snapshot);
-        afterUndo?.();
-      },
-    );
+    pushToast?.(`Deleted ${topLevelPaths.length} items`, () => {
+      restorePathSnapshot(vfs, snapshot);
+      afterUndo?.();
+    });
   };
 
   const detailParts: string[] = [];

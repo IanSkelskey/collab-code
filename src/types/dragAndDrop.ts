@@ -8,10 +8,7 @@ export interface WebkitFileSystemEntry {
 export interface WebkitFileSystemFileEntry extends WebkitFileSystemEntry {
   readonly isDirectory: false;
   readonly isFile: true;
-  file(
-    successCallback: (file: File) => void,
-    errorCallback?: (error: DOMException) => void,
-  ): void;
+  file(successCallback: (file: File) => void, errorCallback?: (error: DOMException) => void): void;
 }
 
 export interface WebkitFileSystemDirectoryReader {
@@ -37,11 +34,12 @@ export function hasWebkitEntry(item: DataTransferItem): item is WebkitDataTransf
   return typeof (item as WebkitDataTransferItem).webkitGetAsEntry === 'function';
 }
 
-export function isWebkitDirectoryEntry(entry: WebkitEntry): entry is WebkitFileSystemDirectoryEntry {
+export function isWebkitDirectoryEntry(
+  entry: WebkitEntry,
+): entry is WebkitFileSystemDirectoryEntry {
   return entry.isDirectory;
 }
 
 export function isWebkitFileEntry(entry: WebkitEntry): entry is WebkitFileSystemFileEntry {
   return entry.isFile;
 }
-

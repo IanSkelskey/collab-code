@@ -12,10 +12,7 @@ interface WorkspaceScreenProps {
   initialRoomTemplate: RoomTemplateId | null;
 }
 
-export default function WorkspaceScreen({
-  onExitRoom,
-  initialRoomTemplate,
-}: WorkspaceScreenProps) {
+export default function WorkspaceScreen({ onExitRoom, initialRoomTemplate }: WorkspaceScreenProps) {
   const controller = useWorkspaceController({ initialRoomTemplate });
 
   return (
@@ -103,7 +100,9 @@ export default function WorkspaceScreen({
       {controller.osDragActive && (
         <div className="cc-overlay pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
           <div className="mx-4 w-full max-w-md rounded-lg border-2 border-dashed border-[var(--cc-accent)] bg-[var(--cc-bg-panel)] px-6 py-8 text-center shadow-[var(--cc-shadow-lg)]">
-            <p className="text-sm font-medium text-[var(--cc-accent)]">Drop files or folders to import</p>
+            <p className="text-sm font-medium text-[var(--cc-accent)]">
+              Drop files or folders to import
+            </p>
             <p className="cc-text-muted mt-1 text-[11px]">They&apos;ll be added under ~/</p>
           </div>
         </div>

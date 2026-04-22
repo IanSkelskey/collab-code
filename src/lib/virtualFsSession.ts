@@ -16,9 +16,7 @@ function getWorkspaceSessionStorageKey(roomId: string): string {
 }
 
 function normalizeStoredPath(path: unknown): string | null {
-  return typeof path === 'string' && path.trim().length > 0
-    ? normalizeVfsPath(path)
-    : null;
+  return typeof path === 'string' && path.trim().length > 0 ? normalizeVfsPath(path) : null;
 }
 
 function normalizeStoredPaths(paths: Iterable<string>): string[] {
@@ -46,8 +44,10 @@ export function parseStoredWorkspaceSession(value: unknown): StoredWorkspaceSess
   const candidate = value as Record<string, unknown>;
   const openTabs = Array.isArray(candidate.openTabs)
     ? normalizeStoredPaths(
-      candidate.openTabs.filter((path): path is string => typeof path === 'string' && path.trim().length > 0),
-    )
+        candidate.openTabs.filter(
+          (path): path is string => typeof path === 'string' && path.trim().length > 0,
+        ),
+      )
     : [];
 
   return {
@@ -64,7 +64,10 @@ export function readStoredWorkspaceSession(roomId?: string): StoredWorkspaceSess
   return readLocalStorageJson(getWorkspaceSessionStorageKey(roomId), parseStoredWorkspaceSession);
 }
 
-export function persistWorkspaceSession(roomId: string, sessionState: StoredWorkspaceSessionState): void {
+export function persistWorkspaceSession(
+  roomId: string,
+  sessionState: StoredWorkspaceSessionState,
+): void {
   writeLocalStorageJson(getWorkspaceSessionStorageKey(roomId), sessionState);
 }
 
@@ -73,10 +76,13 @@ export function pruneWorkspaceSessionState(
   existingFiles: Iterable<string>,
 ): StoredWorkspaceSessionState {
   const existingFileSet = new Set(existingFiles);
-  const openTabs = normalizeStoredPaths(sessionState.openTabs.filter((path) => existingFileSet.has(path)));
-  const activeFile = sessionState.activeFile && existingFileSet.has(sessionState.activeFile)
-    ? sessionState.activeFile
-    : null;
+  const openTabs = normalizeStoredPaths(
+    sessionState.openTabs.filter((path) => existingFileSet.has(path)),
+  );
+  const activeFile =
+    sessionState.activeFile && existingFileSet.has(sessionState.activeFile)
+      ? sessionState.activeFile
+      : null;
 
   return {
     activeFile,
@@ -94,17 +100,20 @@ export function resolveInitialWorkspaceSessionState({
   storedState: StoredWorkspaceSessionState | null;
 }): StoredWorkspaceSessionState {
   const sanitizedCurrentState = pruneWorkspaceSessionState(currentState, files);
-  const restoredActiveFile = storedState?.activeFile && files.includes(storedState.activeFile)
-    ? storedState.activeFile
-    : null;
-  const activeFile = restoredActiveFile
-    ?? sanitizedCurrentState.activeFile
-    ?? sanitizedCurrentState.openTabs[0]
-    ?? files[0]
-    ?? null;
-  const openTabs = activeFile && !sanitizedCurrentState.openTabs.includes(activeFile)
-    ? [...sanitizedCurrentState.openTabs, activeFile]
-    : sanitizedCurrentState.openTabs;
+  const restoredActiveFile =
+    storedState?.activeFile && files.includes(storedState.activeFile)
+      ? storedState.activeFile
+      : null;
+  const activeFile =
+    restoredActiveFile ??
+    sanitizedCurrentState.activeFile ??
+    sanitizedCurrentState.openTabs[0] ??
+    files[0] ??
+    null;
+  const openTabs =
+    activeFile && !sanitizedCurrentState.openTabs.includes(activeFile)
+      ? [...sanitizedCurrentState.openTabs, activeFile]
+      : sanitizedCurrentState.openTabs;
 
   return {
     activeFile,
@@ -144,8 +153,12 @@ export function renameWorkspaceSessionPathsByMap(
   }
 
   return {
-    activeFile: sessionState.activeFile ? (renamedPaths.get(sessionState.activeFile) ?? sessionState.activeFile) : null,
-    openTabs: normalizeStoredPaths(sessionState.openTabs.map((path) => renamedPaths.get(path) ?? path)),
+    activeFile: sessionState.activeFile
+      ? (renamedPaths.get(sessionState.activeFile) ?? sessionState.activeFile)
+      : null,
+    openTabs: normalizeStoredPaths(
+      sessionState.openTabs.map((path) => renamedPaths.get(path) ?? path),
+    ),
   };
 }
 
@@ -183,9 +196,10 @@ export function removeWorkspacePaths(
 ): StoredWorkspaceSessionState {
   const removedPathSet = new Set(normalizeStoredPaths(removedPaths));
   const openTabs = sessionState.openTabs.filter((path) => !removedPathSet.has(path));
-  const activeFile = sessionState.activeFile && removedPathSet.has(sessionState.activeFile)
-    ? openTabs[0] ?? null
-    : sessionState.activeFile;
+  const activeFile =
+    sessionState.activeFile && removedPathSet.has(sessionState.activeFile)
+      ? (openTabs[0] ?? null)
+      : sessionState.activeFile;
 
   return {
     activeFile,
@@ -209,8 +223,11 @@ export function deleteWorkspaceFile(
   }
 
   const removedIndex = sessionState.openTabs.indexOf(normalizedPath);
-  const remainingFileList = normalizeStoredPaths(remainingFiles).filter((filePath) => filePath !== normalizedPath);
-  const activeFile = openTabs[Math.min(removedIndex, openTabs.length - 1)] ?? remainingFileList[0] ?? null;
+  const remainingFileList = normalizeStoredPaths(remainingFiles).filter(
+    (filePath) => filePath !== normalizedPath,
+  );
+  const activeFile =
+    openTabs[Math.min(removedIndex, openTabs.length - 1)] ?? remainingFileList[0] ?? null;
 
   return {
     activeFile,
@@ -278,9 +295,10 @@ export function closeWorkspaceTabsToRight(
   }
 
   const openTabs = sessionState.openTabs.slice(0, tabIndex + 1);
-  const activeFile = sessionState.activeFile && openTabs.includes(sessionState.activeFile)
-    ? sessionState.activeFile
-    : normalizedPath;
+  const activeFile =
+    sessionState.activeFile && openTabs.includes(sessionState.activeFile)
+      ? sessionState.activeFile
+      : normalizedPath;
 
   return {
     activeFile,

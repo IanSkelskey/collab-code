@@ -1,10 +1,4 @@
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useCollab } from '../context/CollabContext';
@@ -141,7 +135,9 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
         <div className="cc-editor-lock">
           <div className="cc-editor-lock-chip">
             <EyeIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
-            <span className="cc-text-primary truncate text-[11px] font-medium">{interactionLockedLabel}</span>
+            <span className="cc-text-primary truncate text-[11px] font-medium">
+              {interactionLockedLabel}
+            </span>
             <span className="cc-text-muted hidden text-[10px] sm:inline">Editing locked</span>
             {onStopFollowing && (
               <button

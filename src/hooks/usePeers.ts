@@ -37,7 +37,9 @@ export default function usePeers() {
 
     awareness.on('change', update);
     update();
-    return () => { awareness.off('change', update); };
+    return () => {
+      awareness.off('change', update);
+    };
   }, [awareness]);
 
   return { peers, peersByFile };

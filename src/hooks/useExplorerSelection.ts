@@ -43,11 +43,7 @@ interface UseExplorerSelectionOptions {
   toggleDir: (path: string) => void;
 }
 
-export function useExplorerSelection({
-  fs,
-  expandedDirs,
-  toggleDir,
-}: UseExplorerSelectionOptions) {
+export function useExplorerSelection({ fs, expandedDirs, toggleDir }: UseExplorerSelectionOptions) {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [lastSelectedPath, setLastSelectedPath] = useState<string | null>(null);
 
@@ -72,9 +68,12 @@ export function useExplorerSelection({
     setLastSelectedPath(anchorPath ?? nextPaths[nextPaths.length - 1] ?? null);
   }, []);
 
-  const selectOnlyPath = useCallback((path: string) => {
-    replaceSelection([path], path);
-  }, [replaceSelection]);
+  const selectOnlyPath = useCallback(
+    (path: string) => {
+      replaceSelection([path], path);
+    },
+    [replaceSelection],
+  );
 
   const ensurePathSelected = useCallback((path: string) => {
     setSelectedPaths((currentSelection) => {
@@ -89,64 +88,64 @@ export function useExplorerSelection({
 
   useEffect(() => {
     setSelectedPaths((currentSelection) => {
-      const nextSelection = new Set(
-        [...currentSelection].filter((path) => fs.exists(path)),
-      );
+      const nextSelection = new Set([...currentSelection].filter((path) => fs.exists(path)));
 
       return areSetsEqual(currentSelection, nextSelection) ? currentSelection : nextSelection;
     });
 
-    setLastSelectedPath((currentPath) => (
-      currentPath && fs.exists(currentPath) ? currentPath : null
-    ));
+    setLastSelectedPath((currentPath) =>
+      currentPath && fs.exists(currentPath) ? currentPath : null,
+    );
   }, [fs, fs.tree]);
 
-  const handleNodeClick = useCallback((event: ReactMouseEvent, node: FSNode) => {
-    const path = node.path;
-    const allowMultiToggle = event.metaKey || event.ctrlKey;
+  const handleNodeClick = useCallback(
+    (event: ReactMouseEvent, node: FSNode) => {
+      const path = node.path;
+      const allowMultiToggle = event.metaKey || event.ctrlKey;
 
-    if (event.shiftKey && lastSelectedPath) {
-      const anchorIndex = visibleNodePaths.indexOf(lastSelectedPath);
-      const targetIndex = visibleNodePaths.indexOf(path);
+      if (event.shiftKey && lastSelectedPath) {
+        const anchorIndex = visibleNodePaths.indexOf(lastSelectedPath);
+        const targetIndex = visibleNodePaths.indexOf(path);
 
-      if (anchorIndex >= 0 && targetIndex >= 0) {
-        const [startIndex, endIndex] = anchorIndex < targetIndex
-          ? [anchorIndex, targetIndex]
-          : [targetIndex, anchorIndex];
-        const rangePaths = visibleNodePaths.slice(startIndex, endIndex + 1);
+        if (anchorIndex >= 0 && targetIndex >= 0) {
+          const [startIndex, endIndex] =
+            anchorIndex < targetIndex ? [anchorIndex, targetIndex] : [targetIndex, anchorIndex];
+          const rangePaths = visibleNodePaths.slice(startIndex, endIndex + 1);
 
+          setSelectedPaths((currentSelection) => {
+            const nextSelection = allowMultiToggle ? new Set(currentSelection) : new Set<string>();
+            rangePaths.forEach((rangePath) => nextSelection.add(rangePath));
+            return nextSelection;
+          });
+          setLastSelectedPath(path);
+          return;
+        }
+      }
+
+      if (allowMultiToggle) {
         setSelectedPaths((currentSelection) => {
-          const nextSelection = allowMultiToggle ? new Set(currentSelection) : new Set<string>();
-          rangePaths.forEach((rangePath) => nextSelection.add(rangePath));
+          const nextSelection = new Set(currentSelection);
+          if (nextSelection.has(path)) {
+            nextSelection.delete(path);
+          } else {
+            nextSelection.add(path);
+          }
           return nextSelection;
         });
         setLastSelectedPath(path);
         return;
       }
-    }
 
-    if (allowMultiToggle) {
-      setSelectedPaths((currentSelection) => {
-        const nextSelection = new Set(currentSelection);
-        if (nextSelection.has(path)) {
-          nextSelection.delete(path);
-        } else {
-          nextSelection.add(path);
-        }
-        return nextSelection;
-      });
-      setLastSelectedPath(path);
-      return;
-    }
+      selectOnlyPath(path);
 
-    selectOnlyPath(path);
-
-    if (node.type === 'directory') {
-      toggleDir(path);
-    } else {
-      fs.openFile(path);
-    }
-  }, [fs, lastSelectedPath, selectOnlyPath, toggleDir, visibleNodePaths]);
+      if (node.type === 'directory') {
+        toggleDir(path);
+      } else {
+        fs.openFile(path);
+      }
+    },
+    [fs, lastSelectedPath, selectOnlyPath, toggleDir, visibleNodePaths],
+  );
 
   return {
     selectedPaths,

@@ -83,55 +83,72 @@ export default function FileExplorer({
     toggleDir,
   });
 
-  const handleDeleteSelection = useCallback((paths: Iterable<string>) => {
-    const targets = getTopLevelPaths(paths).filter((path) => fs.exists(path));
-    if (targets.length === 0) {
-      return;
-    }
+  const handleDeleteSelection = useCallback(
+    (paths: Iterable<string>) => {
+      const targets = getTopLevelPaths(paths).filter((path) => fs.exists(path));
+      if (targets.length === 0) {
+        return;
+      }
 
-    const previousActiveFile = fs.activeFile;
-    const shouldRestoreActiveFile = previousActiveFile
-      ? targets.some((path) => previousActiveFile === path || previousActiveFile.startsWith(`${path}/`))
-      : false;
+      const previousActiveFile = fs.activeFile;
+      const shouldRestoreActiveFile = previousActiveFile
+        ? targets.some(
+            (path) => previousActiveFile === path || previousActiveFile.startsWith(`${path}/`),
+          )
+        : false;
 
-    deletePathsWithUndo(
-      fs,
-      targets,
-      pushToast,
-      requestConfirm,
-      shouldRestoreActiveFile && previousActiveFile
-        ? () => fs.openFile(previousActiveFile)
-        : undefined,
-    );
-  }, [fs, pushToast, requestConfirm]);
+      deletePathsWithUndo(
+        fs,
+        targets,
+        pushToast,
+        requestConfirm,
+        shouldRestoreActiveFile && previousActiveFile
+          ? () => fs.openFile(previousActiveFile)
+          : undefined,
+      );
+    },
+    [fs, pushToast, requestConfirm],
+  );
 
-  const handleNewFile = useCallback((parentPath: string) => {
-    expandDir(parentPath);
-    setCreating({ parentPath, type: 'file' });
-  }, [expandDir]);
+  const handleNewFile = useCallback(
+    (parentPath: string) => {
+      expandDir(parentPath);
+      setCreating({ parentPath, type: 'file' });
+    },
+    [expandDir],
+  );
 
-  const handleNewFolder = useCallback((parentPath: string) => {
-    expandDir(parentPath);
-    setCreating({ parentPath, type: 'directory' });
-  }, [expandDir]);
+  const handleNewFolder = useCallback(
+    (parentPath: string) => {
+      expandDir(parentPath);
+      setCreating({ parentPath, type: 'directory' });
+    },
+    [expandDir],
+  );
 
-  const handleDeleteNode = useCallback((node: FSNode) => {
-    handleDeleteSelection([node.path]);
-  }, [handleDeleteSelection]);
+  const handleDeleteNode = useCallback(
+    (node: FSNode) => {
+      handleDeleteSelection([node.path]);
+    },
+    [handleDeleteSelection],
+  );
 
-  const handleCopyNode = useCallback((node: FSNode) => {
-    if (node.type !== 'file') {
-      return;
-    }
+  const handleCopyNode = useCallback(
+    (node: FSNode) => {
+      if (node.type !== 'file') {
+        return;
+      }
 
-    const copyPath = copyFileWithUndo(fs, node.path, pushToast);
-    if (!copyPath) {
-      return;
-    }
+      const copyPath = copyFileWithUndo(fs, node.path, pushToast);
+      if (!copyPath) {
+        return;
+      }
 
-    selectOnlyPath(copyPath);
-    fs.openFile(copyPath);
-  }, [fs, pushToast, selectOnlyPath]);
+      selectOnlyPath(copyPath);
+      fs.openFile(copyPath);
+    },
+    [fs, pushToast, selectOnlyPath],
+  );
 
   const {
     dragTarget,
@@ -163,12 +180,15 @@ export default function FileExplorer({
     handleDeleteSelection(selectedTopLevelPaths);
   }, [handleDeleteSelection, selectedTopLevelPaths]);
 
-  const handleContextMenu = useCallback((event: ReactMouseEvent, node: FSNode) => {
-    event.preventDefault();
-    event.stopPropagation();
-    ensurePathSelected(node.path);
-    setContextMenu({ x: event.clientX, y: event.clientY, node });
-  }, [ensurePathSelected]);
+  const handleContextMenu = useCallback(
+    (event: ReactMouseEvent, node: FSNode) => {
+      event.preventDefault();
+      event.stopPropagation();
+      ensurePathSelected(node.path);
+      setContextMenu({ x: event.clientX, y: event.clientY, node });
+    },
+    [ensurePathSelected],
+  );
 
   useExplorerKeyboardShortcuts({
     hasSelection: selectedTopLevelPaths.length > 0,
@@ -180,102 +200,108 @@ export default function FileExplorer({
     onClearSelection: clearSelection,
   });
 
-  const getContextMenuItems = useCallback((node: FSNode): ExplorerContextMenuItem[] => {
-    if (selectedTopLevelPaths.length > 1 && selectedPaths.has(node.path)) {
-      return [
-        {
-          label: `Delete Selected (${selectedTopLevelPaths.length})`,
-          onClick: handleDeleteCurrentSelection,
+  const getContextMenuItems = useCallback(
+    (node: FSNode): ExplorerContextMenuItem[] => {
+      if (selectedTopLevelPaths.length > 1 && selectedPaths.has(node.path)) {
+        return [
+          {
+            label: `Delete Selected (${selectedTopLevelPaths.length})`,
+            onClick: handleDeleteCurrentSelection,
+            danger: true,
+          },
+          {
+            label: 'Clear Selection',
+            onClick: clearSelection,
+          },
+        ];
+      }
+
+      const items: ExplorerContextMenuItem[] = [];
+
+      if (node.type === 'file' && entryPoints.has(node.path) && onRunFile) {
+        const lang = getLanguageForFile(node.name);
+        const entryName = lang?.extractEntryPointName?.(node.name) ?? node.name;
+        items.push({ label: `Run ${entryName}`, onClick: () => onRunFile(node.path) });
+      }
+
+      if (node.type === 'directory') {
+        items.push({ label: 'New File', onClick: () => handleNewFile(node.path) });
+        items.push({ label: 'New Folder', onClick: () => handleNewFolder(node.path) });
+      }
+
+      if (node.type === 'file') {
+        items.push({ label: 'Copy', onClick: () => handleCopyNode(node) });
+      }
+
+      if (node.path !== ROOT_PATH) {
+        items.push({ label: 'Rename', onClick: () => setRenaming(node.path) });
+        items.push({
+          label: 'Delete',
+          onClick: () => handleDeleteNode(node),
           danger: true,
-        },
-        {
-          label: 'Clear Selection',
-          onClick: clearSelection,
-        },
-      ];
-    }
+        });
+      }
 
-    const items: ExplorerContextMenuItem[] = [];
+      return items;
+    },
+    [
+      clearSelection,
+      entryPoints,
+      handleDeleteCurrentSelection,
+      handleDeleteNode,
+      handleCopyNode,
+      handleNewFile,
+      handleNewFolder,
+      onRunFile,
+      selectedPaths,
+      selectedTopLevelPaths,
+    ],
+  );
 
-    if (node.type === 'file' && entryPoints.has(node.path) && onRunFile) {
-      const lang = getLanguageForFile(node.name);
-      const entryName = lang?.extractEntryPointName?.(node.name) ?? node.name;
-      items.push({ label: `Run ${entryName}`, onClick: () => onRunFile(node.path) });
-    }
-
-    if (node.type === 'directory') {
-      items.push({ label: 'New File', onClick: () => handleNewFile(node.path) });
-      items.push({ label: 'New Folder', onClick: () => handleNewFolder(node.path) });
-    }
-
-    if (node.type === 'file') {
-      items.push({ label: 'Copy', onClick: () => handleCopyNode(node) });
-    }
-
-    if (node.path !== ROOT_PATH) {
-      items.push({ label: 'Rename', onClick: () => setRenaming(node.path) });
-      items.push({
-        label: 'Delete',
-        onClick: () => handleDeleteNode(node),
-        danger: true,
-      });
-    }
-
-    return items;
-  }, [
-    clearSelection,
-    entryPoints,
-    handleDeleteCurrentSelection,
-    handleDeleteNode,
-    handleCopyNode,
-    handleNewFile,
-    handleNewFolder,
-    onRunFile,
-    selectedPaths,
-    selectedTopLevelPaths,
-  ]);
-
-  const treeCtx = useMemo(() => ({
-    fs,
-    expandedDirs,
-    selectedPaths,
-    toggleDir,
-    clearSelection,
-    onNodeClick: handleNodeClick,
-    renaming,
-    setRenaming,
-    creating,
-    setCreating,
-    onContextMenu: handleContextMenu,
-    dragTarget,
-    onDragStartNode,
-    onDragOverNode,
-    onDragLeaveNode,
-    onDropNode,
-    onDragEnd,
-    entryPoints,
-    onRunFile,
-    running,
-  }), [
-    clearSelection,
-    creating,
-    dragTarget,
-    entryPoints,
-    expandedDirs,
-    fs,
-    handleContextMenu,
-    handleNodeClick,
-    onDragEnd,
-    onDragLeaveNode,
-    onDragOverNode,
-    onDragStartNode,
-    onDropNode,
-    onRunFile,
-    renaming,
-    running,
-    selectedPaths,
-    toggleDir,
-  ]);
+  const treeCtx = useMemo(
+    () => ({
+      fs,
+      expandedDirs,
+      selectedPaths,
+      toggleDir,
+      clearSelection,
+      onNodeClick: handleNodeClick,
+      renaming,
+      setRenaming,
+      creating,
+      setCreating,
+      onContextMenu: handleContextMenu,
+      dragTarget,
+      onDragStartNode,
+      onDragOverNode,
+      onDragLeaveNode,
+      onDropNode,
+      onDragEnd,
+      entryPoints,
+      onRunFile,
+      running,
+    }),
+    [
+      clearSelection,
+      creating,
+      dragTarget,
+      entryPoints,
+      expandedDirs,
+      fs,
+      handleContextMenu,
+      handleNodeClick,
+      onDragEnd,
+      onDragLeaveNode,
+      onDragOverNode,
+      onDragStartNode,
+      onDropNode,
+      onRunFile,
+      renaming,
+      running,
+      selectedPaths,
+      toggleDir,
+    ],
+  );
 
   return (
     <div className="cc-sidebar-shell cc-divider relative flex h-full flex-col border-r">
@@ -301,18 +327,15 @@ export default function FileExplorer({
           ))}
 
           {(!fs.tree.children || fs.tree.children.length === 0) && (
-            <div className="cc-text-faint px-3 py-4 text-center text-xs">
-              No files yet
-            </div>
+            <div className="cc-text-faint px-3 py-4 text-center text-xs">No files yet</div>
           )}
 
           {creating && creating.parentPath === ROOT_PATH && (
-            <div className="flex items-center gap-1 px-2 py-[3px] text-xs" style={{ paddingLeft: '8px' }}>
-              {creating.type === 'directory' ? (
-                <FolderIcon open={false} />
-              ) : (
-                <FileIcon name="" />
-              )}
+            <div
+              className="flex items-center gap-1 px-2 py-[3px] text-xs"
+              style={{ paddingLeft: '8px' }}
+            >
+              {creating.type === 'directory' ? <FolderIcon open={false} /> : <FileIcon name="" />}
               <InlineInput
                 defaultValue=""
                 validate={(name) => {

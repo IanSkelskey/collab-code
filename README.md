@@ -29,8 +29,8 @@ It is especially suited to tutoring, CS education, pair programming, and collabo
 
 ## Highlights
 
-| Collaboration | Workspace | Execution |
-|---|---|---|
+| Collaboration                                                                  | Workspace                                                                                  | Execution                                                                     |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | Live cursors, selections, peer presence, room sharing, shared terminal session | Multi-file explorer, tabs, search/replace, drag-and-drop import, multi-select file actions | Interactive Java and Python run flow, inline diagnostics, shared terminal I/O |
 
 - **Collaborative editor** - Monaco + Yjs with live remote cursors, selections, and per-file awareness.

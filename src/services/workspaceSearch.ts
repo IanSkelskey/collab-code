@@ -51,7 +51,9 @@ export function searchWorkspace(
   const regex = buildSearchRegex(options);
   const results: SearchResult[] = [];
   const maxResults = options.maxResults ?? 1000;
-  const sortedEntries = Object.entries(files).sort(([leftPath], [rightPath]) => leftPath.localeCompare(rightPath));
+  const sortedEntries = Object.entries(files).sort(([leftPath], [rightPath]) =>
+    leftPath.localeCompare(rightPath),
+  );
 
   for (const [relativePath, content] of sortedEntries) {
     const lines = content.split('\n');
@@ -159,4 +161,3 @@ export function highlightSearchMatch(
 
   return segments.length > 0 ? segments : [{ text, isMatch: false }];
 }
-

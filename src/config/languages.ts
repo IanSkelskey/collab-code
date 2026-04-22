@@ -1,4 +1,8 @@
-import { parseJavaDiagnostics, parseJavaRuntimeErrors, type DiagnosticMarker } from '../services/javaDiagnostics';
+import {
+  parseJavaDiagnostics,
+  parseJavaRuntimeErrors,
+  type DiagnosticMarker,
+} from '../services/javaDiagnostics';
 import { stripVfsRoot } from '../lib/vfsPaths';
 import { parsePythonRuntimeErrors } from '../services/pythonDiagnostics';
 
@@ -48,7 +52,10 @@ const languages: LanguageConfig[] = [
     },
     entryPointPattern: /public\s+static\s+void\s+main\s*\(\s*String/,
     extractEntryPointName: (filePath: string) =>
-      filePath.split('/').pop()!.replace(/\.java$/, ''),
+      filePath
+        .split('/')
+        .pop()!
+        .replace(/\.java$/, ''),
     parseDiagnostics: parseJavaDiagnostics,
     parseRuntimeErrors: parseJavaRuntimeErrors,
     braceFormatted: true,
@@ -186,7 +193,7 @@ if __name__ == "__main__":
     iconColor: 'text-purple-400',
     iconName: 'perl',
     mimeType: 'text/x-perl',
-  }
+  },
 ];
 
 // Build lookup map for O(1) extension-based access

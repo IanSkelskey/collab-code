@@ -52,20 +52,22 @@ const server = http.createServer((req, res) => {
 
   // Health check
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    status: 'ok',
-    service: 'collab-code-sync',
-    serverVersion: serverPkg.version,
-    protocolVersion: SERVER_PROTOCOL_VERSION,
-    capabilities: SERVER_CAPABILITIES,
-    javaAvailable: isJavaAvailable(),
-    javaVersion: getJavaRuntimeVersion(),
-    pythonAvailable: isPythonAvailable(),
-    pythonVersion: getPythonRuntimeVersion(),
-    executionAllowed: isExecutionAllowed(),
-    executionSandboxed: isExecutionSandboxed(),
-    executionSandboxStatus: getExecutionSandboxStatus(),
-  }));
+  res.end(
+    JSON.stringify({
+      status: 'ok',
+      service: 'collab-code-sync',
+      serverVersion: serverPkg.version,
+      protocolVersion: SERVER_PROTOCOL_VERSION,
+      capabilities: SERVER_CAPABILITIES,
+      javaAvailable: isJavaAvailable(),
+      javaVersion: getJavaRuntimeVersion(),
+      pythonAvailable: isPythonAvailable(),
+      pythonVersion: getPythonRuntimeVersion(),
+      executionAllowed: isExecutionAllowed(),
+      executionSandboxed: isExecutionSandboxed(),
+      executionSandboxStatus: getExecutionSandboxStatus(),
+    }),
+  );
 });
 
 // ---------------------------------------------------------------------------

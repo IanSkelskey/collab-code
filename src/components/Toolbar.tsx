@@ -5,10 +5,24 @@ import { getBaseName } from '../lib/vfsPaths';
 import type { PeerState } from '../types';
 import type { ServerStatusSnapshot } from '../types/serverStatus';
 import {
-  SpinnerIcon, PlayIcon, LinkIcon, ExplorerFolderIcon, SearchIcon,
-  FormatIcon, DownloadIcon, CheckIcon, CopyIcon,
-  FileDocIcon, ArchiveIcon, GearIcon, HelpCircleIcon, ChevronDownIcon, EyeIcon, CloseIcon,
-  Volume2Icon, VolumeXIcon,
+  SpinnerIcon,
+  PlayIcon,
+  LinkIcon,
+  ExplorerFolderIcon,
+  SearchIcon,
+  FormatIcon,
+  DownloadIcon,
+  CheckIcon,
+  CopyIcon,
+  FileDocIcon,
+  ArchiveIcon,
+  GearIcon,
+  HelpCircleIcon,
+  ChevronDownIcon,
+  EyeIcon,
+  CloseIcon,
+  Volume2Icon,
+  VolumeXIcon,
 } from './Icons';
 import ThemePicker from './ThemePicker';
 
@@ -93,10 +107,13 @@ export default function Toolbar({
     onRun();
   }, [currentRunTarget, onRun, runTargets.length]);
 
-  const handleSelectRunTarget = useCallback((filePath: string) => {
-    setRunMenuOpen(false);
-    onRunTargetSelect(filePath);
-  }, [onRunTargetSelect]);
+  const handleSelectRunTarget = useCallback(
+    (filePath: string) => {
+      setRunMenuOpen(false);
+      onRunTargetSelect(filePath);
+    },
+    [onRunTargetSelect],
+  );
 
   const runButtonLabel = running
     ? 'Running...'
@@ -122,11 +139,14 @@ export default function Toolbar({
           onClick={() => {
             onConfirmLeave({
               title: 'Leave workspace?',
-              message: 'Your work is only stored in each peer\'s browser. If all peers leave, unsaved work may be lost.',
+              message:
+                "Your work is only stored in each peer's browser. If all peers leave, unsaved work may be lost.",
               confirmLabel: 'Leave',
               secondaryLabel: 'Download & Leave',
               onConfirm: onExitRoom,
-              onSecondary: () => { onSaveAll().then(onExitRoom); },
+              onSecondary: () => {
+                onSaveAll().then(onExitRoom);
+              },
             });
           }}
           className="flex cursor-pointer items-center gap-1.5 transition-opacity hover:opacity-80 sm:gap-2"
@@ -135,7 +155,9 @@ export default function Toolbar({
           <img src="/collab-code/logo.svg" alt="Collab Code" className="w-6 h-6 sm:w-7 sm:h-7" />
           <h1 className="text-sm sm:text-base font-semibold tracking-tight">
             <span className="cc-text-primary hidden xs:inline">Collab Code</span>
-            <span className="cc-text-muted ml-1.5 hidden font-mono text-xs font-normal sm:inline">v{__APP_VERSION__}</span>
+            <span className="cc-text-muted ml-1.5 hidden font-mono text-xs font-normal sm:inline">
+              v{__APP_VERSION__}
+            </span>
           </h1>
         </button>
 
@@ -161,15 +183,15 @@ export default function Toolbar({
             title="Choose run target"
             className="cc-button-primary cc-divider cursor-pointer rounded-r-md border-l px-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ChevronDownIcon className={`w-4 h-4 transition-transform ${runMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDownIcon
+              className={`w-4 h-4 transition-transform ${runMenuOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {runMenuOpen && (
             <div className="cc-menu absolute left-0 top-full z-50 mt-2 min-w-[260px] max-w-[320px] overflow-hidden rounded-lg">
               <div className="cc-divider border-b px-3 py-2">
-                <div className="cc-section-label text-[10px] font-semibold">
-                  Run Targets
-                </div>
+                <div className="cc-section-label text-[10px] font-semibold">Run Targets</div>
                 <div className="cc-text-muted mt-1 text-[11px]">
                   Ctrl+Enter always runs the active editor.
                 </div>
@@ -189,18 +211,24 @@ export default function Toolbar({
                         key={target.filePath}
                         onClick={() => handleSelectRunTarget(target.filePath)}
                         className={`w-full px-3 py-2 text-left transition-colors cursor-pointer ${
-                          isCurrentTarget ? 'bg-[var(--cc-bg-selection)]' : 'hover:bg-[var(--cc-bg-hover)]'
+                          isCurrentTarget
+                            ? 'bg-[var(--cc-bg-selection)]'
+                            : 'hover:bg-[var(--cc-bg-hover)]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="cc-text-primary text-xs font-medium">{getBaseName(target.filePath)}</span>
+                          <span className="cc-text-primary text-xs font-medium">
+                            {getBaseName(target.filePath)}
+                          </span>
                           {isCurrentTarget && (
                             <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--cc-accent)]">
                               Current
                             </span>
                           )}
                         </div>
-                        <div className="cc-text-muted mt-0.5 break-all text-[11px]">{target.filePath}</div>
+                        <div className="cc-text-muted mt-0.5 break-all text-[11px]">
+                          {target.filePath}
+                        </div>
                         <div className="cc-text-faint mt-0.5 text-[10px]">
                           {target.language.label} entry: {target.entryPoint}
                         </div>
@@ -224,9 +252,7 @@ export default function Toolbar({
         {!followedPeer && peerCount > 1 && (
           <div className="hidden items-center gap-1.5 lg:flex">
             <EyeIcon className="h-3.5 w-3.5 shrink-0 text-[var(--cc-accent)]" />
-            <span className="cc-text-muted text-[10px]">
-              Click an avatar to follow
-            </span>
+            <span className="cc-text-muted text-[10px]">Click an avatar to follow</span>
           </div>
         )}
 
@@ -267,9 +293,7 @@ export default function Toolbar({
 
         <div className="cc-divider hidden h-5 w-px border-l sm:block" />
 
-        <span className="cc-text-faint hidden font-mono text-xs md:inline">
-          #{roomId}
-        </span>
+        <span className="cc-text-faint hidden font-mono text-xs md:inline">#{roomId}</span>
 
         <button
           onClick={handleShare}
@@ -284,25 +308,27 @@ export default function Toolbar({
 }
 
 function getServerStatusButtonClassName(tone: ServerStatusSnapshot['summary']['tone']): string {
-  const toneClasses = tone === 'success'
-    ? 'border-[color:color-mix(in_srgb,var(--cc-success)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-success)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-success)] hover:bg-[color:color-mix(in_srgb,var(--cc-success)_18%,var(--cc-bg-elevated)_82%)]'
-    : tone === 'danger'
-      ? 'border-[color:color-mix(in_srgb,var(--cc-danger)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-danger)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-danger)] hover:bg-[color:color-mix(in_srgb,var(--cc-danger)_18%,var(--cc-bg-elevated)_82%)]'
-      : tone === 'warning'
-        ? 'border-[color:color-mix(in_srgb,var(--cc-warning)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-warning)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-warning)] hover:bg-[color:color-mix(in_srgb,var(--cc-warning)_18%,var(--cc-bg-elevated)_82%)]'
-        : 'border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_90%,transparent)] cc-text-muted hover:bg-[var(--cc-bg-hover)] hover:text-[var(--cc-text-primary)]';
+  const toneClasses =
+    tone === 'success'
+      ? 'border-[color:color-mix(in_srgb,var(--cc-success)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-success)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-success)] hover:bg-[color:color-mix(in_srgb,var(--cc-success)_18%,var(--cc-bg-elevated)_82%)]'
+      : tone === 'danger'
+        ? 'border-[color:color-mix(in_srgb,var(--cc-danger)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-danger)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-danger)] hover:bg-[color:color-mix(in_srgb,var(--cc-danger)_18%,var(--cc-bg-elevated)_82%)]'
+        : tone === 'warning'
+          ? 'border-[color:color-mix(in_srgb,var(--cc-warning)_42%,transparent)] bg-[color:color-mix(in_srgb,var(--cc-warning)_12%,var(--cc-bg-elevated)_88%)] text-[var(--cc-warning)] hover:bg-[color:color-mix(in_srgb,var(--cc-warning)_18%,var(--cc-bg-elevated)_82%)]'
+          : 'border-[var(--cc-border)] bg-[color:color-mix(in_srgb,var(--cc-bg-elevated)_90%,transparent)] cc-text-muted hover:bg-[var(--cc-bg-hover)] hover:text-[var(--cc-text-primary)]';
 
   return `flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${toneClasses}`;
 }
 
 function getServerStatusDotClassName(tone: ServerStatusSnapshot['summary']['tone']): string {
-  const toneClass = tone === 'success'
-    ? 'bg-[var(--cc-success)]'
-    : tone === 'danger'
-      ? 'bg-[var(--cc-danger)]'
-      : tone === 'warning'
-        ? 'bg-[var(--cc-warning)]'
-        : 'bg-[var(--cc-text-faint)]';
+  const toneClass =
+    tone === 'success'
+      ? 'bg-[var(--cc-success)]'
+      : tone === 'danger'
+        ? 'bg-[var(--cc-danger)]'
+        : tone === 'warning'
+          ? 'bg-[var(--cc-warning)]'
+          : 'bg-[var(--cc-text-faint)]';
 
   return `h-2 w-2 shrink-0 rounded-full ${toneClass}`;
 }
@@ -373,9 +399,7 @@ export function ActivityBar({
         onClick={onToggleExplorer}
         title="Toggle Explorer (Ctrl+B)"
         className={`p-2 rounded transition-colors cursor-pointer ${
-          explorerVisible
-            ? 'cc-icon-button-active'
-            : 'cc-icon-button'
+          explorerVisible ? 'cc-icon-button-active' : 'cc-icon-button'
         }`}
       >
         <ExplorerFolderIcon className="w-5 h-5" />
@@ -385,9 +409,7 @@ export function ActivityBar({
         onClick={onToggleSearch}
         title="Search Files (Ctrl+Shift+F)"
         className={`p-2 rounded transition-colors cursor-pointer ${
-          searchVisible
-            ? 'cc-icon-button-active'
-            : 'cc-icon-button'
+          searchVisible ? 'cc-icon-button-active' : 'cc-icon-button'
         }`}
       >
         <SearchIcon className="w-5 h-5" />
@@ -406,7 +428,10 @@ export function ActivityBar({
 
         <div ref={saveMenuRef} className="relative">
           <button
-            onClick={() => { setSaveMenuOpen((open) => !open); setSettingsOpen(false); }}
+            onClick={() => {
+              setSaveMenuOpen((open) => !open);
+              setSettingsOpen(false);
+            }}
             title="Export & Copy"
             className={`p-2 rounded transition-colors cursor-pointer ${
               saveMenuOpen ? 'cc-icon-button-active' : 'cc-icon-button'
@@ -429,12 +454,17 @@ export function ActivityBar({
               </button>
               <div className="cc-divider mx-2 my-1 border-t" />
               <button
-                onClick={() => { onSaveFile(); setSaveMenuOpen(false); }}
+                onClick={() => {
+                  onSaveFile();
+                  setSaveMenuOpen(false);
+                }}
                 className="cc-text-primary hover:bg-[var(--cc-bg-hover)] flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors"
               >
                 <FileDocIcon className="cc-text-muted h-4 w-4 shrink-0" />
                 <div>
-                  <div className="font-medium">Save File <span className="cc-text-muted ml-1 font-normal">Ctrl+S</span></div>
+                  <div className="font-medium">
+                    Save File <span className="cc-text-muted ml-1 font-normal">Ctrl+S</span>
+                  </div>
                   <div className="cc-text-muted mt-0.5 text-[10px]">
                     Download {activeFileName ?? 'current file'}
                   </div>
@@ -442,15 +472,19 @@ export function ActivityBar({
               </button>
               <div className="cc-divider mx-2 my-1 border-t" />
               <button
-                onClick={() => { void onSaveAll(); setSaveMenuOpen(false); }}
+                onClick={() => {
+                  void onSaveAll();
+                  setSaveMenuOpen(false);
+                }}
                 className="cc-text-primary hover:bg-[var(--cc-bg-hover)] flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors"
               >
                 <ArchiveIcon className="h-4 w-4 shrink-0 text-[var(--cc-accent)]" />
                 <div>
-                  <div className="font-medium">Save All <span className="text-[var(--cc-accent)]">.zip</span> <span className="cc-text-muted ml-1 font-normal">Ctrl+Shift+S</span></div>
-                  <div className="cc-text-muted mt-0.5 text-[10px]">
-                    Download entire workspace
+                  <div className="font-medium">
+                    Save All <span className="text-[var(--cc-accent)]">.zip</span>{' '}
+                    <span className="cc-text-muted ml-1 font-normal">Ctrl+Shift+S</span>
                   </div>
+                  <div className="cc-text-muted mt-0.5 text-[10px]">Download entire workspace</div>
                 </div>
               </button>
             </div>
@@ -459,7 +493,10 @@ export function ActivityBar({
 
         <div ref={settingsRef} className="relative">
           <button
-            onClick={() => { setSettingsOpen((open) => !open); setSaveMenuOpen(false); }}
+            onClick={() => {
+              setSettingsOpen((open) => !open);
+              setSaveMenuOpen(false);
+            }}
             title="Settings"
             className={`p-2 rounded transition-colors cursor-pointer ${
               settingsOpen ? 'cc-icon-button-active' : 'cc-icon-button'
@@ -511,13 +548,17 @@ export function ActivityBar({
                       >
                         <span
                           className={`inline-block h-3.5 w-3.5 rounded-full bg-[var(--cc-bg-elevated)] shadow-sm transition-transform ${
-                            presenceSoundsEnabled ? 'translate-x-[1.05rem]' : 'translate-x-[0.18rem]'
+                            presenceSoundsEnabled
+                              ? 'translate-x-[1.05rem]'
+                              : 'translate-x-[0.18rem]'
                           }`}
                         />
                       </button>
                     </div>
 
-                    <div className={`mt-3 flex items-center gap-2 ${presenceSoundsEnabled ? '' : 'opacity-50'}`}>
+                    <div
+                      className={`mt-3 flex items-center gap-2 ${presenceSoundsEnabled ? '' : 'opacity-50'}`}
+                    >
                       <input
                         type="range"
                         min="0"
@@ -525,7 +566,9 @@ export function ActivityBar({
                         step="5"
                         value={presenceSoundVolumePercent}
                         disabled={!presenceSoundsEnabled}
-                        onChange={(event) => onPresenceSoundVolumeChange(Number(event.target.value) / 100)}
+                        onChange={(event) =>
+                          onPresenceSoundVolumeChange(Number(event.target.value) / 100)
+                        }
                         aria-label="Presence sound volume"
                         className="h-1.5 flex-1 cursor-pointer accent-[var(--cc-accent)] disabled:cursor-not-allowed"
                       />
@@ -556,7 +599,9 @@ export function ActivityBar({
                         >
                           A-
                         </button>
-                        <span className="cc-text-secondary min-w-[3ch] text-center font-mono text-xs">{fontSize}</span>
+                        <span className="cc-text-secondary min-w-[3ch] text-center font-mono text-xs">
+                          {fontSize}
+                        </span>
                         <button
                           onClick={onFontSizeUp}
                           title="Increase font size"

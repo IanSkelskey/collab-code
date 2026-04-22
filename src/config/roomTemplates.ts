@@ -40,11 +40,15 @@ export const roomTemplates: RoomTemplateOption[] = [
   },
 ];
 
-function getStarterReadmeContent(templateId: Exclude<RoomTemplateId, 'blank'>, starterFileName: string): string {
+function getStarterReadmeContent(
+  templateId: Exclude<RoomTemplateId, 'blank'>,
+  starterFileName: string,
+): string {
   const title = templateId === 'java' ? 'Java Starter Workspace' : 'Python Starter Workspace';
   const languageLabel = templateId === 'java' ? 'Java' : 'Python';
-  const pythonPackagesSection = templateId === 'python'
-    ? `
+  const pythonPackagesSection =
+    templateId === 'python'
+      ? `
 ## Python Packages
 
 - \`requirements.txt\`: add Python packages here, one per line
@@ -55,7 +59,7 @@ This does not modify the server's global Python installation. Update \`requireme
 
 The starter \`${starterFileName}\` already imports \`rich\`, and the starter \`requirements.txt\` includes it so the room runs immediately.
 `
-    : '';
+      : '';
 
   return `# ${title}
 
@@ -103,10 +107,12 @@ export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarter
       },
       defaultFile,
       ...(templateId === 'python'
-        ? [{
-            name: 'requirements.txt',
-            content: getPythonStarterRequirementsContent(),
-          }]
+        ? [
+            {
+              name: 'requirements.txt',
+              content: getPythonStarterRequirementsContent(),
+            },
+          ]
         : []),
     ],
     initialOpenFileName: defaultFile.name,

@@ -22,10 +22,9 @@ interface UseWorkspaceControllerOptions {
   initialRoomTemplate: RoomTemplateId | null;
 }
 
-export function useWorkspaceController({
-  initialRoomTemplate,
-}: UseWorkspaceControllerOptions) {
-  const { ydoc, peerCount, roomId, connected, connectionStatus, awareness, storageReady } = useCollab();
+export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceControllerOptions) {
+  const { ydoc, peerCount, roomId, connected, connectionStatus, awareness, storageReady } =
+    useCollab();
   const fs = useVirtualFS(ydoc, { storageReady, initialRoomTemplate, roomId });
   const terminalRef = useRef<TerminalHandle>(null);
   const editorRef = useRef<EditorHandle>(null);
@@ -49,19 +48,14 @@ export function useWorkspaceController({
     pushToast,
   });
 
-  const {
-    peers,
-    followedPeer,
-    followedPeerId,
-    toggleFollowPeer,
-    stopFollowing,
-  } = useFollowCollaborator({
-    awareness,
-    ydoc,
-    fs,
-    pushToast,
-    navigateToFile: layout.navigateToFile,
-  });
+  const { peers, followedPeer, followedPeerId, toggleFollowPeer, stopFollowing } =
+    useFollowCollaborator({
+      awareness,
+      ydoc,
+      fs,
+      pushToast,
+      navigateToFile: layout.navigateToFile,
+    });
 
   const {
     running,
@@ -92,23 +86,27 @@ export function useWorkspaceController({
   const showMarkdownEditor = !markdownActive || layout.markdownViewMode !== 'preview';
   const showMarkdownPreview = markdownActive && layout.markdownViewMode !== 'write';
   const editorLockLabel = followedPeer ? `Following ${followedPeer.name}` : null;
-  const markdownSplitStyle = showMarkdownEditor && showMarkdownPreview && layout.markdownViewMode === 'split'
-    ? ({ '--cc-markdown-editor-width': `${layout.markdownEditorWidth}px` } as CSSProperties)
-    : undefined;
-  const activeFileName = fs.activeFile ? fs.activeFile.split('/').pop() ?? null : null;
+  const markdownSplitStyle =
+    showMarkdownEditor && showMarkdownPreview && layout.markdownViewMode === 'split'
+      ? ({ '--cc-markdown-editor-width': `${layout.markdownEditorWidth}px` } as CSSProperties)
+      : undefined;
+  const activeFileName = fs.activeFile ? (fs.activeFile.split('/').pop() ?? null) : null;
 
   const handleFormatCompleted = useCallback(() => {
     pushToast('Document formatted');
   }, [pushToast]);
 
-  const handleCreateStarterFile = useCallback((templateId: Exclude<RoomTemplateId, 'blank'>) => {
-    const createdWorkspace = createStarterWorkspaceFiles(fs, templateId);
-    if (!createdWorkspace) {
-      return;
-    }
+  const handleCreateStarterFile = useCallback(
+    (templateId: Exclude<RoomTemplateId, 'blank'>) => {
+      const createdWorkspace = createStarterWorkspaceFiles(fs, templateId);
+      if (!createdWorkspace) {
+        return;
+      }
 
-    pushToast(`Created ${createdWorkspace.createdNames}`);
-  }, [fs, pushToast]);
+      pushToast(`Created ${createdWorkspace.createdNames}`);
+    },
+    [fs, pushToast],
+  );
 
   useKeyboardShortcuts({
     setExplorerVisible: layout.setExplorerVisible,
@@ -126,10 +124,13 @@ export function useWorkspaceController({
     presenceSoundVolume,
   });
 
-  const openHelp = useCallback((tab: HelpModalTab = 'about') => {
-    setHelpInitialTab(tab);
-    layout.setHelpOpen(true);
-  }, [layout]);
+  const openHelp = useCallback(
+    (tab: HelpModalTab = 'about') => {
+      setHelpInitialTab(tab);
+      layout.setHelpOpen(true);
+    },
+    [layout],
+  );
 
   const openAboutHelp = useCallback(() => {
     openHelp('about');
@@ -149,9 +150,9 @@ export function useWorkspaceController({
       return;
     }
 
-    setDismissedServerBannerKey((current) => (
-      current === serverStatus.banner?.key ? current : null
-    ));
+    setDismissedServerBannerKey((current) =>
+      current === serverStatus.banner?.key ? current : null,
+    );
   }, [serverStatus.banner]);
 
   useEffect(() => {
@@ -175,9 +176,10 @@ export function useWorkspaceController({
     awareness.setLocalStateField('activeFile', fs.activeFile);
   }, [awareness, fs.activeFile]);
 
-  const activeServerBanner = serverStatus.banner && dismissedServerBannerKey !== serverStatus.banner.key
-    ? serverStatus.banner
-    : null;
+  const activeServerBanner =
+    serverStatus.banner && dismissedServerBannerKey !== serverStatus.banner.key
+      ? serverStatus.banner
+      : null;
 
   return {
     fs,

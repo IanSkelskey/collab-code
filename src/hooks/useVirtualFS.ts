@@ -52,7 +52,9 @@ export function useVirtualFS(
   const fsMap = useMemo(() => ydoc.getMap<Y.Text>('fs'), [ydoc]);
   const fsDirs = useMemo(() => ydoc.getArray<string>('fs-dirs'), [ydoc]);
   const fsState = useMemo(() => ydoc.getMap<string>('fs-state'), [ydoc]);
-  const storedSessionRef = useRef<StoredWorkspaceSessionState | null>(readStoredWorkspaceSession(roomId));
+  const storedSessionRef = useRef<StoredWorkspaceSessionState | null>(
+    readStoredWorkspaceSession(roomId),
+  );
 
   const [files, setFiles] = useState<string[]>([]);
   const [dirs, setDirs] = useState<string[]>([]);
@@ -91,7 +93,9 @@ export function useVirtualFS(
         const renamedPaths = inferRenamedWorkspacePaths(deletedPaths, addedPaths);
 
         if (renamedPaths.size > 0) {
-          setWorkspaceSession((currentState) => renameWorkspaceSessionPathsByMap(currentState, renamedPaths));
+          setWorkspaceSession((currentState) =>
+            renameWorkspaceSessionPathsByMap(currentState, renamedPaths),
+          );
         }
 
         const pureDeletes = deletedPaths.filter((deletedPath) => !renamedPaths.has(deletedPath));
@@ -176,11 +180,13 @@ export function useVirtualFS(
       return;
     }
 
-    setWorkspaceSession((currentState) => resolveInitialWorkspaceSessionState({
-      files,
-      currentState,
-      storedState: storedSessionRef.current,
-    }));
+    setWorkspaceSession((currentState) =>
+      resolveInitialWorkspaceSessionState({
+        files,
+        currentState,
+        storedState: storedSessionRef.current,
+      }),
+    );
     setLoading(false);
     initialFileOpenedRef.current = true;
   }, [files, storageReady]);
@@ -195,78 +201,110 @@ export function useVirtualFS(
 
   const tree = useMemo(() => buildVirtualFsTree(files, dirs), [dirs, files]);
 
-  const getFileText = useCallback((path: string): Y.Text | null => {
-    return fsMap.get(normalizeVfsPath(path)) ?? null;
-  }, [fsMap]);
+  const getFileText = useCallback(
+    (path: string): Y.Text | null => {
+      return fsMap.get(normalizeVfsPath(path)) ?? null;
+    },
+    [fsMap],
+  );
 
-  const readFile = useCallback((path: string): string | null => {
-    const ytext = getFileText(path);
-    return ytext ? ytext.toString() : null;
-  }, [getFileText]);
+  const readFile = useCallback(
+    (path: string): string | null => {
+      const ytext = getFileText(path);
+      return ytext ? ytext.toString() : null;
+    },
+    [getFileText],
+  );
 
-  const writeFile = useCallback((path: string, content?: string) => {
-    writeStoreFile(ydoc, fsMap, path, content);
-  }, [fsMap, ydoc]);
+  const writeFile = useCallback(
+    (path: string, content?: string) => {
+      writeStoreFile(ydoc, fsMap, path, content);
+    },
+    [fsMap, ydoc],
+  );
 
-  const deleteFile = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
+  const deleteFile = useCallback(
+    (path: string) => {
+      const normalizedPath = normalizeVfsPath(path);
 
-    deleteStoreFile(fsMap, normalizedPath);
-    setWorkspaceSession((currentState) => deleteWorkspaceFile(
-      currentState,
-      normalizedPath,
-      listStoreFilePaths(fsMap),
-    ));
-  }, [fsMap]);
+      deleteStoreFile(fsMap, normalizedPath);
+      setWorkspaceSession((currentState) =>
+        deleteWorkspaceFile(currentState, normalizedPath, listStoreFilePaths(fsMap)),
+      );
+    },
+    [fsMap],
+  );
 
-  const mkdir = useCallback((path: string) => {
-    ensureStoreDirectory(fsDirs, path);
-  }, [fsDirs]);
+  const mkdir = useCallback(
+    (path: string) => {
+      ensureStoreDirectory(fsDirs, path);
+    },
+    [fsDirs],
+  );
 
-  const rmdir = useCallback((path: string): boolean => {
-    return removeStoreDirectory(fsMap, fsDirs, path);
-  }, [fsDirs, fsMap]);
+  const rmdir = useCallback(
+    (path: string): boolean => {
+      return removeStoreDirectory(fsMap, fsDirs, path);
+    },
+    [fsDirs, fsMap],
+  );
 
-  const exists = useCallback((path: string): boolean => {
-    return pathExistsInStore(fsMap, fsDirs, path);
-  }, [fsDirs, fsMap]);
+  const exists = useCallback(
+    (path: string): boolean => {
+      return pathExistsInStore(fsMap, fsDirs, path);
+    },
+    [fsDirs, fsMap],
+  );
 
-  const isDirectory = useCallback((path: string): boolean => {
-    return isDirectoryInStore(fsMap, fsDirs, path);
-  }, [fsDirs, fsMap]);
+  const isDirectory = useCallback(
+    (path: string): boolean => {
+      return isDirectoryInStore(fsMap, fsDirs, path);
+    },
+    [fsDirs, fsMap],
+  );
 
-  const isFile = useCallback((path: string): boolean => {
-    return fsMap.has(normalizeVfsPath(path));
-  }, [fsMap]);
+  const isFile = useCallback(
+    (path: string): boolean => {
+      return fsMap.has(normalizeVfsPath(path));
+    },
+    [fsMap],
+  );
 
-  const ls = useCallback((dirPath: string): string[] => {
-    return listStoreDirectoryEntries(fsMap, fsDirs, dirPath);
-  }, [fsDirs, fsMap]);
+  const ls = useCallback(
+    (dirPath: string): string[] => {
+      return listStoreDirectoryEntries(fsMap, fsDirs, dirPath);
+    },
+    [fsDirs, fsMap],
+  );
 
-  const rename = useCallback((oldPath: string, newPath: string) => {
-    const oldNormalizedPath = normalizeVfsPath(oldPath);
-    const newNormalizedPath = normalizeVfsPath(newPath);
+  const rename = useCallback(
+    (oldPath: string, newPath: string) => {
+      const oldNormalizedPath = normalizeVfsPath(oldPath);
+      const newNormalizedPath = normalizeVfsPath(newPath);
 
-    if (!renameStorePath(ydoc, fsMap, fsDirs, oldNormalizedPath, newNormalizedPath)) {
-      return;
-    }
+      if (!renameStorePath(ydoc, fsMap, fsDirs, oldNormalizedPath, newNormalizedPath)) {
+        return;
+      }
 
-    setWorkspaceSession((currentState) => renameWorkspaceSessionPath(
-      currentState,
-      oldNormalizedPath,
-      newNormalizedPath,
-    ));
-  }, [fsDirs, fsMap, ydoc]);
+      setWorkspaceSession((currentState) =>
+        renameWorkspaceSessionPath(currentState, oldNormalizedPath, newNormalizedPath),
+      );
+    },
+    [fsDirs, fsMap, ydoc],
+  );
 
-  const openFile = useCallback((path: string) => {
-    const normalizedPath = normalizeVfsPath(path);
+  const openFile = useCallback(
+    (path: string) => {
+      const normalizedPath = normalizeVfsPath(path);
 
-    if (!fsMap.has(normalizedPath)) {
-      return;
-    }
+      if (!fsMap.has(normalizedPath)) {
+        return;
+      }
 
-    setWorkspaceSession((currentState) => openWorkspaceFile(currentState, normalizedPath));
-  }, [fsMap]);
+      setWorkspaceSession((currentState) => openWorkspaceFile(currentState, normalizedPath));
+    },
+    [fsMap],
+  );
 
   const closeTab = useCallback((path: string) => {
     setWorkspaceSession((currentState) => closeWorkspaceTab(currentState, path));
@@ -284,17 +322,23 @@ export function useVirtualFS(
     setWorkspaceSession((currentState) => closeWorkspaceTabsToRight(currentState, path));
   }, []);
 
-  const setCwd = useCallback((path: string) => {
-    fsState.set('cwd', normalizeVfsPath(path));
-  }, [fsState]);
+  const setCwd = useCallback(
+    (path: string) => {
+      fsState.set('cwd', normalizeVfsPath(path));
+    },
+    [fsState],
+  );
 
-  const resolve = useCallback((relativePath: string): string => {
-    if (relativePath.startsWith(ROOT_PATH)) {
-      return normalizeVfsPath(relativePath);
-    }
+  const resolve = useCallback(
+    (relativePath: string): string => {
+      if (relativePath.startsWith(ROOT_PATH)) {
+        return normalizeVfsPath(relativePath);
+      }
 
-    return joinVfsPath(cwd, relativePath);
-  }, [cwd]);
+      return joinVfsPath(cwd, relativePath);
+    },
+    [cwd],
+  );
 
   const getAllFiles = useCallback((): Record<string, string> => {
     return getAllStoreFiles(fsMap);

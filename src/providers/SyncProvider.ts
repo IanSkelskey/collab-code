@@ -64,7 +64,8 @@ export class CollabProvider {
   on(event: 'connection-close' | 'connection-error', callback: (...args: unknown[]) => void): void;
   on(
     event: 'status' | 'sync' | 'connection-close' | 'connection-error',
-    callback: ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
+    callback:
+      | ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
       | ((state: boolean) => void)
       | ((...args: unknown[]) => void),
   ) {
@@ -79,7 +80,8 @@ export class CollabProvider {
   off(event: 'connection-close' | 'connection-error', callback: (...args: unknown[]) => void): void;
   off(
     event: 'status' | 'sync' | 'connection-close' | 'connection-error',
-    callback: ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
+    callback:
+      | ((event: { status: 'connected' | 'connecting' | 'disconnected' }) => void)
       | ((state: boolean) => void)
       | ((...args: unknown[]) => void),
   ) {

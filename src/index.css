@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant xs (@media (width >= 420px));
 
@@ -81,7 +81,12 @@ body,
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   background:
     radial-gradient(circle at top, var(--cc-bg-app-glow) 0, transparent 34%),
     linear-gradient(180deg, var(--cc-bg-app) 0%, var(--cc-bg-canvas) 100%);
@@ -114,8 +119,11 @@ select {
 }
 
 .cc-sidebar-shell {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--cc-bg-panel) 96%, transparent), color-mix(in srgb, var(--cc-bg-panel-alt) 98%, transparent));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cc-bg-panel) 96%, transparent),
+    color-mix(in srgb, var(--cc-bg-panel-alt) 98%, transparent)
+  );
   border-color: var(--cc-border-soft);
 }
 

@@ -58,34 +58,40 @@ export default function SearchPanel({ fs, onNavigateTo }: SearchPanelProps) {
     toggleCollapsed,
   } = useWorkspaceSearch({ fs, ydoc });
 
-  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      runSearch();
-    }
-  }, [runSearch]);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        runSearch();
+      }
+    },
+    [runSearch],
+  );
 
-  const handleResultClick = useCallback((result: SearchResult) => {
-    if (onNavigateTo) {
-      onNavigateTo(result.file, result.line, result.col);
-      return;
-    }
+  const handleResultClick = useCallback(
+    (result: SearchResult) => {
+      if (onNavigateTo) {
+        onNavigateTo(result.file, result.line, result.col);
+        return;
+      }
 
-    fs.openFile(result.file);
-  }, [fs, onNavigateTo]);
+      fs.openFile(result.file);
+    },
+    [fs, onNavigateTo],
+  );
 
   return (
     <div className="cc-sidebar-shell cc-divider flex h-full flex-col border-r">
       <div className="cc-divider flex min-h-[38px] items-center justify-between border-b px-3 py-2">
-        <span className="cc-section-label text-[10px] font-semibold">
-          Search
-        </span>
+        <span className="cc-section-label text-[10px] font-semibold">Search</span>
         <button
           onClick={() => setReplaceVisible((isVisible) => !isVisible)}
           title={replaceVisible ? 'Hide Replace' : 'Find and Replace'}
           className="cc-icon-button cursor-pointer rounded p-1"
         >
-          <ChevronRightIcon className={`w-3 h-3 transition-transform ${replaceVisible ? 'rotate-90' : ''}`} />
+          <ChevronRightIcon
+            className={`w-3 h-3 transition-transform ${replaceVisible ? 'rotate-90' : ''}`}
+          />
         </button>
       </div>
 
@@ -105,10 +111,7 @@ export default function SearchPanel({ fs, onNavigateTo }: SearchPanelProps) {
             className="cc-input min-w-0 flex-1 bg-transparent text-xs outline-none"
           />
           {query && (
-            <button
-              onClick={clearQuery}
-              className="cc-button-ghost cursor-pointer rounded"
-            >
+            <button onClick={clearQuery} className="cc-button-ghost cursor-pointer rounded">
               <CloseIcon className="w-3 h-3" />
             </button>
           )}
@@ -182,13 +185,12 @@ export default function SearchPanel({ fs, onNavigateTo }: SearchPanelProps) {
         </div>
       </div>
 
-      {regexError && (
-        <div className="px-3 py-1 text-[10px] text-red-400">{regexError}</div>
-      )}
+      {regexError && <div className="px-3 py-1 text-[10px] text-red-400">{regexError}</div>}
 
       {searched && !regexError && results.length > 0 && (
         <div className="cc-text-muted cc-divider border-b px-3 py-1.5 text-[10px]">
-          {matchCount} result{matchCount !== 1 ? 's' : ''} in {fileCount} file{fileCount !== 1 ? 's' : ''}
+          {matchCount} result{matchCount !== 1 ? 's' : ''} in {fileCount} file
+          {fileCount !== 1 ? 's' : ''}
           {matchCount >= 1000 && ' (limited)'}
         </div>
       )}
@@ -212,7 +214,9 @@ export default function SearchPanel({ fs, onNavigateTo }: SearchPanelProps) {
           <div className="px-3 py-8 text-center">
             <SearchIcon className="cc-text-faint mx-auto mb-2 h-8 w-8" />
             <p className="cc-text-faint text-xs">Search across all files</p>
-            <p className="cc-text-faint mt-1 text-[10px]">Use toggles for case, whole word, or regex</p>
+            <p className="cc-text-faint mt-1 text-[10px]">
+              Use toggles for case, whole word, or regex
+            </p>
           </div>
         )}
 
@@ -227,30 +231,39 @@ export default function SearchPanel({ fs, onNavigateTo }: SearchPanelProps) {
                 onClick={() => toggleCollapsed(file)}
                 className="cc-topbar cc-text-muted sticky top-0 flex w-full cursor-pointer items-center gap-1.5 px-2 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--cc-bg-hover)]"
               >
-                <ChevronRightIcon className={`w-3 h-3 shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`} />
+                <ChevronRightIcon
+                  className={`w-3 h-3 shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                />
                 <FileIcon name={fileName} />
-                <span className="truncate" title={relativePath}>{relativePath}</span>
-                <span className="cc-text-faint ml-auto shrink-0 text-[10px]">{fileResults.length}</span>
+                <span className="truncate" title={relativePath}>
+                  {relativePath}
+                </span>
+                <span className="cc-text-faint ml-auto shrink-0 text-[10px]">
+                  {fileResults.length}
+                </span>
               </button>
 
-              {!isCollapsed && fileResults.map((result, index) => (
-                <button
-                  key={`${file}:${result.line}:${result.col}:${index}`}
-                  onClick={() => handleResultClick(result)}
-                  className="group flex w-full cursor-pointer items-baseline gap-2 px-3 py-0.5 text-left text-xs transition-colors hover:bg-[var(--cc-bg-hover)]"
-                >
-                  <span className="cc-text-faint w-5 shrink-0 text-right text-[10px]">{result.line}</span>
-                  <span className="cc-text-secondary group-hover:text-[var(--cc-text-primary)] truncate">
-                    <HighlightedLine
-                      text={result.text}
-                      query={query}
-                      useRegex={useRegex}
-                      caseSensitive={caseSensitive}
-                      wholeWord={wholeWord}
-                    />
-                  </span>
-                </button>
-              ))}
+              {!isCollapsed &&
+                fileResults.map((result, index) => (
+                  <button
+                    key={`${file}:${result.line}:${result.col}:${index}`}
+                    onClick={() => handleResultClick(result)}
+                    className="group flex w-full cursor-pointer items-baseline gap-2 px-3 py-0.5 text-left text-xs transition-colors hover:bg-[var(--cc-bg-hover)]"
+                  >
+                    <span className="cc-text-faint w-5 shrink-0 text-right text-[10px]">
+                      {result.line}
+                    </span>
+                    <span className="cc-text-secondary group-hover:text-[var(--cc-text-primary)] truncate">
+                      <HighlightedLine
+                        text={result.text}
+                        query={query}
+                        useRegex={useRegex}
+                        caseSensitive={caseSensitive}
+                        wholeWord={wholeWord}
+                      />
+                    </span>
+                  </button>
+                ))}
             </div>
           );
         })}
@@ -291,7 +304,11 @@ function HighlightedLine({
         {segments.map((segment, index) => (
           <span
             key={`${segment.text}-${index}`}
-            className={segment.isMatch ? 'rounded-sm bg-[var(--cc-bg-selection)] font-medium text-[var(--cc-accent)]' : undefined}
+            className={
+              segment.isMatch
+                ? 'rounded-sm bg-[var(--cc-bg-selection)] font-medium text-[var(--cc-accent)]'
+                : undefined
+            }
           >
             {segment.text}
           </span>

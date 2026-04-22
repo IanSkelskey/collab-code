@@ -42,42 +42,45 @@ export function useWorkspaceSearch({ fs, ydoc }: UseWorkspaceSearchOptions) {
     inputRef.current?.focus();
   }, []);
 
-  const runSearch = useCallback((currentQuery: string) => {
-    const trimmedQuery = currentQuery.trim();
+  const runSearch = useCallback(
+    (currentQuery: string) => {
+      const trimmedQuery = currentQuery.trim();
 
-    if (!trimmedQuery) {
-      startTransition(() => {
-        setResults([]);
-        setSearched(false);
-        setRegexError(null);
-        setSearching(false);
-      });
-      return;
-    }
+      if (!trimmedQuery) {
+        startTransition(() => {
+          setResults([]);
+          setSearched(false);
+          setRegexError(null);
+          setSearching(false);
+        });
+        return;
+      }
 
-    try {
-      const nextResults = searchWorkspace(fs.getAllFiles(), {
-        query: currentQuery,
-        useRegex,
-        caseSensitive,
-        wholeWord,
-      });
+      try {
+        const nextResults = searchWorkspace(fs.getAllFiles(), {
+          query: currentQuery,
+          useRegex,
+          caseSensitive,
+          wholeWord,
+        });
 
-      startTransition(() => {
-        setRegexError(null);
-        setResults(nextResults);
-        setSearched(true);
-        setSearching(false);
-      });
-    } catch (error) {
-      startTransition(() => {
-        setRegexError((error as Error).message);
-        setResults([]);
-        setSearched(true);
-        setSearching(false);
-      });
-    }
-  }, [caseSensitive, fs, useRegex, wholeWord]);
+        startTransition(() => {
+          setRegexError(null);
+          setResults(nextResults);
+          setSearched(true);
+          setSearching(false);
+        });
+      } catch (error) {
+        startTransition(() => {
+          setRegexError((error as Error).message);
+          setResults([]);
+          setSearched(true);
+          setSearching(false);
+        });
+      }
+    },
+    [caseSensitive, fs, useRegex, wholeWord],
+  );
 
   useEffect(() => {
     if (!deferredQuery.trim()) {
@@ -207,4 +210,3 @@ export function useWorkspaceSearch({ fs, ydoc }: UseWorkspaceSearchOptions) {
     toggleCollapsed,
   };
 }
-

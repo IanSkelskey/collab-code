@@ -3,10 +3,7 @@ import type { FSNode } from '../hooks/useVirtualFS';
 import { useTreeContext } from '../context/TreeContext';
 import { getLanguageForFile } from '../config/languages';
 import { validateFileName } from '../services/fileOps';
-import {
-  ChevronRightIcon, FolderClosedIcon, FolderOpenIcon,
-  FileDocIcon, PlayIcon,
-} from './Icons';
+import { ChevronRightIcon, FolderClosedIcon, FolderOpenIcon, FileDocIcon, PlayIcon } from './Icons';
 import { iconsByName } from './fileIcons';
 
 // ── Icons ──
@@ -25,7 +22,6 @@ export function FolderIcon({ open }: { open: boolean }) {
   }
   return <FolderClosedIcon className="w-4 h-4 shrink-0 text-amber-400" />;
 }
-
 
 export function FileIcon({ name }: { name: string }) {
   const lang = getLanguageForFile(name);
@@ -55,10 +51,16 @@ export function InlineInput({
   const [error, setError] = useState<string | null>(null);
 
   const trySubmit = (val: string) => {
-    if (!val || val === defaultValue) { onCancel(); return; }
+    if (!val || val === defaultValue) {
+      onCancel();
+      return;
+    }
     if (validate) {
       const err = validate(val);
-      if (err) { setError(err); return; }
+      if (err) {
+        setError(err);
+        return;
+      }
     }
     onSubmit(val);
   };
@@ -74,10 +76,15 @@ export function InlineInput({
         }`}
         onBlur={(e) => {
           const val = e.target.value.trim();
-          if (!val || val === defaultValue || (validate && validate(val))) { onCancel(); return; }
+          if (!val || val === defaultValue || (validate && validate(val))) {
+            onCancel();
+            return;
+          }
           onSubmit(val);
         }}
-        onChange={() => { if (error) setError(null); }}
+        onChange={() => {
+          if (error) setError(null);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -86,9 +93,7 @@ export function InlineInput({
           if (e.key === 'Escape') onCancel();
         }}
       />
-      {error && (
-        <span className="text-[10px] text-red-400 mt-0.5 leading-tight">{error}</span>
-      )}
+      {error && <span className="text-[10px] text-red-400 mt-0.5 leading-tight">{error}</span>}
     </div>
   );
 }
@@ -217,20 +222,16 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
         )}
       </div>
 
-      {isDir && isOpen && node.children?.map((child) => (
-        <TreeNode key={child.path} node={child} depth={depth + 1} />
-      ))}
+      {isDir &&
+        isOpen &&
+        node.children?.map((child) => <TreeNode key={child.path} node={child} depth={depth + 1} />)}
 
       {showCreate && isOpen && (
         <div
           className="flex items-center gap-1 px-2 py-[3px] text-xs"
           style={{ paddingLeft: `${(depth + 1) * 14 + 8}px` }}
         >
-          {creating!.type === 'directory' ? (
-            <FolderIcon open={false} />
-          ) : (
-            <FileIcon name="" />
-          )}
+          {creating!.type === 'directory' ? <FolderIcon open={false} /> : <FileIcon name="" />}
           <InlineInput
             defaultValue=""
             onSubmit={handleCreate}

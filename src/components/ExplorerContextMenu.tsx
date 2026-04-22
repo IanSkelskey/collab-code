@@ -8,12 +8,7 @@ interface ExplorerContextMenuProps {
   onClose: () => void;
 }
 
-export default function ExplorerContextMenu({
-  x,
-  y,
-  items,
-  onClose,
-}: ExplorerContextMenuProps) {
+export default function ExplorerContextMenu({ x, y, items, onClose }: ExplorerContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

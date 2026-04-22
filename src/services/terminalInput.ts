@@ -34,7 +34,9 @@ interface CreateTerminalDataHandlerOptions {
   getVfs: () => VirtualFS | undefined;
   getOnRun: () => ((filePath?: string) => void) | undefined;
   getPushToast: () => PushToast | undefined;
-  getRequestConfirm: () => ((title: string, message: string, onConfirm: () => void) => void) | undefined;
+  getRequestConfirm: () =>
+    | ((title: string, message: string, onConfirm: () => void) => void)
+    | undefined;
 }
 
 function createSharedTermWriter(ydoc: Y.Doc): TermWriter {
@@ -56,10 +58,13 @@ function updateCommandBufferState(
   updater: (buffer: TerminalLineBuffer) => TerminalLineBuffer,
 ): void {
   updateSharedTerminalState(ydoc, (current) => {
-    return setCommandBuffer(current, updater({
-      text: current.commandBuffer,
-      cursor: current.commandCursor,
-    }));
+    return setCommandBuffer(
+      current,
+      updater({
+        text: current.commandBuffer,
+        cursor: current.commandCursor,
+      }),
+    );
   });
 }
 
@@ -68,30 +73,39 @@ function updateExecBufferState(
   updater: (buffer: TerminalLineBuffer) => TerminalLineBuffer,
 ): void {
   updateSharedTerminalState(ydoc, (current) => {
-    return setExecBuffer(current, updater({
-      text: current.execBuffer,
-      cursor: current.execCursor,
-    }));
+    return setExecBuffer(
+      current,
+      updater({
+        text: current.execBuffer,
+        cursor: current.execCursor,
+      }),
+    );
   });
 }
 
 function pasteClipboardText(ydoc: Y.Doc, mode: SharedTerminalSnapshot['mode']) {
-  void navigator.clipboard.readText().then((text) => {
-    const nextText = text.replace(/\r\n?/g, '');
-    if (!nextText) {
-      return;
-    }
+  void navigator.clipboard
+    .readText()
+    .then((text) => {
+      const nextText = text.replace(/\r\n?/g, '');
+      if (!nextText) {
+        return;
+      }
 
-    if (mode === 'exec') {
-      updateExecBufferState(ydoc, (buffer) => insertTextAtCursor(buffer, nextText));
-      return;
-    }
+      if (mode === 'exec') {
+        updateExecBufferState(ydoc, (buffer) => insertTextAtCursor(buffer, nextText));
+        return;
+      }
 
-    updateCommandBufferState(ydoc, (buffer) => insertTextAtCursor(buffer, nextText));
-  }).catch(() => {});
+      updateCommandBufferState(ydoc, (buffer) => insertTextAtCursor(buffer, nextText));
+    })
+    .catch(() => {});
 }
 
-function navigateHistory(snapshot: SharedTerminalSnapshot, direction: 'up' | 'down'): SharedTerminalSnapshot {
+function navigateHistory(
+  snapshot: SharedTerminalSnapshot,
+  direction: 'up' | 'down',
+): SharedTerminalSnapshot {
   const history = snapshot.history;
   if (history.length === 0) {
     return snapshot;
@@ -121,9 +135,7 @@ function navigateHistory(snapshot: SharedTerminalSnapshot, direction: 'up' | 'do
     }
   }
 
-  const replacement = nextHistoryIndex === -1
-    ? nextSavedInput
-    : history[nextHistoryIndex] ?? '';
+  const replacement = nextHistoryIndex === -1 ? nextSavedInput : (history[nextHistoryIndex] ?? '');
 
   return {
     ...snapshot,
@@ -152,9 +164,7 @@ function handleTabCompletion(
   }
 
   const lastSlash = partial.lastIndexOf('/');
-  const dirPath = lastSlash >= 0
-    ? vfs.resolve(partial.slice(0, lastSlash) || '/')
-    : vfs.cwd;
+  const dirPath = lastSlash >= 0 ? vfs.resolve(partial.slice(0, lastSlash) || '/') : vfs.cwd;
   const prefix = lastSlash >= 0 ? partial.slice(lastSlash + 1) : partial;
 
   if (!vfs.isDirectory(dirPath)) {
@@ -163,7 +173,7 @@ function handleTabCompletion(
 
   const entries = vfs.ls(dirPath);
   const matches = entries
-    .map((entry) => entry.endsWith('/') ? entry.slice(0, -1) : entry)
+    .map((entry) => (entry.endsWith('/') ? entry.slice(0, -1) : entry))
     .filter((entry) => entry.startsWith(prefix));
 
   if (matches.length === 0) {
@@ -181,13 +191,17 @@ function handleTabCompletion(
   if (completion) {
     const isDirectory = entries.some((entry) => entry === `${commonPrefix}/`);
     const suffix = matches.length === 1 && isDirectory ? '/' : '';
-    updateCommandBufferState(ydoc, (buffer) => insertTextAtCursor(buffer, `${completion}${suffix}`));
+    updateCommandBufferState(ydoc, (buffer) =>
+      insertTextAtCursor(buffer, `${completion}${suffix}`),
+    );
     return;
   }
 
   if (matches.length > 1) {
     const listing = matches
-      .map((match) => entries.some((entry) => entry === `${match}/`) ? `\x1b[1;34m${match}/\x1b[0m` : match)
+      .map((match) =>
+        entries.some((entry) => entry === `${match}/`) ? `\x1b[1;34m${match}/\x1b[0m` : match,
+      )
       .join('\r\n');
     appendTerminalOutput(ydoc, `\r\n${listing}\r\n`);
   }
@@ -204,10 +218,10 @@ function submitCommand(
   appendTerminalOutput(ydoc, `${buildTerminalPrompt(snapshot.cwd)}${rawLine}\r\n`);
 
   updateSharedTerminalState(ydoc, (current) => {
-    const nextHistory = rawCommand
-      && rawCommand !== current.history[current.history.length - 1]
-      ? [...current.history, rawCommand].slice(-100)
-      : current.history;
+    const nextHistory =
+      rawCommand && rawCommand !== current.history[current.history.length - 1]
+        ? [...current.history, rawCommand].slice(-100)
+        : current.history;
 
     return {
       ...current,
@@ -384,7 +398,10 @@ function handleCommandModeInput(
   }
 
   if (code === 3) {
-    appendTerminalOutput(options.ydoc, `${buildTerminalPrompt(snapshot.cwd)}${snapshot.commandBuffer}^C\r\n`);
+    appendTerminalOutput(
+      options.ydoc,
+      `${buildTerminalPrompt(snapshot.cwd)}${snapshot.commandBuffer}^C\r\n`,
+    );
     updateSharedTerminalState(options.ydoc, (current) => ({
       ...current,
       commandBuffer: '',
@@ -422,7 +439,11 @@ export function createTerminalKeyGuard({ getSnapshot }: CreateTerminalKeyGuardOp
       return false;
     }
 
-    if (snapshot.mode !== 'exec' && event.key === 'Delete' && activeBuffer.cursor >= activeBuffer.text.length) {
+    if (
+      snapshot.mode !== 'exec' &&
+      event.key === 'Delete' &&
+      activeBuffer.cursor >= activeBuffer.text.length
+    ) {
       return false;
     }
 

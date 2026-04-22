@@ -40,10 +40,7 @@ export function removeLocalStorageItem(key: string): void {
   }
 }
 
-export function readLocalStorageJson<T>(
-  key: string,
-  parse: LocalStorageParser<T>,
-): T | null {
+export function readLocalStorageJson<T>(key: string, parse: LocalStorageParser<T>): T | null {
   const rawValue = readLocalStorageItem(key);
   if (!rawValue) {
     return null;
