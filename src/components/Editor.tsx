@@ -11,7 +11,7 @@ import { useEditorDropGuard } from '../hooks/useEditorDropGuard';
 import { useEditorOptions } from '../hooks/useEditorOptions';
 import { useRemoteMonacoSelections } from '../hooks/useRemoteMonacoSelections';
 import { registerEditorFormatters } from '../services/editorFormatters';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../theme/useTheme';
 import { registerMonacoThemes } from '../theme/monacoThemes';
 import { CloseIcon, EyeIcon } from './Icons';
 import './Editor.css';

@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   appearanceStorageKey,
   defaultAppearancePreference,
@@ -19,19 +11,12 @@ import {
   type AppearancePreference,
   type ThemeId,
 } from './themes';
+import { ThemeContext, type ThemeContextValue } from './themeContext';
 import {
   readLocalStorageItem,
   removeLocalStorageItem,
   writeLocalStorageItem,
 } from '../lib/localStorage';
-
-interface ThemeContextValue {
-  appearance: AppearancePreference;
-  theme: AppThemeDefinition;
-  setAppearance: (appearance: AppearancePreference) => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemThemeId(): ThemeId {
   if (typeof window === 'undefined') {
@@ -119,13 +104,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme(): ThemeContextValue {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-
-  return context;
 }

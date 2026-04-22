@@ -310,6 +310,10 @@ export default function FileExplorer({
         onCreateFolder={handleCreateRootFolder}
       />
 
+      {/* Click on empty area of the file list clears selection. This is
+          background behavior with no keyboard equivalent expected — the tree
+          rows themselves own their keyboard focus/selection. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className={`flex-1 overflow-y-auto overflow-x-hidden py-1 ${selectedTopLevelPaths.length > 1 ? 'pb-16' : ''}`}
         onClick={(event) => {

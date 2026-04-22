@@ -122,7 +122,11 @@ export default function TabBar({ fs }: TabBarProps) {
               </span>
             )}
 
-            {/* Close button */}
+            {/* Close affordance. Cannot be a <button> because it lives inside
+                the parent tab <button> (nested interactive elements are invalid
+                HTML). Keyboard users close tabs via the existing Ctrl+W
+                shortcut handled at the layout level. */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <span
               onClick={(e) => handleClose(e, path)}
               className={`ml-0.5 rounded p-0.5 transition-colors hover:bg-[var(--cc-bg-hover-strong)]
@@ -137,6 +141,10 @@ export default function TabBar({ fs }: TabBarProps) {
 
       {/* Context menu */}
       {ctxMenu && (
+        // Container onClick dismisses the menu when any inner <button> fires.
+        // Each item is its own keyboard-operable button, so no key handler is
+        // needed on the wrapper.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           className="cc-menu cc-text-secondary fixed z-50 min-w-[160px] rounded py-1 text-xs"
           style={{ left: ctxMenu.x, top: ctxMenu.y }}

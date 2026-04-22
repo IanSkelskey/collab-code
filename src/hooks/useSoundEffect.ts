@@ -26,7 +26,6 @@ export function useSoundEffect({
 
     const audio = new Audio(src);
     audio.preload = preload;
-    audio.volume = normalizedVolume;
     audioRef.current = audio;
 
     return () => {

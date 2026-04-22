@@ -67,6 +67,10 @@ export function InlineInput({
 
   return (
     <div className="flex flex-col w-full max-w-[160px]">
+      {/* autoFocus is intentional here: the input only mounts when the user
+          initiates a rename or create action, so focusing it immediately is
+          the expected behavior, not surprising. */}
+      {/* eslint-disable jsx-a11y/no-autofocus */}
       <input
         defaultValue={defaultValue}
         autoFocus
@@ -93,6 +97,7 @@ export function InlineInput({
           if (e.key === 'Escape') onCancel();
         }}
       />
+      {/* eslint-enable jsx-a11y/no-autofocus */}
       {error && <span className="text-[10px] text-red-400 mt-0.5 leading-tight">{error}</span>}
     </div>
   );
@@ -176,6 +181,10 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
   return (
     <>
       <div
+        role="treeitem"
+        aria-expanded={isDir ? isOpen : undefined}
+        aria-selected={isSelected || isActive || undefined}
+        tabIndex={0}
         className={`group flex cursor-pointer select-none items-center gap-1 px-2 py-[3px] text-xs transition-colors
           hover:bg-[var(--cc-bg-hover)]
           ${isActive ? 'bg-[var(--cc-bg-hover-strong)] text-[var(--cc-text-primary)]' : ''}
@@ -184,6 +193,12 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
         `}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
         onClick={(e) => onNodeClick(e, node)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onNodeClick(e as unknown as React.MouseEvent, node);
+          }
+        }}
         onContextMenu={(e) => onContextMenu(e, node)}
         draggable={node.path !== '~'}
         onDragStart={(e) => onDragStartNode(e, node)}

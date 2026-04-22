@@ -5,7 +5,7 @@ import { marked } from 'marked';
 import { languages } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { getParentPath, joinVfsPath, normalizeVfsPath } from '../lib/vfsPaths';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../theme/useTheme';
 import './MarkdownPreview.css';
 
 interface MarkdownPreviewProps {
@@ -380,6 +380,11 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
   return (
     <div className="cc-preview-shell">
       <div className="cc-preview-frame">
+        {/* Click delegation for rendered Markdown (intercepts link clicks).
+            The underlying content is real HTML — anchors, headings, etc. —
+            and carries its own keyboard affordances, so this wrapper does
+            not need a key handler of its own. */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           ref={previewRef}
           onClick={handleClick}

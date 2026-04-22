@@ -66,7 +66,8 @@ export default function PeerAvatars({
 
         return (
           <div key={peer.clientId} className="group relative">
-            <div
+            <button
+              type="button"
               onClick={
                 isMe
                   ? handleStartEdit
@@ -75,6 +76,16 @@ export default function PeerAvatars({
                       onToggleFollowPeer(peer);
                     }
               }
+              aria-label={
+                isMe
+                  ? `${peer.name} (you), edit your name`
+                  : isFollowing
+                    ? `Stop following ${peer.name}`
+                    : peerFileName
+                      ? `Follow ${peer.name} at ${peerFileName}`
+                      : `Follow ${peer.name}`
+              }
+              aria-pressed={!isMe ? isFollowing : undefined}
               className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 text-[10px] font-bold text-white sm:h-7 sm:w-7 sm:text-xs"
               style={{
                 backgroundColor: peer.color,
@@ -108,7 +119,7 @@ export default function PeerAvatars({
                   <EyeIcon className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
                 </div>
               )}
-            </div>
+            </button>
 
             {!editing && (
               <div className="cc-menu cc-text-primary pointer-events-none absolute -bottom-8 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100">

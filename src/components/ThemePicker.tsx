@@ -1,4 +1,4 @@
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../theme/useTheme';
 import type { AppearancePreference } from '../theme/themes';
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from './Icons';
 import './ThemePicker.css';

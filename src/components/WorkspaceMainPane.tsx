@@ -55,7 +55,14 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
             )}
           </div>
 
+          {/* role="separator" is the correct ARIA role for a resize handle,
+              but it's classified as a non-interactive role — so the drag
+              listeners intentionally trip the noninteractive rule. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize explorer panel"
             onMouseDown={layout.handleExplorerDragStart}
             onTouchStart={layout.handleExplorerDragStart}
             className="cc-divider group flex w-3 shrink-0 cursor-col-resize items-center justify-center border-r touch-none"
@@ -110,7 +117,11 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
                     {showMarkdownEditor &&
                       showMarkdownPreview &&
                       layout.markdownViewMode === 'split' && (
+                        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
                         <div
+                          role="separator"
+                          aria-orientation="vertical"
+                          aria-label="Resize markdown split view"
                           onMouseDown={layout.handleMarkdownSplitDragStart}
                           onTouchStart={layout.handleMarkdownSplitDragStart}
                           className="cc-divider hidden w-3 shrink-0 cursor-col-resize items-center justify-center border-l touch-none lg:flex"
@@ -220,7 +231,11 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
             />
           </button>
           {layout.terminalVisible && (
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
             <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label="Resize terminal panel"
               onMouseDown={layout.handleTerminalDragStart}
               onTouchStart={layout.handleTerminalDragStart}
               className="flex-1 h-full cursor-row-resize flex items-center justify-center group py-1"

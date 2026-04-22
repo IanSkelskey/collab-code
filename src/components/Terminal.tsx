@@ -19,7 +19,7 @@ import {
   updateSharedTerminalState,
 } from '../services/sharedTerminal';
 import { createTerminalDataHandler, createTerminalKeyGuard } from '../services/terminalInput';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../theme/useTheme';
 
 export interface TerminalHandle {
   write: (text: string) => void;
