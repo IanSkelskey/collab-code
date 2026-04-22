@@ -4,6 +4,7 @@ import GetInvolvedActions from './GetInvolvedActions';
 import RoomTemplateDialog from './RoomTemplateDialog';
 import ThemePicker from './ThemePicker';
 import type { RoomTemplateId } from '../config/roomTemplates';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 function generateRoomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -18,6 +19,7 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPageProps) {
+  useDocumentTitle();
   const [joinId, setJoinId] = useState('');
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 

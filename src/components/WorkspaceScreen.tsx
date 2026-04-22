@@ -6,6 +6,7 @@ import ServerStatusBanner from './ServerStatusBanner';
 import WorkspaceMainPane from './WorkspaceMainPane';
 import type { RoomTemplateId } from '../config/roomTemplates';
 import { useWorkspaceController } from '../hooks/useWorkspaceController';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 interface WorkspaceScreenProps {
   onExitRoom: () => void;
@@ -14,6 +15,7 @@ interface WorkspaceScreenProps {
 
 export default function WorkspaceScreen({ onExitRoom, initialRoomTemplate }: WorkspaceScreenProps) {
   const controller = useWorkspaceController({ initialRoomTemplate });
+  useDocumentTitle(`Room #${controller.roomId}`);
 
   return (
     <div
