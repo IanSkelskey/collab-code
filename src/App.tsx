@@ -1,10 +1,13 @@
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LandingPage from './components/LandingPage';
-import WorkspaceScreen from './components/WorkspaceScreen';
+import WorkspaceFallback from './components/WorkspaceFallback';
 import { getRoomStarterWorkspace, type RoomTemplateId } from './config/roomTemplates';
 import { useRoom } from './hooks/useRoom';
-import { CollabProvider } from './providers/CollabProvider';
+
+// Split the in-room experience (Monaco, Yjs, xterm, CollabProvider) off the
+// Landing bundle. Loaded on demand when the user enters a room.
+const WorkspaceRoute = lazy(() => import('./components/WorkspaceRoute'));
 
 function getInitialRoomTemplate(
   createdRoomId: string | null,
@@ -55,12 +58,13 @@ export default function App() {
 
   return (
     <ErrorBoundary resetKey={roomId}>
-      <CollabProvider key={roomId} roomId={roomId}>
-        <WorkspaceScreen
+      <Suspense fallback={<WorkspaceFallback />}>
+        <WorkspaceRoute
+          roomId={roomId}
           onExitRoom={handleExitRoom}
           initialRoomTemplate={getInitialRoomTemplate(createdRoomId, createdRoomTemplate, roomId)}
         />
-      </CollabProvider>
+      </Suspense>
     </ErrorBoundary>
   );
 }
