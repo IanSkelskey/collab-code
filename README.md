@@ -87,3 +87,7 @@ React, Vite, Monaco Editor, Yjs, xterm.js, and a small Node/WebSocket relay serv
 ## Contributing
 
 Bug reports, feature ideas, and pull requests are welcome. Start with [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+Released under the [MIT License](./LICENSE). You're free to use, modify, and redistribute Collab Code, including commercially, as long as the license and copyright notice are preserved.

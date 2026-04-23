@@ -41,15 +41,19 @@ If you run the frontend by itself against a non-local relay server, set `VITE_WS
 
 ## Scripts
 
-| Command                | Purpose                                       |
-| ---------------------- | --------------------------------------------- |
-| `npm run dev`          | Start the Vite frontend                       |
-| `npm run dev:server`   | Start the local relay / Java execution server |
-| `npm run dev:all`      | Start frontend and server together            |
-| `npm run build`        | Type-check and build the frontend             |
-| `npm run lint`         | Run ESLint                                    |
-| `npm run preview`      | Preview the production frontend build         |
-| `npm run start:server` | Start the relay server without Vite           |
+| Command                  | Purpose                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| `npm run dev`            | Start the Vite frontend                                              |
+| `npm run dev:server`     | Start the local relay / Java execution server                        |
+| `npm run dev:all`        | Start frontend and server together                                   |
+| `npm run build`          | Type-check and build the frontend                                    |
+| `npm run typecheck`      | Run `tsc -b --noEmit` without emitting output                        |
+| `npm run lint`           | Run ESLint                                                           |
+| `npm run format`         | Format the repo with Prettier (writes changes)                       |
+| `npm run prettier-check` | Check formatting without writing (used by `verify` and CI)           |
+| `npm run verify`         | Run prettier-check → lint → typecheck → build. Required before a PR. |
+| `npm run preview`        | Preview the production frontend build                                |
+| `npm run start:server`   | Start the relay server without Vite                                  |
 
 ## Environment Variables
 
@@ -151,6 +155,17 @@ The Docker image installs a JDK plus Python virtual-environment support so Java 
 
 - Open an issue for bugs, regressions, or feature ideas when possible.
 - Keep changes scoped and avoid bundling unrelated refactors together.
-- Run `npm run lint` before opening a PR.
-- Run `npm run build` when a change affects app structure, types, or runtime integration.
+- Run `npm run verify` before opening a PR. It chains `prettier-check`, `lint`, `typecheck`, and `build` — the same set the CI workflow (`.github/workflows/`) runs on every push and pull request against `master`, so a green local run closes the loop before you push.
+- If formatting fails, run `npm run format` to fix it, then re-run `npm run verify`.
 - If you touch collaboration, execution, explorer, or editor behavior, test with at least two tabs in the same room.
+
+## Releasing
+
+When shipping a tagged release:
+
+1. Make sure `master` is green in CI and `npm run verify` passes locally.
+2. Bump `version` in `package.json` (and `package-lock.json` via `npm install`) to the target release, as a standalone `chore: release vX.Y.Z` commit.
+3. Smoke-test the production build: `npm run build` and then `npm run preview`. Open a room, run some code, join from a second tab, and confirm sync still works.
+4. Push the release commit, then tag it: `git tag vX.Y.Z && git push --tags`.
+5. On GitHub, draft a new release from the tag. Copy the block from [`.github/RELEASE_TEMPLATE.md`](./.github/RELEASE_TEMPLATE.md) into the release body and fill in the placeholders: lead paragraph, "What's New", "Fixes & Internal", and a "Full changelog" link to the GitHub compare view against the previous tag. The release body on GitHub is the canonical copy — there are no tracked release notes in the repo itself.
+6. Confirm the GitHub Pages deploy from the tag completes successfully and the hosted app loads.
