@@ -2,6 +2,7 @@
   "name": "collab-code",
   "private": true,
   "version": "1.0.0",
+  "license": "MIT",
   "protocolVersion": 1,
   "type": "module",
   "scripts": {
