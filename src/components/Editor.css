@@ -66,6 +66,10 @@
 
 .cc-editor-shell {
   position: relative;
+  /* Match Monaco's editor.background so the container doesn't flash the
+     default white before Monaco mounts and paints its own canvas. Kept in
+     sync with `editor.background` in src/theme/monacoThemes.ts. */
+  background: var(--cc-bg-editor);
 }
 
 .cc-editor-lock {
