@@ -185,7 +185,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
         aria-expanded={isDir ? isOpen : undefined}
         aria-selected={isSelected || isActive || undefined}
         tabIndex={0}
-        className={`group flex cursor-pointer select-none items-center gap-1 px-2 py-[3px] text-xs transition-colors
+        className={`group flex cursor-pointer select-none items-center gap-1 px-2 py-1.5 text-xs transition-colors
           hover:bg-[var(--cc-bg-hover)]
           ${isActive ? 'bg-[var(--cc-bg-hover-strong)] text-[var(--cc-text-primary)]' : ''}
           ${isSelected ? 'bg-[var(--cc-bg-selection)] text-[var(--cc-text-primary)]' : 'cc-text-secondary'}
@@ -243,7 +243,7 @@ export default function TreeNode({ node, depth }: TreeNodeProps) {
 
       {showCreate && isOpen && (
         <div
-          className="flex items-center gap-1 px-2 py-[3px] text-xs"
+          className="flex items-center gap-1 px-2 py-1.5 text-xs"
           style={{ paddingLeft: `${(depth + 1) * 14 + 8}px` }}
         >
           {creating!.type === 'directory' ? <FolderIcon open={false} /> : <FileIcon name="" />}

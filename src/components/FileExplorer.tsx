@@ -310,11 +310,15 @@ export default function FileExplorer({
         onCreateFolder={handleCreateRootFolder}
       />
 
-      {/* Click on empty area of the file list clears selection. This is
-          background behavior with no keyboard equivalent expected — the tree
-          rows themselves own their keyboard focus/selection. */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      {/* Click on empty area of the file list clears selection. Keyboard
+          focus and activation live on the treeitem rows inside; the tree
+          container itself is only programmatically focusable and has no
+          keyboard equivalent for the empty-click shortcut. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div
+        role="tree"
+        aria-label="File explorer"
+        tabIndex={-1}
         className={`flex-1 overflow-y-auto overflow-x-hidden py-1 ${selectedTopLevelPaths.length > 1 ? 'pb-16' : ''}`}
         onClick={(event) => {
           if (event.target === event.currentTarget) {
@@ -336,7 +340,7 @@ export default function FileExplorer({
 
           {creating && creating.parentPath === ROOT_PATH && (
             <div
-              className="flex items-center gap-1 px-2 py-[3px] text-xs"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs"
               style={{ paddingLeft: '8px' }}
             >
               {creating.type === 'directory' ? <FolderIcon open={false} /> : <FileIcon name="" />}
