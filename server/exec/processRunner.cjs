@@ -16,7 +16,11 @@ function runProcess(context) {
     refreshInactivityTimeout = () => {},
     ws,
     runtimeLabel,
+    getFailureHint,
   } = context;
+
+  let stderrTail = '';
+  const STDERR_TAIL_LIMIT = 64 * 1024;
 
   const child = spawn(command, args, {
     cwd,
@@ -34,7 +38,9 @@ function runProcess(context) {
 
   child.stderr.on('data', (data) => {
     refreshInactivityTimeout();
-    send({ type: 'stderr', data: data.toString() });
+    const text = data.toString();
+    stderrTail = (stderrTail + text).slice(-STDERR_TAIL_LIMIT);
+    send({ type: 'stderr', data: text });
   });
 
   child.on('close', (exitCode) => {
@@ -48,6 +54,15 @@ function runProcess(context) {
       }
     } catch (err) {
       send({ type: 'stderr', data: `\n[File sync scan failed: ${err.message}]\n` });
+    }
+
+    if (exitCode !== 0 && typeof getFailureHint === 'function') {
+      try {
+        const hint = getFailureHint(stderrTail);
+        if (hint) {
+          send({ type: 'stderr', data: hint });
+        }
+      } catch {}
     }
 
     send({ type: 'exit', code: exitCode ?? 1 });

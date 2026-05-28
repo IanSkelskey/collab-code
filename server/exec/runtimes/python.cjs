@@ -133,6 +133,44 @@ function formatSetupFailure(stepLabel, reason, output) {
     : `${stepLabel} failed: ${reason}`;
 }
 
+function isLocalProjectModule(moduleName, files) {
+  const moduleFile = `${moduleName}.py`;
+  const packageInit = `${moduleName}/__init__.py`;
+  return Object.keys(files).some(
+    (filePath) =>
+      filePath === moduleFile ||
+      filePath.endsWith(`/${moduleFile}`) ||
+      filePath === packageInit ||
+      filePath.endsWith(`/${packageInit}`),
+  );
+}
+
+function buildModuleNotFoundHint(stderr, files) {
+  const match = stderr.match(/ModuleNotFoundError: No module named ['"]([^'"]+)['"]/);
+  if (!match) {
+    return null;
+  }
+
+  const topLevelModule = match[1].split('.')[0];
+
+  if (isLocalProjectModule(topLevelModule, files)) {
+    return (
+      `\n[exec] Could not import the local module '${topLevelModule}'.\n` +
+      `Python runs in isolated mode, so the entry file's own folder is not on the import path. ` +
+      `Run the file from your project root, or import it as part of a package.\n`
+    );
+  }
+
+  return (
+    `\n[exec] '${topLevelModule}' is not installed in this run's isolated virtual environment.\n` +
+    `Each run starts from a fresh environment. To use third-party packages, add a requirements.txt ` +
+    `next to your entry file (or in a parent folder) listing them, one per line:\n\n` +
+    `    ${topLevelModule}\n\n` +
+    `Then run again. (A few libraries use a different PyPI name than their import — ` +
+    `e.g. \`import cv2\` needs \`opencv-python\`.)\n`
+  );
+}
+
 function runBufferedCommand({
   command,
   args,
@@ -337,6 +375,7 @@ const pythonRunner = {
           refreshInactivityTimeout,
           ws,
           runtimeLabel: 'Python',
+          getFailureHint: (stderr) => buildModuleNotFoundHint(stderr, files),
         });
       } catch (err) {
         send({ type: 'compile-error', data: err instanceof Error ? err.message : String(err) });
