@@ -6,6 +6,7 @@ import { primaryLanguage, type DiagnosticMarker } from '../config/languages';
 import type { VirtualFS } from '../hooks/useVirtualFS';
 import { useEditorActions } from '../hooks/useEditorActions';
 import { useEditorBinding } from '../hooks/useEditorBinding';
+import { useEditorContextMenuPaste } from '../hooks/useEditorContextMenuPaste';
 import { useEditorDiagnostics } from '../hooks/useEditorDiagnostics';
 import { useEditorDropGuard } from '../hooks/useEditorDropGuard';
 import { useEditorOptions } from '../hooks/useEditorOptions';
@@ -74,6 +75,7 @@ const Editor = forwardRef<EditorHandle, EditorProps>(function Editor(
     onRun,
     onFormat,
   });
+  useEditorContextMenuPaste({ monacoEditor, monacoRef });
   useEditorDropGuard(monacoEditor);
 
   useImperativeHandle(ref, () => diagnostics, [diagnostics]);
