@@ -1,7 +1,7 @@
 {
   "name": "collab-code",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "protocolVersion": 1,
   "type": "module",
