@@ -156,19 +156,6 @@ export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceCont
   }, [serverStatus.banner]);
 
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      return;
-    }
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
-  useEffect(() => {
     if (!awareness) {
       return;
     }
