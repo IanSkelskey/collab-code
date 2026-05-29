@@ -1,63 +1,86 @@
 import type { Monaco } from '@monaco-editor/react';
+import { themeDefinitions, type AppThemeDefinition } from './themes';
 
 let registeredMonacoThemes = false;
+
+// Editor-chrome colors that have no equivalent in the shared CSS palette
+// (text selections, line numbers, whitespace dots, indent guides). Everything
+// else is read from the theme's `cssVars` in buildEditorColors() below, so the
+// editor can't drift from the rest of the app's palette.
+interface EditorOnlyColors {
+  lineHighlightBackground: string;
+  selectionBackground: string;
+  inactiveSelectionBackground: string;
+  lineNumberForeground: string;
+  lineNumberActiveForeground: string;
+  whitespaceForeground: string;
+  indentGuideBackground: string;
+}
+
+const editorOnlyColorsByTheme: Record<string, EditorOnlyColors> = {
+  'cc-dark': {
+    lineHighlightBackground: '#142030',
+    selectionBackground: '#21405a',
+    inactiveSelectionBackground: '#1a3146',
+    lineNumberForeground: '#71829b',
+    lineNumberActiveForeground: '#cbd5e1',
+    whitespaceForeground: '#314154',
+    indentGuideBackground: '#233244',
+  },
+  'cc-light': {
+    lineHighlightBackground: '#eef4fb',
+    selectionBackground: '#cfe5ff',
+    inactiveSelectionBackground: '#e2edf8',
+    lineNumberForeground: '#58697f',
+    lineNumberActiveForeground: '#2d4056',
+    whitespaceForeground: '#d7e2ee',
+    indentGuideBackground: '#dce5f0',
+  },
+};
+
+function buildEditorColors(theme: AppThemeDefinition): Record<string, string> {
+  const palette = theme.cssVars;
+  const editorOnly = editorOnlyColorsByTheme[theme.id];
+
+  return {
+    'editor.background': palette['--cc-bg-editor'],
+    'editor.foreground': palette['--cc-text-primary'],
+    'editor.lineHighlightBackground': editorOnly.lineHighlightBackground,
+    'editor.selectionBackground': editorOnly.selectionBackground,
+    'editor.inactiveSelectionBackground': editorOnly.inactiveSelectionBackground,
+    'editorLineNumber.foreground': editorOnly.lineNumberForeground,
+    'editorLineNumber.activeForeground': editorOnly.lineNumberActiveForeground,
+    'editorCursor.foreground': palette['--cc-accent'],
+    'editorWhitespace.foreground': editorOnly.whitespaceForeground,
+    'editorIndentGuide.background1': editorOnly.indentGuideBackground,
+    'editorIndentGuide.activeBackground1': palette['--cc-border-strong'],
+    'editorWidget.background': palette['--cc-bg-elevated'],
+    'editorWidget.border': palette['--cc-border'],
+    'editorSuggestWidget.background': palette['--cc-bg-elevated'],
+    'editorSuggestWidget.border': palette['--cc-border'],
+    'editorHoverWidget.background': palette['--cc-bg-elevated'],
+    'editorHoverWidget.border': palette['--cc-border'],
+    'editorGutter.background': palette['--cc-bg-editor'],
+  };
+}
 
 export function registerMonacoThemes(monaco: Monaco): void {
   if (registeredMonacoThemes) {
     return;
   }
 
-  monaco.editor.defineTheme('collab-code-dark', {
-    base: 'vs-dark',
-    inherit: true,
-    colors: {
-      'editor.background': '#0d1520',
-      'editor.foreground': '#e8eef6',
-      'editor.lineHighlightBackground': '#142030',
-      'editor.selectionBackground': '#21405a',
-      'editor.inactiveSelectionBackground': '#1a3146',
-      'editorLineNumber.foreground': '#71829b',
-      'editorLineNumber.activeForeground': '#cbd5e1',
-      'editorCursor.foreground': '#34d399',
-      'editorWhitespace.foreground': '#314154',
-      'editorIndentGuide.background1': '#233244',
-      'editorIndentGuide.activeBackground1': '#41516a',
-      'editorWidget.background': '#1a2637',
-      'editorWidget.border': '#304055',
-      'editorSuggestWidget.background': '#1a2637',
-      'editorSuggestWidget.border': '#304055',
-      'editorHoverWidget.background': '#1a2637',
-      'editorHoverWidget.border': '#304055',
-      'editorGutter.background': '#0d1520',
-    },
-    rules: [],
-  });
+  for (const theme of themeDefinitions) {
+    if (!editorOnlyColorsByTheme[theme.id]) {
+      continue;
+    }
 
-  monaco.editor.defineTheme('collab-code-light', {
-    base: 'vs',
-    inherit: true,
-    colors: {
-      'editor.background': '#ffffff',
-      'editor.foreground': '#162334',
-      'editor.lineHighlightBackground': '#eef4fb',
-      'editor.selectionBackground': '#cfe5ff',
-      'editor.inactiveSelectionBackground': '#e2edf8',
-      'editorLineNumber.foreground': '#58697f',
-      'editorLineNumber.activeForeground': '#2d4056',
-      'editorCursor.foreground': '#047857',
-      'editorWhitespace.foreground': '#d7e2ee',
-      'editorIndentGuide.background1': '#dce5f0',
-      'editorIndentGuide.activeBackground1': '#afc0d4',
-      'editorWidget.background': '#ffffff',
-      'editorWidget.border': '#cad7e5',
-      'editorSuggestWidget.background': '#ffffff',
-      'editorSuggestWidget.border': '#cad7e5',
-      'editorHoverWidget.background': '#ffffff',
-      'editorHoverWidget.border': '#cad7e5',
-      'editorGutter.background': '#ffffff',
-    },
-    rules: [],
-  });
+    monaco.editor.defineTheme(theme.monacoTheme, {
+      base: theme.colorScheme === 'dark' ? 'vs-dark' : 'vs',
+      inherit: true,
+      colors: buildEditorColors(theme),
+      rules: [],
+    });
+  }
 
   registeredMonacoThemes = true;
 }
