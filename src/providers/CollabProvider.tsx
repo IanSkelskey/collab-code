@@ -42,21 +42,29 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
   const [connected, setConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<SyncConnectionStatus>('connecting');
   const [storageReady, setStorageReady] = useState(false);
+
+  // Identity is namespaced per room so opening room B doesn't inherit room A's
+  // name/color (CollabProvider remounts per room via `key={roomId}`, so these
+  // initializers re-read the new room's keys). The future SessionContext will
+  // own identity properly.
+  const usernameStorageKey = `collab-code-username:${roomId}`;
+  const colorStorageKey = `collab-code-color:${roomId}`;
+
   const [userName, setUserName] = useState(() => {
-    return readLocalStorageItem('collab-code-username') || getRandomName();
+    return readLocalStorageItem(usernameStorageKey) || getRandomName();
   });
   const [userColor, setUserColor] = useState(() => {
-    const stored = readLocalStorageItem('collab-code-color');
+    const stored = readLocalStorageItem(colorStorageKey);
     return isValidHexColor(stored) ? stored.trim() : securePick(PEER_COLORS);
   });
 
   useEffect(() => {
-    writeLocalStorageItem('collab-code-username', userName);
-  }, [userName]);
+    writeLocalStorageItem(usernameStorageKey, userName);
+  }, [usernameStorageKey, userName]);
 
   useEffect(() => {
-    writeLocalStorageItem('collab-code-color', userColor);
-  }, [userColor]);
+    writeLocalStorageItem(colorStorageKey, userColor);
+  }, [colorStorageKey, userColor]);
 
   useEffect(() => {
     const ydoc = ydocRef.current;
