@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCollab } from '../context/CollabContext';
+import { normalizePeerColor } from '../lib/peerColor';
 import type { PeerState } from '../types';
 
 export default function usePeers() {
@@ -20,7 +21,12 @@ export default function usePeers() {
         if (!user) return;
 
         const file = state.activeFile as string | undefined;
-        const peer: PeerState = { name: user.name, color: user.color, clientId, activeFile: file };
+        const peer: PeerState = {
+          name: user.name,
+          color: normalizePeerColor(user.color),
+          clientId,
+          activeFile: file,
+        };
         all.push(peer);
 
         // Build per-file map (excluding self)

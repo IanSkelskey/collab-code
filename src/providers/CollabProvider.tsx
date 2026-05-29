@@ -6,6 +6,7 @@ import { CollabProvider as SyncProvider } from './SyncProvider';
 import { CollabContext, type CollabContextValue } from '../context/CollabContext';
 import { readLocalStorageItem, writeLocalStorageItem } from '../lib/localStorage';
 import { securePick } from '../lib/secureRandom';
+import { isValidHexColor } from '../lib/peerColor';
 import { ensureSharedTerminalInitialized } from '../services/sharedTerminal';
 import type { SyncConnectionStatus } from '../types/serverStatus';
 
@@ -45,7 +46,8 @@ export function CollabProvider({ roomId, children }: CollabProviderProps) {
     return readLocalStorageItem('collab-code-username') || getRandomName();
   });
   const [userColor, setUserColor] = useState(() => {
-    return readLocalStorageItem('collab-code-color') || securePick(PEER_COLORS);
+    const stored = readLocalStorageItem('collab-code-color');
+    return isValidHexColor(stored) ? stored.trim() : securePick(PEER_COLORS);
   });
 
   useEffect(() => {

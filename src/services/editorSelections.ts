@@ -1,11 +1,11 @@
 import type { ISelection, editor } from 'monaco-editor';
 import * as Y from 'yjs';
+import { DEFAULT_PEER_COLOR, normalizePeerColor } from '../lib/peerColor';
 
 export const REMOTE_SELECTIONS_FIELD = 'selections';
 export const LEGACY_SELECTION_FIELD = 'selection';
 export const REMOTE_SELECTION_ACTIVITY_FIELD = 'selectionActivityAt';
 
-const DEFAULT_REMOTE_COLOR = '#61afef';
 const DEFAULT_REMOTE_NAME = 'Peer';
 const REMOTE_LABEL_ANIMATION_MS = 2600;
 
@@ -25,14 +25,13 @@ function isRelativeCursorSelection(value: unknown): value is RelativeCursorSelec
 
 function getPeerMeta(state: unknown): { name: string; color: string } {
   if (!isRecord(state)) {
-    return { name: DEFAULT_REMOTE_NAME, color: DEFAULT_REMOTE_COLOR };
+    return { name: DEFAULT_REMOTE_NAME, color: DEFAULT_PEER_COLOR };
   }
 
   const user = isRecord(state.user) ? state.user : null;
   const name =
     typeof user?.name === 'string' && user.name.trim() ? user.name.trim() : DEFAULT_REMOTE_NAME;
-  const color =
-    typeof user?.color === 'string' && user.color.trim() ? user.color.trim() : DEFAULT_REMOTE_COLOR;
+  const color = normalizePeerColor(user?.color);
 
   return { name, color };
 }
