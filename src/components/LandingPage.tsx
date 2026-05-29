@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { UsersIcon, TerminalIcon, MonitorIcon } from './Icons';
 import GetInvolvedActions from './GetInvolvedActions';
 import RoomTemplateDialog from './RoomTemplateDialog';
 import ThemePicker from './ThemePicker';
 import type { RoomTemplateId } from '../config/roomTemplates';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useServerStatus } from '../hooks/useServerStatus';
 import { secureRandomToken } from '../lib/secureRandom';
 
 function generateRoomId(): string {
@@ -23,6 +24,27 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
   useDocumentTitle();
   const [joinId, setJoinId] = useState('');
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+
+  // The status check also pre-warms a cold (Render free-tier) server while the
+  // user reads the page, shrinking the wait after they create a room. We key the
+  // hint off the HTTP fetch state, not sync, since the landing page has no room.
+  const serverStatus = useServerStatus({ syncStatus: 'connecting' });
+  const serverPending = serverStatus.fetchState === 'idle' || serverStatus.fetchState === 'loading';
+  const serverUnreachable = serverStatus.fetchState === 'error';
+  const [slowStart, setSlowStart] = useState(false);
+
+  // Only surface "waking up…" once the check has been pending a moment, so a
+  // warm server (sub-second response) never flashes the hint.
+  useEffect(() => {
+    if (!serverPending) {
+      setSlowStart(false);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setSlowStart(true), 1500);
+    return () => window.clearTimeout(timeoutId);
+  }, [serverPending]);
+
+  const showWakingHint = serverPending && slowStart;
 
   const handleCreate = useCallback(() => {
     setTemplateDialogOpen(true);
@@ -90,6 +112,26 @@ export default function LandingPage({ onCreateRoom, onJoinRoom }: LandingPagePro
             <p className="cc-text-faint text-center text-[11px] leading-relaxed">
               You&apos;ll choose the room starter after clicking create.
             </p>
+
+            {(showWakingHint || serverUnreachable) && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="cc-text-muted flex items-center justify-center gap-2 text-center text-[11px] leading-relaxed"
+              >
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${serverUnreachable ? '' : 'animate-pulse'}`}
+                  style={{
+                    backgroundColor: serverUnreachable ? 'var(--cc-danger)' : 'var(--cc-warning)',
+                  }}
+                />
+                <span>
+                  {serverUnreachable
+                    ? 'Trouble reaching the server — it may still be starting. You can still create or join a room.'
+                    : 'Waking up the server… a cold start can take up to ~30 seconds.'}
+                </span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <div className="cc-divider flex-1 border-t" />
