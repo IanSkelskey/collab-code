@@ -38,7 +38,9 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
   if (!compileOutput) return [];
 
   const markers: DiagnosticMarker[] = [];
-  const lines = compileOutput.split('\n');
+  // Split on CRLF or LF: a Windows exec server emits `\r\n`, and a trailing
+  // `\r` left on each line breaks the `$`-anchored diagnostic regex below.
+  const lines = compileOutput.split(/\r?\n/);
 
   // Match lines like:  Main.java:3: error: ';' expected
   // or:                /tmp/collab-exec-xxx/Main.java:3: error: ...
@@ -56,20 +58,29 @@ export function parseJavaDiagnostics(compileOutput: string): DiagnosticMarker[] 
 
     const severity = severityStr === 'error' ? MarkerSeverity.Error : MarkerSeverity.Warning;
 
-    // Try to find the caret (^) indicator on a subsequent line for column info
+    // Default: underline the whole line.
     let column = 1;
-    let endColumn = 1000; // Default: underline the whole line
+    let endColumn = 1000;
 
-    // Look ahead up to 3 lines for the caret
+    // javac echoes the offending source line, then a caret (^) line pointing at
+    // a column. A 1-char marker at the caret is often invisible (e.g. an
+    // end-of-line "';' expected"), so underline the echoed line's whole code
+    // span (first non-space → end) to give a clearly visible squiggle.
     for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
       const caretIndex = lines[j].indexOf('^');
-      if (caretIndex >= 0) {
-        column = caretIndex + 1; // Monaco columns are 1-based
-        // Try to find the extent — some javac output has multiple carets
-        const lastCaret = lines[j].lastIndexOf('^');
-        endColumn = lastCaret + 2;
-        break;
+      if (caretIndex < 0) continue;
+
+      const sourceLine = j - 1 > i ? (lines[j - 1] ?? '') : '';
+      const firstNonSpace = sourceLine.search(/\S/);
+
+      if (firstNonSpace >= 0) {
+        column = firstNonSpace + 1; // Monaco columns are 1-based
+        endColumn = sourceLine.length + 1;
+      } else {
+        column = caretIndex + 1;
+        endColumn = lines[j].lastIndexOf('^') + 2;
       }
+      break;
     }
 
     markers.push({
@@ -97,7 +108,7 @@ export function parseJavaRuntimeErrors(stderr: string): DiagnosticMarker[] {
   if (!stderr) return [];
 
   const markers: DiagnosticMarker[] = [];
-  const lines = stderr.split('\n');
+  const lines = stderr.split(/\r?\n/);
 
   // Find the main exception message
   let exceptionMessage = '';

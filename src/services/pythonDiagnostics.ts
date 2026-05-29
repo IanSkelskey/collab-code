@@ -10,7 +10,7 @@ export function parsePythonRuntimeErrors(stderr: string): DiagnosticMarker[] {
     return [];
   }
 
-  const lines = stderr.split('\n');
+  const lines = stderr.split(/\r?\n/);
   const markers: DiagnosticMarker[] = [];
   const filePattern = /File "(?:.*[/\\])?([^"\\]+\.py)", line (\d+)/;
   let messageLine: string | null = null;
