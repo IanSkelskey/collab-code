@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import ModalOverlay from './ModalOverlay';
 
 interface ConfirmDialogProps {
@@ -20,15 +19,6 @@ export default function ConfirmDialog({
   onCancel,
   onSecondary,
 }: ConfirmDialogProps) {
-  // Enter to confirm
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') onConfirm();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onConfirm]);
-
   return (
     <ModalOverlay onClose={onCancel}>
       <div className="cc-card w-[380px] max-w-[92vw] rounded-xl p-5">
@@ -49,12 +39,18 @@ export default function ConfirmDialog({
               {secondaryLabel}
             </button>
           )}
+          {/* Autofocus the primary action inside the modal so Enter confirms;
+              showModal() honors the autofocus attribute, and the focus trap
+              keeps Tab on the dialog's own controls. */}
+          {/* eslint-disable jsx-a11y/no-autofocus */}
           <button
+            autoFocus
             onClick={onConfirm}
             className="cc-button-danger min-h-10 cursor-pointer rounded-lg px-4 text-sm font-medium whitespace-nowrap"
           >
             {confirmLabel}
           </button>
+          {/* eslint-enable jsx-a11y/no-autofocus */}
         </div>
       </div>
     </ModalOverlay>

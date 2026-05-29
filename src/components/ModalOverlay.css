@@ -1,0 +1,22 @@
+/*
+ * ModalOverlay.css — resets the native <dialog> UA box so it behaves as a
+ * full-screen, centered overlay. The dim + blur come from `.cc-overlay`; the
+ * focus trap, Escape handling, and aria-modal semantics come from showModal().
+ */
+
+.cc-modal-dialog {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+}
+
+/* The dim is painted by `.cc-overlay` on the full-screen element itself, so
+   the top-layer backdrop pseudo stays transparent. */
+.cc-modal-dialog::backdrop {
+  background: transparent;
+}
