@@ -6,6 +6,7 @@ import SearchPanel from './SearchPanel';
 import TabBar from './TabBar';
 import MarkdownModeBar from './MarkdownModeBar';
 import MarkdownPreview from './MarkdownPreview';
+import ErrorBoundary from './ErrorBoundary';
 import type { WorkspaceController } from '../hooks/useWorkspaceController';
 
 interface WorkspaceMainPaneProps {
@@ -103,15 +104,21 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
                           : 'hidden'
                       }`}
                     >
-                      <Editor
-                        ref={editorRef}
-                        onRun={handleRunActiveFile}
-                        onFormat={handleFormatCompleted}
-                        fontSize={layout.fontSize}
-                        interactionLockedLabel={editorLockLabel}
-                        onStopFollowing={followedPeer ? stopFollowing : null}
-                        fs={fs}
-                      />
+                      <ErrorBoundary
+                        variant="pane"
+                        label="editor"
+                        resetKey={fs.activeFile ?? undefined}
+                      >
+                        <Editor
+                          ref={editorRef}
+                          onRun={handleRunActiveFile}
+                          onFormat={handleFormatCompleted}
+                          fontSize={layout.fontSize}
+                          interactionLockedLabel={editorLockLabel}
+                          onStopFollowing={followedPeer ? stopFollowing : null}
+                          fs={fs}
+                        />
+                      </ErrorBoundary>
                     </div>
 
                     {showMarkdownEditor &&
@@ -139,25 +146,37 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
                             : ''
                         }`}
                       >
-                        <MarkdownPreview
-                          content={markdownContent}
-                          filePath={fs.activeFile}
-                          fontSize={layout.fontSize}
-                          fs={fs}
-                        />
+                        <ErrorBoundary
+                          variant="pane"
+                          label="preview"
+                          resetKey={fs.activeFile ?? undefined}
+                        >
+                          <MarkdownPreview
+                            content={markdownContent}
+                            filePath={fs.activeFile}
+                            fontSize={layout.fontSize}
+                            fs={fs}
+                          />
+                        </ErrorBoundary>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <Editor
-                    ref={editorRef}
-                    onRun={handleRunActiveFile}
-                    onFormat={handleFormatCompleted}
-                    fontSize={layout.fontSize}
-                    interactionLockedLabel={editorLockLabel}
-                    onStopFollowing={followedPeer ? stopFollowing : null}
-                    fs={fs}
-                  />
+                  <ErrorBoundary
+                    variant="pane"
+                    label="editor"
+                    resetKey={fs.activeFile ?? undefined}
+                  >
+                    <Editor
+                      ref={editorRef}
+                      onRun={handleRunActiveFile}
+                      onFormat={handleFormatCompleted}
+                      fontSize={layout.fontSize}
+                      interactionLockedLabel={editorLockLabel}
+                      onStopFollowing={followedPeer ? stopFollowing : null}
+                      fs={fs}
+                    />
+                  </ErrorBoundary>
                 )}
               </div>
             </>
@@ -247,14 +266,16 @@ export default function WorkspaceMainPane({ controller }: WorkspaceMainPaneProps
 
         {layout.terminalVisible && (
           <div style={{ height: layout.terminalHeight }} className="shrink-0 overflow-hidden">
-            <Terminal
-              ref={terminalRef}
-              onRunRequested={handleRun}
-              fontSize={Math.max(layout.fontSize - 1, 10)}
-              fs={fs}
-              pushToast={pushToast}
-              requestConfirm={layout.requestConfirm}
-            />
+            <ErrorBoundary variant="pane" label="terminal">
+              <Terminal
+                ref={terminalRef}
+                onRunRequested={handleRun}
+                fontSize={Math.max(layout.fontSize - 1, 10)}
+                fs={fs}
+                pushToast={pushToast}
+                requestConfirm={layout.requestConfirm}
+              />
+            </ErrorBoundary>
           </div>
         )}
       </main>

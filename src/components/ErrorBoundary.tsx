@@ -3,11 +3,20 @@ import './ErrorBoundary.css';
 
 interface ErrorBoundaryProps {
   /**
-   * When `resetKey` changes (e.g. the user joins a different room), the
-   * boundary resets and re-renders its children. Pass the current roomId to
-   * get room-scoped recovery without reloading the whole app.
+   * When `resetKey` changes (e.g. the user joins a different room, or switches
+   * to a different file), the boundary resets and re-renders its children —
+   * room- or file-scoped recovery without reloading the whole app.
    */
   resetKey?: string;
+  /**
+   * 'page' (default) renders a full-screen recovery card for the whole app.
+   * 'pane' renders a compact in-flow fallback that fills its container, so one
+   * workspace panel (editor, terminal, preview) can fail without taking down
+   * its neighbors.
+   */
+  variant?: 'page' | 'pane';
+  /** Panel name shown in the 'pane' fallback message (e.g. "editor"). */
+  label?: string;
   children: ReactNode;
 }
 
@@ -57,6 +66,38 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (!this.state.error) {
       return this.props.children;
+    }
+
+    if (this.props.variant === 'pane') {
+      return (
+        <div className="cc-error-pane" role="alert" aria-live="assertive">
+          <div className="cc-error-pane-card">
+            <p className="cc-error-pane-eyebrow">Panel error</p>
+            <p className="cc-error-pane-message">
+              {this.props.label ? `The ${this.props.label} panel` : 'This panel'} hit an unexpected
+              error. The rest of the workspace is unaffected.
+            </p>
+            <div className="cc-error-pane-actions">
+              <button
+                type="button"
+                className="cc-error-boundary-btn cc-error-boundary-btn--primary"
+                onClick={this.handleReset}
+              >
+                Try again
+              </button>
+            </div>
+            {import.meta.env.DEV && (
+              <details className="cc-error-boundary-details">
+                <summary>Error details (dev only)</summary>
+                <pre className="cc-error-boundary-stack">
+                  {this.state.error.message}
+                  {this.state.error.stack ? `\n\n${this.state.error.stack}` : ''}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+      );
     }
 
     return (

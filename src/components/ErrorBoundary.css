@@ -122,3 +122,52 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/*
+ * Pane variant — a compact, in-flow fallback that fills a single workspace
+ * panel (editor / terminal / preview) so one pane can fail in isolation.
+ */
+.cc-error-pane {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--cc-bg-panel);
+  color: var(--cc-text-primary);
+  overflow: auto;
+}
+
+.cc-error-pane-card {
+  max-width: 24rem;
+  width: 100%;
+  text-align: center;
+}
+
+.cc-error-pane-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cc-danger);
+}
+
+.cc-error-pane-message {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--cc-text-secondary);
+}
+
+.cc-error-pane-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.cc-error-pane .cc-error-boundary-details {
+  margin-top: 1.25rem;
+  text-align: left;
+}
