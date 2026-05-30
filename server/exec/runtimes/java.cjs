@@ -140,6 +140,73 @@ const javaRunner = {
       cleanup();
     });
   },
+  // Compile-only path for live "as you type" checking: runs `javac` against the
+  // workspace files without ever invoking `java`. Always responds exactly once
+  // with `{ type: 'check-result', language: 'java', output }` and then cleans up.
+  check(context) {
+    const { files, tmpDir, execSpawnOptions, send, cleanup } = context;
+
+    let finished = false;
+    const finish = (output) => {
+      if (finished) return;
+      finished = true;
+      send({ type: 'check-result', language: 'java', output });
+      cleanup();
+    };
+
+    if (!javaRuntime.available) {
+      finish('');
+      return;
+    }
+
+    const javaFiles = findFilesByExtension(files, '.java').map((relativePath) =>
+      path.join(tmpDir, relativePath),
+    );
+    if (javaFiles.length === 0) {
+      finish('');
+      return;
+    }
+
+    const outDir = path.join(tmpDir, '__check_out__');
+    try {
+      fs.mkdirSync(outDir, { recursive: true });
+      if (typeof execSpawnOptions?.uid === 'number' && typeof execSpawnOptions?.gid === 'number') {
+        fs.chownSync(outDir, execSpawnOptions.uid, execSpawnOptions.gid);
+        fs.chmodSync(outDir, 0o700);
+      }
+    } catch (err) {
+      finish(`Failed to prepare check workspace: ${err.message}`);
+      return;
+    }
+
+    const javac = spawn('javac', ['-d', outDir, ...javaFiles], {
+      cwd: tmpDir,
+      ...execSpawnOptions,
+    });
+
+    // Bound the check so a stuck compile can never hold the connection open.
+    const killTimeout = setTimeout(() => {
+      try {
+        javac.kill('SIGKILL');
+      } catch {}
+      finish('[check] javac timed out after 10s.');
+    }, 10000);
+
+    let output = '';
+    javac.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    javac.on('close', () => {
+      clearTimeout(killTimeout);
+      finish(output);
+    });
+
+    javac.on('error', (err) => {
+      clearTimeout(killTimeout);
+      finish(`Failed to start javac: ${err.message}`);
+    });
+  },
 };
 
 module.exports = {

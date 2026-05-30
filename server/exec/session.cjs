@@ -73,6 +73,59 @@ function handleExecConnection(ws) {
     timeout = handle;
   }
 
+  function beginCheck(message) {
+    // The check path opens a one-shot connection: write files, compile-only,
+    // respond with a single `check-result`, clean up. Per-connection state
+    // (activeProcess / tmpDir) is isolated, so check and exec never collide.
+    if (activeProcess || tmpDir) {
+      send({ type: 'check-result', language: '', output: '' });
+      return;
+    }
+
+    if (!isExecutionAllowed()) {
+      send({ type: 'check-result', language: '', output: '' });
+      return;
+    }
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'collab-check-'));
+    const files = normalizeProjectFiles(message);
+    const language = resolveExecutionLanguage(message, files);
+
+    if (!language) {
+      send({ type: 'check-result', language: '', output: '' });
+      cleanup();
+      return;
+    }
+
+    const runner = getRunner(language);
+    if (!runner || typeof runner.check !== 'function') {
+      send({ type: 'check-result', language, output: '' });
+      cleanup();
+      return;
+    }
+
+    try {
+      writeProjectFiles(tmpDir, files);
+      prepareExecutionWorkspace(tmpDir);
+    } catch (err) {
+      send({
+        type: 'check-result',
+        language,
+        output: `Failed to prepare check workspace: ${err.message}`,
+      });
+      cleanup();
+      return;
+    }
+
+    runner.check({
+      files,
+      tmpDir,
+      execSpawnOptions: getExecutionSpawnOptions(tmpDir),
+      send,
+      cleanup,
+    });
+  }
+
   function beginExecution(message) {
     if (activeProcess || tmpDir) {
       send({ type: 'error', data: 'An execution is already in progress' });
@@ -143,6 +196,11 @@ function handleExecConnection(ws) {
 
     if (message.type === 'exec') {
       beginExecution(message);
+      return;
+    }
+
+    if (message.type === 'check') {
+      beginCheck(message);
       return;
     }
 

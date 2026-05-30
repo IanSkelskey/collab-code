@@ -7,6 +7,7 @@ import { useExecution } from './useExecution';
 import { useFileExport } from './useFileExport';
 import { useFollowCollaborator } from './useFollowCollaborator';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+import { useLiveCheck } from './useLiveCheck';
 import { usePeerPresenceToasts } from './usePeerPresenceToasts';
 import { useServerStatus } from './useServerStatus';
 import { useToast } from './useToast';
@@ -80,6 +81,7 @@ export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceCont
   });
 
   const { osDragActive, dragHandlers } = useWorkspaceImport({ fs, pushToast });
+  useLiveCheck({ fs, editorRef });
   const serverStatus = useServerStatus({ syncStatus: connectionStatus });
   const markdownActive = isMarkdownFile(fs.activeFile);
   const markdownContent = fs.activeFile ? (fs.readFile(fs.activeFile) ?? '') : '';

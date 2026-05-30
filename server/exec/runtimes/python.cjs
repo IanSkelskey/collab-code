@@ -383,6 +383,71 @@ const pythonRunner = {
       }
     })();
   },
+  // Compile-only path for live "as you type" checking: `python -m py_compile`
+  // syntax-checks each .py file without executing it. Always responds exactly
+  // once with `{ type: 'check-result', language: 'python', output }` and cleans
+  // up. The existing parsePythonRuntimeErrors handles the SyntaxError output
+  // shape (it matches the `File "X.py", line N` pattern).
+  check(context) {
+    const { files, tmpDir, execSpawnOptions, send, cleanup } = context;
+
+    let finished = false;
+    const finish = (output) => {
+      if (finished) return;
+      finished = true;
+      send({ type: 'check-result', language: 'python', output });
+      cleanup();
+    };
+
+    if (!pythonRuntime.available) {
+      finish('');
+      return;
+    }
+
+    const pythonFiles = findFilesByExtension(files, '.py');
+    if (pythonFiles.length === 0) {
+      finish('');
+      return;
+    }
+
+    const absoluteFiles = pythonFiles.map((relativePath) =>
+      path.join(tmpDir, relativePath.split('/').join(path.sep)),
+    );
+
+    const proc = spawn(
+      pythonRuntime.command,
+      [...pythonRuntime.args, '-I', '-B', '-m', 'py_compile', ...absoluteFiles],
+      {
+        cwd: tmpDir,
+        ...execSpawnOptions,
+      },
+    );
+
+    const killTimeout = setTimeout(() => {
+      try {
+        proc.kill('SIGKILL');
+      } catch {}
+      finish('[check] py_compile timed out after 10s.');
+    }, 10000);
+
+    let output = '';
+    proc.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+    proc.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    proc.on('close', () => {
+      clearTimeout(killTimeout);
+      finish(output);
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(killTimeout);
+      finish(`Failed to start py_compile: ${err.message}`);
+    });
+  },
 };
 
 module.exports = {

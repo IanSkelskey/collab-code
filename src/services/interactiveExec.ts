@@ -112,3 +112,91 @@ export class InteractiveExecutor {
     }
   }
 }
+
+export interface CheckResult {
+  language: string;
+  output: string;
+}
+
+/**
+ * One-shot request to the server's compile-only check path. Opens a WebSocket,
+ * sends a single `check` message, awaits one `check-result`, and closes. Used
+ * by the live "as you type" diagnostics flow.
+ */
+export function requestCheck(
+  files: Record<string, string>,
+  language: SupportedExecutionLanguage,
+  signal?: AbortSignal,
+): Promise<CheckResult> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('aborted', 'AbortError'));
+      return;
+    }
+
+    const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:4444';
+    const ws = new WebSocket(`${wsUrl}/exec`);
+
+    let settled = false;
+    const closeSocket = () => {
+      try {
+        ws.close();
+      } catch {
+        // closing is best-effort; the connection may already be torn down
+      }
+    };
+
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      closeSocket();
+      reject(new DOMException('aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort);
+
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener('abort', onAbort);
+      closeSocket();
+      reject(new Error('check timed out'));
+    }, 15000);
+
+    ws.onopen = () => {
+      if (settled) return;
+      ws.send(JSON.stringify({ type: 'check', files, language }));
+    };
+
+    ws.onmessage = (event) => {
+      let msg: { type?: string; language?: string; output?: string };
+      try {
+        msg = JSON.parse(event.data as string);
+      } catch {
+        return;
+      }
+      if (msg.type !== 'check-result' || settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      closeSocket();
+      resolve({ language: msg.language ?? language, output: msg.output ?? '' });
+    };
+
+    ws.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      closeSocket();
+      reject(new Error('check failed: connection error'));
+    };
+
+    ws.onclose = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(new Error('check connection closed unexpectedly'));
+    };
+  });
+}
