@@ -21,7 +21,9 @@ export interface LanguageConfig {
   iconName?: string;
   /** MIME type for file downloads */
   mimeType: string;
-  /** Default file to create for new workspaces (only for primary/runnable languages) */
+  /** Whether this language can be offered as an execution target */
+  runnable: boolean;
+  /** Default file to create for starter workspaces */
   defaultFile?: { name: string; content: string };
   /** Regex to detect entry points in file content (e.g. Java main method) */
   entryPointPattern?: RegExp;
@@ -46,6 +48,7 @@ const languages: LanguageConfig[] = [
     iconColor: 'text-orange-400',
     iconName: 'java',
     mimeType: 'text/x-java',
+    runnable: true,
     defaultFile: {
       name: 'Main.java',
       content: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Collab Code!");\n    }\n}\n`,
@@ -68,6 +71,7 @@ const languages: LanguageConfig[] = [
     iconColor: 'text-blue-400',
     iconName: 'python',
     mimeType: 'text/x-python',
+    runnable: true,
     defaultFile: {
       name: 'main.py',
       content: `from rich.console import Console
@@ -102,6 +106,7 @@ if __name__ == "__main__":
     iconColor: 'text-yellow-400',
     iconName: 'js',
     mimeType: 'text/javascript',
+    runnable: false,
   },
   {
     id: 'typescript',
@@ -111,6 +116,7 @@ if __name__ == "__main__":
     iconColor: 'text-blue-400',
     iconName: 'ts',
     mimeType: 'text/typescript',
+    runnable: false,
   },
   {
     id: 'json',
@@ -120,6 +126,7 @@ if __name__ == "__main__":
     iconColor: 'text-amber-300',
     iconName: 'json',
     mimeType: 'application/json',
+    runnable: false,
   },
   {
     id: 'xml',
@@ -128,6 +135,7 @@ if __name__ == "__main__":
     monacoLanguage: 'xml',
     iconColor: 'cc-text-muted',
     mimeType: 'application/xml',
+    runnable: false,
   },
   {
     id: 'html',
@@ -137,6 +145,7 @@ if __name__ == "__main__":
     iconColor: 'text-red-400',
     iconName: 'html',
     mimeType: 'text/html',
+    runnable: false,
   },
   {
     id: 'css',
@@ -146,6 +155,7 @@ if __name__ == "__main__":
     iconColor: 'text-purple-400',
     iconName: 'css',
     mimeType: 'text/css',
+    runnable: false,
   },
   {
     id: 'markdown',
@@ -155,6 +165,7 @@ if __name__ == "__main__":
     iconColor: 'cc-text-secondary',
     iconName: 'markdown',
     mimeType: 'text/markdown',
+    runnable: false,
   },
   {
     id: 'c',
@@ -164,6 +175,7 @@ if __name__ == "__main__":
     iconColor: 'cc-text-muted',
     iconName: 'c',
     mimeType: 'text/x-csrc',
+    runnable: false,
     braceFormatted: true,
   },
   {
@@ -174,6 +186,7 @@ if __name__ == "__main__":
     iconColor: 'cc-text-muted',
     iconName: 'cpp',
     mimeType: 'text/x-c++src',
+    runnable: false,
     braceFormatted: true,
   },
   {
@@ -184,6 +197,7 @@ if __name__ == "__main__":
     iconColor: 'text-green-400',
     iconName: 'sql',
     mimeType: 'text/x-sql',
+    runnable: false,
   },
   {
     id: 'perl',
@@ -193,6 +207,7 @@ if __name__ == "__main__":
     iconColor: 'text-purple-400',
     iconName: 'perl',
     mimeType: 'text/x-perl',
+    runnable: false,
   },
 ];
 

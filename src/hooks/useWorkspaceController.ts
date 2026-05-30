@@ -58,6 +58,7 @@ export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceCont
       navigateToFile: layout.navigateToFile,
     });
 
+  const serverStatus = useServerStatus({ syncStatus: connectionStatus });
   const {
     running,
     entryPoints,
@@ -71,6 +72,8 @@ export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceCont
     terminalRef,
     editorRef,
     setTerminalVisible: layout.setTerminalVisible,
+    serverFetchState: serverStatus.fetchState,
+    serverRuntimes: serverStatus.info.runtimes,
   });
 
   const { codeCopied, handleCopyCode, handleSaveFile, handleSaveAll } = useFileExport({
@@ -82,7 +85,6 @@ export function useWorkspaceController({ initialRoomTemplate }: UseWorkspaceCont
 
   const { osDragActive, dragHandlers } = useWorkspaceImport({ fs, pushToast });
   useLiveCheck({ fs, editorRef });
-  const serverStatus = useServerStatus({ syncStatus: connectionStatus });
   const markdownActive = isMarkdownFile(fs.activeFile);
   const markdownContent = fs.activeFile ? (fs.readFile(fs.activeFile) ?? '') : '';
   const showMarkdownEditor = !markdownActive || layout.markdownViewMode !== 'preview';

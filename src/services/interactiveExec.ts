@@ -5,10 +5,10 @@
  * the lifecycle of a single run session with streaming stdin/stdout/stderr.
  */
 
-export type SupportedExecutionLanguage = 'java' | 'python';
+export type ExecutionLanguageId = string;
 
 export interface ExecuteOptions {
-  language: SupportedExecutionLanguage;
+  language: ExecutionLanguageId;
   entryPoint: string;
 }
 
@@ -125,7 +125,7 @@ export interface CheckResult {
  */
 export function requestCheck(
   files: Record<string, string>,
-  language: SupportedExecutionLanguage,
+  language: ExecutionLanguageId,
   signal?: AbortSignal,
 ): Promise<CheckResult> {
   return new Promise((resolve, reject) => {

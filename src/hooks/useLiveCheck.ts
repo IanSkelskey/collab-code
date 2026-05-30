@@ -3,7 +3,7 @@ import type { EditorHandle } from '../components/Editor';
 import { getLanguageForFile } from '../config/languages';
 import { parseJavaDiagnostics } from '../services/javaDiagnostics';
 import { parsePythonRuntimeErrors } from '../services/pythonDiagnostics';
-import { requestCheck, type SupportedExecutionLanguage } from '../services/interactiveExec';
+import { requestCheck, type ExecutionLanguageId } from '../services/interactiveExec';
 import type { VirtualFS } from '../types/virtualFs';
 
 const CHECK_DEBOUNCE_MS = 600;
@@ -76,7 +76,7 @@ export function useLiveCheck({ fs, editorRef }: UseLiveCheckOptions): void {
   }, [activeFile, activeContent, language, editorRef]);
 }
 
-function getCheckableLanguage(filePath: string | null): SupportedExecutionLanguage | null {
+function getCheckableLanguage(filePath: string | null): ExecutionLanguageId | null {
   if (!filePath) return null;
   const id = getLanguageForFile(filePath)?.id;
   if (id === 'java') return 'java';

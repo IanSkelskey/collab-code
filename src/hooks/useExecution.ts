@@ -4,10 +4,11 @@ import type { RefObject } from 'react';
 import type { EditorHandle } from '../components/Editor';
 import type { TerminalHandle } from '../components/Terminal';
 import type { VirtualFS } from './useVirtualFS';
-import { InteractiveExecutor, type SupportedExecutionLanguage } from '../services/interactiveExec';
+import { InteractiveExecutor } from '../services/interactiveExec';
 import { getLanguageForFile, type LanguageConfig } from '../config/languages';
 import { getBaseName, normalizeVfsPath, stripVfsRoot } from '../lib/vfsPaths';
 import { formatMuted } from '../services/terminalCommandOutput';
+import type { ServerFetchState, ServerRuntimeInfo } from '../types/serverStatus';
 import {
   createTerminalRunId,
   getTerminalStateMap,
@@ -21,6 +22,8 @@ interface UseExecutionOptions {
   terminalRef: RefObject<TerminalHandle | null>;
   editorRef: RefObject<EditorHandle | null>;
   setTerminalVisible: (visible: boolean) => void;
+  serverFetchState: ServerFetchState;
+  serverRuntimes: ServerRuntimeInfo[];
 }
 
 export interface ExecutionTarget {
@@ -34,13 +37,7 @@ interface RunResolutionResult {
   error: string | null;
 }
 
-function isSupportedExecutionLanguage(
-  languageId: string,
-): languageId is SupportedExecutionLanguage {
-  return languageId === 'java' || languageId === 'python';
-}
-
-function buildExecutionTarget(
+function buildClientExecutionTarget(
   filePath: string,
   allFiles: Record<string, string>,
 ): ExecutionTarget | null {
@@ -51,7 +48,7 @@ function buildExecutionTarget(
 
   if (
     !language ||
-    !isSupportedExecutionLanguage(language.id) ||
+    !language.runnable ||
     !language.entryPointPattern ||
     !content ||
     !language.entryPointPattern.test(content)
@@ -66,12 +63,33 @@ function buildExecutionTarget(
   };
 }
 
+function getRuntimeStatusRunError(
+  serverFetchState: ServerFetchState,
+  serverRunnableLanguageIds: Set<string>,
+): string | null {
+  if (serverFetchState === 'idle' || serverFetchState === 'loading') {
+    return 'Checking execution server runtimes. Try again in a moment.';
+  }
+
+  if (serverFetchState === 'error') {
+    return 'Execution server could not be reached.';
+  }
+
+  if (serverRunnableLanguageIds.size === 0) {
+    return 'No runnable language runtimes are available on this server.';
+  }
+
+  return null;
+}
+
 export function useExecution({
   ydoc,
   fs,
   terminalRef,
   editorRef,
   setTerminalVisible,
+  serverFetchState,
+  serverRuntimes,
 }: UseExecutionOptions) {
   const [running, setRunning] = useState(() => readSharedTerminalSnapshot(ydoc).running);
   const [preferredRunFile, setPreferredRunFile] = useState<string | null>(null);
@@ -93,11 +111,19 @@ export function useExecution({
 
   const allFiles = fs.getAllFiles();
 
-  const runnableTargets = useMemo(() => {
+  const serverRunnableLanguageIds = useMemo(() => {
+    return new Set(
+      serverRuntimes
+        .filter((runtime) => runtime.available === true && runtime.canRun)
+        .map((runtime) => runtime.language),
+    );
+  }, [serverRuntimes]);
+
+  const clientRunnableTargets = useMemo(() => {
     const targets: ExecutionTarget[] = [];
 
     for (const filePath of fs.files) {
-      const target = buildExecutionTarget(filePath, allFiles);
+      const target = buildClientExecutionTarget(filePath, allFiles);
       if (target) {
         targets.push(target);
       }
@@ -106,6 +132,16 @@ export function useExecution({
     targets.sort((left, right) => left.filePath.localeCompare(right.filePath));
     return targets;
   }, [allFiles, fs.files]);
+
+  const clientRunnableTargetsByPath = useMemo(() => {
+    return new Map(clientRunnableTargets.map((target) => [target.filePath, target]));
+  }, [clientRunnableTargets]);
+
+  const runnableTargets = useMemo(() => {
+    return clientRunnableTargets.filter((target) =>
+      serverRunnableLanguageIds.has(target.language.id),
+    );
+  }, [clientRunnableTargets, serverRunnableLanguageIds]);
 
   const entryPoints = useMemo(
     () => new Set(runnableTargets.map((target) => target.filePath)),
@@ -150,6 +186,11 @@ export function useExecution({
 
   const resolveRunTarget = useCallback(
     (explicitFilePath?: string): RunResolutionResult => {
+      const runtimeStatusError = getRuntimeStatusRunError(
+        serverFetchState,
+        serverRunnableLanguageIds,
+      );
+
       if (explicitFilePath) {
         const normalizedPath = normalizeVfsPath(explicitFilePath);
         const explicitTarget = runnableTargetsByPath.get(normalizedPath);
@@ -166,9 +207,19 @@ export function useExecution({
           return { target: null, error: `Cannot run a folder: ${normalizedPath}` };
         }
 
+        const clientTarget = clientRunnableTargetsByPath.get(normalizedPath);
+        if (clientTarget) {
+          return {
+            target: null,
+            error:
+              runtimeStatusError ??
+              `${clientTarget.language.label} is not available on this execution server.`,
+          };
+        }
+
         return {
           target: null,
-          error: `File is not a runnable Java or Python entry point: ${normalizedPath}`,
+          error: `File is not a runnable entry point: ${normalizedPath}`,
         };
       }
 
@@ -185,15 +236,38 @@ export function useExecution({
       }
 
       if (fs.activeFile && fs.exists(fs.activeFile) && !runnableTargetsByPath.has(fs.activeFile)) {
+        const activeClientTarget = clientRunnableTargetsByPath.get(fs.activeFile);
+        if (activeClientTarget) {
+          return {
+            target: null,
+            error:
+              runtimeStatusError ??
+              `${activeClientTarget.language.label} is not available on this execution server.`,
+          };
+        }
+
         return {
           target: null,
           error: `Active file is not runnable: ${fs.activeFile}. Use run <file> or choose a target from the Run menu.`,
         };
       }
 
-      return { target: null, error: 'No runnable Java or Python file found.' };
+      if (clientRunnableTargets.length > 0 && runtimeStatusError) {
+        return { target: null, error: runtimeStatusError };
+      }
+
+      return { target: null, error: 'No runnable file found.' };
     },
-    [currentRunTarget, fs, runnableTargets.length, runnableTargetsByPath],
+    [
+      clientRunnableTargets.length,
+      clientRunnableTargetsByPath,
+      currentRunTarget,
+      fs,
+      runnableTargets.length,
+      runnableTargetsByPath,
+      serverFetchState,
+      serverRunnableLanguageIds,
+    ],
   );
 
   const handleRun = useCallback(
@@ -227,7 +301,6 @@ export function useExecution({
 
       const runId = createTerminalRunId(ydoc.clientID);
       const executionLanguage = target.language;
-      const executionLanguageId = executionLanguage.id as SupportedExecutionLanguage;
 
       updateSharedTerminalState(ydoc, (current) => ({
         ...current,
@@ -357,7 +430,7 @@ export function useExecution({
           },
         },
         {
-          language: executionLanguageId,
+          language: executionLanguage.id,
           entryPoint: target.entryPoint,
         },
       );

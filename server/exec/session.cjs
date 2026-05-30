@@ -142,7 +142,7 @@ function handleExecConnection(ws) {
     const language = resolveExecutionLanguage(message, files);
 
     if (!language) {
-      send({ type: 'error', data: 'No runnable Java or Python files found in project' });
+      send({ type: 'error', data: 'No runnable files found in project' });
       cleanup();
       return;
     }

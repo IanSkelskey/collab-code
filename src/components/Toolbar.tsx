@@ -128,6 +128,7 @@ export default function Toolbar({
     : runTargets.length > 1
       ? 'Choose which runnable file to execute.'
       : 'Run code. Ctrl+Enter runs the active editor.';
+  const emptyRunTargetsMessage = getEmptyRunTargetsMessage(serverStatus);
 
   const statusButtonClassName = getServerStatusButtonClassName(serverStatus.summary.tone);
   const statusDotClassName = getServerStatusDotClassName(serverStatus.summary.tone);
@@ -198,9 +199,7 @@ export default function Toolbar({
               </div>
 
               {runTargets.length === 0 ? (
-                <div className="cc-text-muted px-3 py-3 text-xs">
-                  No runnable Java or Python files found.
-                </div>
+                <div className="cc-text-muted px-3 py-3 text-xs">{emptyRunTargetsMessage}</div>
               ) : (
                 <div className="py-1">
                   {runTargets.map((target) => {
@@ -305,6 +304,22 @@ export default function Toolbar({
       </div>
     </header>
   );
+}
+
+function getEmptyRunTargetsMessage(serverStatus: ServerStatusSnapshot): string {
+  if (serverStatus.fetchState === 'idle' || serverStatus.fetchState === 'loading') {
+    return 'Checking execution server runtimes...';
+  }
+
+  if (serverStatus.fetchState === 'error') {
+    return 'Execution server could not be reached.';
+  }
+
+  if (!serverStatus.info.runtimes.some((runtime) => runtime.available === true && runtime.canRun)) {
+    return 'No runnable language runtimes are available on this server.';
+  }
+
+  return 'No runnable files found.';
 }
 
 function getServerStatusButtonClassName(tone: ServerStatusSnapshot['summary']['tone']): string {
