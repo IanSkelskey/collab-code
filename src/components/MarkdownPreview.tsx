@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMonaco } from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { languages } from '../config/languages';
@@ -194,6 +195,47 @@ function buildPreviewHtml(markdown: string): string {
   return documentFragment.body.innerHTML;
 }
 
+async function buildHighlightedPreviewHtml(
+  html: string,
+  monaco: Monaco,
+  themeName: string,
+): Promise<string> {
+  const documentFragment = new DOMParser().parseFromString(html, 'text/html');
+  const codeElements = Array.from(
+    documentFragment.querySelectorAll<HTMLElement>('pre > code[data-lang]'),
+  );
+
+  if (codeElements.length === 0) {
+    return html;
+  }
+
+  const supportedLanguages = new Set(
+    monaco.languages.getLanguages().map((language: { id: string }) => language.id.toLowerCase()),
+  );
+
+  for (const codeElement of codeElements) {
+    const requestedLanguage = codeElement.dataset.lang?.trim().toLowerCase() ?? 'plaintext';
+    const supportedLanguage = supportedLanguages.has(requestedLanguage)
+      ? requestedLanguage
+      : 'plaintext';
+
+    if (supportedLanguage !== requestedLanguage) {
+      codeElement.dataset.lang = supportedLanguage;
+    }
+
+    const highlightedHtml = await monaco.editor.colorize(
+      codeElement.textContent ?? '',
+      supportedLanguage,
+      { tabSize: 2 },
+    );
+
+    codeElement.classList.add('monaco-editor', themeName);
+    codeElement.innerHTML = highlightedHtml;
+  }
+
+  return documentFragment.body.innerHTML;
+}
+
 function resolveWorkspaceLink(filePath: string, href: string): string | null {
   const trimmedHref = href.trim();
   if (
@@ -234,6 +276,11 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
   const previewRef = useRef<HTMLDivElement>(null);
   const copyResetTimersRef = useRef(new Map<HTMLButtonElement, number>());
   const renderedHtml = useMemo(() => buildPreviewHtml(content), [content]);
+  const [previewMarkup, setPreviewMarkup] = useState(renderedHtml);
+  // Keep these prop objects stable so unrelated renders do not cause React to
+  // reassign innerHTML and wipe the async Monaco highlighting pass.
+  const previewHtml = useMemo(() => ({ __html: previewMarkup }), [previewMarkup]);
+  const previewStyle = useMemo(() => ({ fontSize: `${fontSize}px` }), [fontSize]);
 
   useEffect(() => {
     const activeTimers = copyResetTimersRef.current;
@@ -248,44 +295,36 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
   }, []);
 
   useEffect(() => {
-    const previewElement = previewRef.current;
-    if (!previewElement || !monaco) {
+    let cancelled = false;
+    const hasCodeBlocks = renderedHtml.includes('data-lang=');
+
+    if (!hasCodeBlocks || !monaco) {
+      setPreviewMarkup(renderedHtml);
       return;
     }
 
-    const supportedLanguages = new Set(
-      monaco.languages.getLanguages().map((language) => language.id.toLowerCase()),
-    );
+    void (async () => {
+      try {
+        const highlightedHtml = await buildHighlightedPreviewHtml(
+          renderedHtml,
+          monaco,
+          theme.monacoTheme,
+        );
 
-    const colorizeCodeBlocks = async () => {
-      const codeElements = Array.from(
-        previewElement.querySelectorAll<HTMLElement>('pre > code[data-lang]'),
-      );
+        if (!cancelled) {
+          setPreviewMarkup(highlightedHtml);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPreviewMarkup(renderedHtml);
+          console.warn('Markdown preview colorize failed', error);
+        }
+      }
+    })();
 
-      await Promise.all(
-        codeElements.map(async (codeElement) => {
-          const requestedLanguage = codeElement.dataset.lang?.trim().toLowerCase() ?? 'plaintext';
-          const supportedLanguage = supportedLanguages.has(requestedLanguage)
-            ? requestedLanguage
-            : 'plaintext';
-
-          if (supportedLanguage !== requestedLanguage) {
-            codeElement.dataset.lang = supportedLanguage;
-          }
-
-          try {
-            await monaco.editor.colorizeElement(codeElement, {
-              tabSize: 2,
-              theme: theme.monacoTheme,
-            });
-          } catch {
-            // Keep the raw code content visible if Monaco colorization fails.
-          }
-        }),
-      );
+    return () => {
+      cancelled = true;
     };
-
-    void colorizeCodeBlocks();
   }, [monaco, renderedHtml, theme.monacoTheme]);
 
   const showCopiedState = useCallback((button: HTMLButtonElement) => {
@@ -389,8 +428,8 @@ export default function MarkdownPreview({ content, filePath, fontSize, fs }: Mar
           ref={previewRef}
           onClick={handleClick}
           className="markdown-preview cc-preview-content mx-auto min-h-full w-full max-w-4xl"
-          style={{ fontSize: `${fontSize}px` }}
-          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+          style={previewStyle}
+          dangerouslySetInnerHTML={previewHtml}
         />
       </div>
     </div>

@@ -281,7 +281,17 @@
 .markdown-preview .markdown-code-block pre code {
   display: block;
   min-width: max-content;
+  background: transparent;
   white-space: pre;
+}
+
+.markdown-preview .markdown-code-block pre code.monaco-editor {
+  position: static;
+  overflow: visible;
+  overflow-wrap: normal;
+  background: transparent;
+  color: inherit;
+  -webkit-text-size-adjust: inherit;
 }
 
 .markdown-preview .markdown-table-wrap {
