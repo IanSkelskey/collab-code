@@ -1,10 +1,5 @@
 const { handleExecConnection } = require('./session.cjs');
-const {
-  isJavaAvailable,
-  getJavaRuntimeVersion,
-  isPythonAvailable,
-  getPythonRuntimeVersion,
-} = require('./runtimeRegistry.cjs');
+const { getCapabilities } = require('./runtimeRegistry.cjs');
 const {
   getExecutionSandboxStatus,
   isExecutionAllowed,
@@ -13,10 +8,7 @@ const {
 
 module.exports = {
   handleExecConnection,
-  isJavaAvailable,
-  getJavaRuntimeVersion,
-  isPythonAvailable,
-  getPythonRuntimeVersion,
+  getCapabilities,
   isExecutionAllowed,
   isExecutionSandboxed,
   getExecutionSandboxStatus,

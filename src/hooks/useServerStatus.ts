@@ -3,6 +3,7 @@ import type {
   ServerBannerState,
   ServerCompatibilityState,
   ServerFetchState,
+  ServerRuntimeInfo,
   ServerStatusInfo,
   ServerStatusSnapshot,
   ServerSummaryState,
@@ -17,10 +18,7 @@ const EMPTY_SERVER_INFO: ServerStatusInfo = {
   serverVersion: null,
   protocolVersion: null,
   capabilities: [],
-  javaAvailable: null,
-  javaVersion: null,
-  pythonAvailable: null,
-  pythonVersion: null,
+  runtimes: [],
   executionAllowed: null,
   executionSandboxed: null,
   executionSandboxStatus: null,
@@ -71,6 +69,33 @@ function parseCapabilities(value: unknown): string[] {
     .map((item) => item.trim());
 }
 
+function parseRuntimes(value: unknown): ServerRuntimeInfo[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item): ServerRuntimeInfo | null => {
+      if (!isRecord(item)) {
+        return null;
+      }
+
+      const language = parseString(item.language);
+      if (!language) {
+        return null;
+      }
+
+      return {
+        language,
+        available: parseBoolean(item.available),
+        version: parseString(item.version),
+        canRun: parseBoolean(item.canRun) ?? false,
+        canCheck: parseBoolean(item.canCheck) ?? false,
+      };
+    })
+    .filter((runtime): runtime is ServerRuntimeInfo => runtime !== null);
+}
+
 function parseServerStatusInfo(payload: unknown): ServerStatusInfo {
   if (!isRecord(payload)) {
     return EMPTY_SERVER_INFO;
@@ -82,10 +107,7 @@ function parseServerStatusInfo(payload: unknown): ServerStatusInfo {
     serverVersion: parseString(payload.serverVersion) ?? parseString(payload.version),
     protocolVersion: parseNumber(payload.protocolVersion),
     capabilities: parseCapabilities(payload.capabilities),
-    javaAvailable: parseBoolean(payload.javaAvailable),
-    javaVersion: parseString(payload.javaVersion),
-    pythonAvailable: parseBoolean(payload.pythonAvailable),
-    pythonVersion: parseString(payload.pythonVersion),
+    runtimes: parseRuntimes(payload.runtimes),
     executionAllowed: parseBoolean(payload.executionAllowed),
     executionSandboxed: parseBoolean(payload.executionSandboxed),
     executionSandboxStatus: parseString(payload.executionSandboxStatus),

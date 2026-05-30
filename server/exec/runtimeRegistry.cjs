@@ -26,27 +26,18 @@ function resolveExecutionLanguage(message, files) {
   return null;
 }
 
-function isJavaAvailable() {
-  return javaRunner.isAvailable();
-}
-
-function getJavaRuntimeVersion() {
-  return javaRunner.getVersion();
-}
-
-function isPythonAvailable() {
-  return pythonRunner.isAvailable();
-}
-
-function getPythonRuntimeVersion() {
-  return pythonRunner.getVersion();
+function getCapabilities() {
+  return runners.map((runner) => ({
+    language: runner.language,
+    available: typeof runner.isAvailable === 'function' ? runner.isAvailable() : false,
+    version: typeof runner.getVersion === 'function' ? runner.getVersion() : null,
+    canRun: typeof runner.start === 'function',
+    canCheck: typeof runner.check === 'function',
+  }));
 }
 
 module.exports = {
   getRunner,
   resolveExecutionLanguage,
-  isJavaAvailable,
-  getJavaRuntimeVersion,
-  isPythonAvailable,
-  getPythonRuntimeVersion,
+  getCapabilities,
 };

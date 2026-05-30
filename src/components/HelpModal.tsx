@@ -2,7 +2,11 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { HelpCircleIcon, CloseIcon, RefreshIcon } from './Icons';
 import ModalOverlay from './ModalOverlay';
 import GetInvolvedActions from './GetInvolvedActions';
-import type { ServerStatusSnapshot, ServerStatusTone } from '../types/serverStatus';
+import type {
+  ServerRuntimeInfo,
+  ServerStatusSnapshot,
+  ServerStatusTone,
+} from '../types/serverStatus';
 import './HelpModal.css';
 
 interface HelpModalProps {
@@ -271,24 +275,31 @@ export default function HelpModal({ onClose, serverStatus, initialTab = 'about' 
                 </InfoCard>
 
                 <InfoCard label="Server Runtimes">
-                  <div className="space-y-3">
-                    <InfoLine label="Java">
-                      <ServerRuntimeVersion
-                        fetchState={serverStatus.fetchState}
-                        available={serverStatus.info.javaAvailable}
-                        version={serverStatus.info.javaVersion}
-                        label="Java"
-                      />
-                    </InfoLine>
-                    <InfoLine label="Python">
-                      <ServerRuntimeVersion
-                        fetchState={serverStatus.fetchState}
-                        available={serverStatus.info.pythonAvailable}
-                        version={serverStatus.info.pythonVersion}
-                        label="Python"
-                      />
-                    </InfoLine>
-                  </div>
+                  {serverStatus.fetchState === 'loading' || serverStatus.fetchState === 'idle' ? (
+                    <p className="cc-text-muted text-xs leading-relaxed">
+                      Checking execution server...
+                    </p>
+                  ) : serverStatus.fetchState === 'error' ? (
+                    <p className="text-xs leading-relaxed text-[var(--cc-warning)]">
+                      Unable to reach the execution server.
+                    </p>
+                  ) : serverStatus.info.runtimes.length > 0 ? (
+                    <div className="space-y-3">
+                      {serverStatus.info.runtimes.map((runtime) => {
+                        const label = formatRuntimeLabel(runtime.language);
+
+                        return (
+                          <InfoLine key={runtime.language} label={label}>
+                            <ServerRuntimeVersion runtime={runtime} label={label} />
+                          </InfoLine>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="cc-text-muted text-xs leading-relaxed">
+                      Runtime availability has not been reported by this server.
+                    </p>
+                  )}
                 </InfoCard>
               </div>
             </div>
@@ -470,36 +481,34 @@ function InfoLine({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function ServerRuntimeVersion({
-  fetchState,
-  available,
-  version,
-  label,
-}: {
-  fetchState: ServerStatusSnapshot['fetchState'];
-  available: boolean | null;
-  version: string | null;
-  label: string;
-}) {
-  if (fetchState === 'loading' || fetchState === 'idle') {
-    return <span className="cc-text-muted">Checking execution server...</span>;
-  }
-
-  if (fetchState === 'error') {
-    return <span className="text-[var(--cc-warning)]">Unable to reach the execution server.</span>;
-  }
-
-  if (!available) {
+function ServerRuntimeVersion({ runtime, label }: { runtime: ServerRuntimeInfo; label: string }) {
+  if (!runtime.available) {
     return (
       <span className="text-[var(--cc-warning)]">{label} is not available on this server.</span>
     );
   }
 
-  if (!version) {
+  if (!runtime.version) {
     return <span className="cc-text-primary font-mono">{label} available</span>;
   }
 
-  return <span className="cc-text-primary break-all font-mono">{version}</span>;
+  return <span className="cc-text-primary break-all font-mono">{runtime.version}</span>;
+}
+
+function formatRuntimeLabel(language: string): string {
+  if (language === 'java') {
+    return 'Java';
+  }
+
+  if (language === 'python') {
+    return 'Python';
+  }
+
+  return language
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 function getStatusBadgeClassName(tone: ServerStatusTone): string {

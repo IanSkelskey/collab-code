@@ -4,16 +4,21 @@ export type ServerFetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export type ServerStatusTone = 'success' | 'warning' | 'danger' | 'neutral';
 
+export interface ServerRuntimeInfo {
+  language: string;
+  available: boolean | null;
+  version: string | null;
+  canRun: boolean;
+  canCheck: boolean;
+}
+
 export interface ServerStatusInfo {
   status: string | null;
   service: string | null;
   serverVersion: string | null;
   protocolVersion: number | null;
   capabilities: string[];
-  javaAvailable: boolean | null;
-  javaVersion: string | null;
-  pythonAvailable: boolean | null;
-  pythonVersion: string | null;
+  runtimes: ServerRuntimeInfo[];
   executionAllowed: boolean | null;
   executionSandboxed: boolean | null;
   executionSandboxStatus: string | null;

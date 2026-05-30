@@ -15,10 +15,7 @@ const WebSocket = require('ws');
 const serverPkg = require('./package.json');
 const {
   handleExecConnection,
-  isJavaAvailable,
-  getJavaRuntimeVersion,
-  isPythonAvailable,
-  getPythonRuntimeVersion,
+  getCapabilities: getRuntimeCapabilities,
   isExecutionAllowed,
   isExecutionSandboxed,
   getExecutionSandboxStatus,
@@ -59,10 +56,7 @@ const server = http.createServer((req, res) => {
       serverVersion: serverPkg.version,
       protocolVersion: SERVER_PROTOCOL_VERSION,
       capabilities: SERVER_CAPABILITIES,
-      javaAvailable: isJavaAvailable(),
-      javaVersion: getJavaRuntimeVersion(),
-      pythonAvailable: isPythonAvailable(),
-      pythonVersion: getPythonRuntimeVersion(),
+      runtimes: getRuntimeCapabilities(),
       executionAllowed: isExecutionAllowed(),
       executionSandboxed: isExecutionSandboxed(),
       executionSandboxStatus: getExecutionSandboxStatus(),
