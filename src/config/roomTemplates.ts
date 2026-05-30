@@ -1,5 +1,6 @@
-import { getLanguageConfig } from './languages';
+import javaMain from './starters/java/Main.java?raw';
 import javaReadme from './starters/java/README.md?raw';
+import pythonMain from './starters/python/main.py?raw';
 import pythonReadme from './starters/python/README.md?raw';
 import pythonRequirements from './starters/python/requirements.txt?raw';
 
@@ -43,16 +44,25 @@ export const roomTemplates: RoomTemplateOption[] = [
   },
 ];
 
-// Per-language starter files (README and any supporting config) loaded as raw
-// strings at build time from src/config/starters/<lang>/. Adding a new language
-// is just dropping its files there and registering them here — no per-language
-// string templating or conditional plumbing.
-const starterExtras: Record<Exclude<RoomTemplateId, 'blank'>, RoomStarterFile[]> = {
-  java: [{ name: 'README.md', content: javaReadme }],
-  python: [
-    { name: 'README.md', content: pythonReadme },
-    { name: 'requirements.txt', content: pythonRequirements },
-  ],
+// Per-language starter workspaces loaded as raw strings from
+// src/config/starters/<lang>/. Adding a new starter should only require a small
+// manifest entry here plus the source/README/supporting files on disk.
+const starterWorkspaces: Record<Exclude<RoomTemplateId, 'blank'>, RoomStarterWorkspace> = {
+  java: {
+    files: [
+      { name: 'Main.java', content: javaMain },
+      { name: 'README.md', content: javaReadme },
+    ],
+    initialOpenFileName: 'Main.java',
+  },
+  python: {
+    files: [
+      { name: 'main.py', content: pythonMain },
+      { name: 'README.md', content: pythonReadme },
+      { name: 'requirements.txt', content: pythonRequirements },
+    ],
+    initialOpenFileName: 'main.py',
+  },
 };
 
 export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarterWorkspace | null {
@@ -60,13 +70,5 @@ export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarter
     return null;
   }
 
-  const defaultFile = getLanguageConfig(templateId)?.defaultFile;
-  if (!defaultFile) {
-    return null;
-  }
-
-  return {
-    files: [defaultFile, ...starterExtras[templateId]],
-    initialOpenFileName: defaultFile.name,
-  };
+  return starterWorkspaces[templateId];
 }

@@ -23,8 +23,6 @@ export interface LanguageConfig {
   mimeType: string;
   /** Whether this language can be offered as an execution target */
   runnable: boolean;
-  /** Default file to create for starter workspaces */
-  defaultFile?: { name: string; content: string };
   /** Regex to detect entry points in file content (e.g. Java main method) */
   entryPointPattern?: RegExp;
   /** Extract the runnable name from a file path (e.g. "Main" from "~/Main.java") */
@@ -49,10 +47,6 @@ const languages: LanguageConfig[] = [
     iconName: 'java',
     mimeType: 'text/x-java',
     runnable: true,
-    defaultFile: {
-      name: 'Main.java',
-      content: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Collab Code!");\n    }\n}\n`,
-    },
     entryPointPattern: /public\s+static\s+void\s+main\s*\(\s*String/,
     extractEntryPointName: (filePath: string) =>
       filePath
@@ -72,28 +66,6 @@ const languages: LanguageConfig[] = [
     iconName: 'python',
     mimeType: 'text/x-python',
     runnable: true,
-    defaultFile: {
-      name: 'main.py',
-      content: `from rich.console import Console
-from rich.table import Table
-
-
-def main():
-    console = Console()
-    table = Table(title="Collab Code Python Starter")
-    table.add_column("File")
-    table.add_column("Purpose")
-    table.add_row("main.py", "Runs the starter script")
-    table.add_row("requirements.txt", "Lists packages to install before each run")
-
-    console.print(table)
-    console.print("\\nUpdate requirements.txt to add more packages for this room.")
-
-
-if __name__ == "__main__":
-    main()
-`,
-    },
     entryPointPattern: /\S/,
     extractEntryPointName: (filePath: string) => stripVfsRoot(filePath),
     parseRuntimeErrors: parsePythonRuntimeErrors,
