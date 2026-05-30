@@ -1,0 +1,7 @@
+rich
+
+# Add more Python packages below, one per line.
+# They will be installed into an isolated temporary virtual environment on run.
+#
+# Example:
+# requests

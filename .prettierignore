@@ -6,3 +6,4 @@ package-lock.json
 server/exec/runtimes/**
 assets
 public
+src/config/starters/**/*.txt

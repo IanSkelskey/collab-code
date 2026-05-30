@@ -1,4 +1,7 @@
 import { getLanguageConfig } from './languages';
+import javaReadme from './starters/java/README.md?raw';
+import pythonReadme from './starters/python/README.md?raw';
+import pythonRequirements from './starters/python/requirements.txt?raw';
 
 export type RoomTemplateId = 'java' | 'python' | 'blank';
 
@@ -40,54 +43,17 @@ export const roomTemplates: RoomTemplateOption[] = [
   },
 ];
 
-function getStarterReadmeContent(
-  templateId: Exclude<RoomTemplateId, 'blank'>,
-  starterFileName: string,
-): string {
-  const title = templateId === 'java' ? 'Java Starter Workspace' : 'Python Starter Workspace';
-  const languageLabel = templateId === 'java' ? 'Java' : 'Python';
-  const pythonPackagesSection =
-    templateId === 'python'
-      ? `
-## Python Packages
-
-- \`requirements.txt\`: add Python packages here, one per line
-
-Each run creates a fresh isolated virtual environment on the server. If \`requirements.txt\` is present next to \`${starterFileName}\` or in a parent folder, those packages are installed into that temporary environment before the program starts.
-
-This does not modify the server's global Python installation. Update \`requirements.txt\`, then run the program again to install the new packages.
-
-The starter \`${starterFileName}\` already imports \`rich\`, and the starter \`requirements.txt\` includes it so the room runs immediately.
-`
-      : '';
-
-  return `# ${title}
-
-This room starts with a small ${languageLabel} example so you can run code right away.
-
-## Files
-
-- \`${starterFileName}\`: the main starter program
-${templateId === 'python' ? '- `requirements.txt`: optional Python dependencies for this room' : ''}
-
-${pythonPackagesSection}
-
-## Run It
-
-Open \`${starterFileName}\` and use the Run button or press \`Ctrl+Enter\`.
-`;
-}
-
-function getPythonStarterRequirementsContent(): string {
-  return `rich
-
-# Add more Python packages below, one per line.
-# They will be installed into an isolated temporary virtual environment on run.
-#
-# Example:
-# requests
-`;
-}
+// Per-language starter files (README and any supporting config) loaded as raw
+// strings at build time from src/config/starters/<lang>/. Adding a new language
+// is just dropping its files there and registering them here — no per-language
+// string templating or conditional plumbing.
+const starterExtras: Record<Exclude<RoomTemplateId, 'blank'>, RoomStarterFile[]> = {
+  java: [{ name: 'README.md', content: javaReadme }],
+  python: [
+    { name: 'README.md', content: pythonReadme },
+    { name: 'requirements.txt', content: pythonRequirements },
+  ],
+};
 
 export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarterWorkspace | null {
   if (templateId === 'blank') {
@@ -100,21 +66,7 @@ export function getRoomStarterWorkspace(templateId: RoomTemplateId): RoomStarter
   }
 
   return {
-    files: [
-      {
-        name: 'README.md',
-        content: getStarterReadmeContent(templateId, defaultFile.name),
-      },
-      defaultFile,
-      ...(templateId === 'python'
-        ? [
-            {
-              name: 'requirements.txt',
-              content: getPythonStarterRequirementsContent(),
-            },
-          ]
-        : []),
-    ],
+    files: [defaultFile, ...starterExtras[templateId]],
     initialOpenFileName: defaultFile.name,
   };
 }
