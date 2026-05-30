@@ -100,6 +100,39 @@ The relay server does three main jobs:
 | `src/types/`      | shared TypeScript types                     |
 | `server/`         | relay server and interactive Java execution |
 
+## Adding Language Support
+
+Use this checklist when adding or expanding a language so editor behavior,
+starter workspaces, execution, diagnostics, and public docs stay aligned.
+
+1. Add or update the `LanguageConfig` entry in
+   [src/config/languages.ts](./src/config/languages.ts): `id`, display label,
+   extensions, Monaco language id, icon color/name, MIME type, and explicit
+   `runnable` flag.
+2. If the language needs a custom file icon, add the icon component in
+   [src/components/Icons.tsx](./src/components/Icons.tsx) and map it in
+   [src/components/fileIcons.ts](./src/components/fileIcons.ts).
+3. For starter rooms, add raw files under `src/config/starters/<language>/`
+   and register the source, README, dependency manifest, and initial open file
+   in [src/config/roomTemplates.ts](./src/config/roomTemplates.ts).
+4. For executable languages, add a runner in `server/exec/runtimes/` with
+   `language`, `isAvailable()`, `getVersion()`, `canHandle()`, and `start()`.
+   Add `check()` if the language should support live compile/syntax checking.
+5. Register executable runtimes in
+   [server/exec/runtimeRegistry.cjs](./server/exec/runtimeRegistry.cjs). The
+   server health payload derives runtime capabilities from that registry, and
+   the client filters run targets against available `canRun` runtimes.
+6. Add diagnostics parsers when useful, wire run diagnostics through the
+   language config, and wire live diagnostics through
+   [src/hooks/useLiveCheck.ts](./src/hooks/useLiveCheck.ts) only when the
+   server runner exposes a matching `check()` path.
+7. If the language needs dependencies or generated artifacts, update the server
+   runner, deployment image, and workspace sync rules together so local and
+   hosted execution behave the same way.
+8. Update the language support matrix in [README.md](./README.md), the roadmap,
+   and any starter README text so user-facing docs describe the actual support
+   boundary.
+
 ## User-Facing Reference
 
 ### Terminal commands

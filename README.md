@@ -33,9 +33,24 @@ It is especially suited to tutoring, CS education, pair programming, and collabo
 
 ## Current Scope
 
-- **Runnable languages today:** Java and Python
-- **Editor/file support:** Java, TypeScript, JavaScript, Python, JSON, HTML, CSS, Markdown, C, C++, XML, and SQL
 - **Best fit:** classrooms, tutoring sessions, collaborative exercises, code reviews, and quick pair-programming rooms
+
+| Language   | Extensions     | Monaco highlighting | File icon | Execution      | Run diagnostics | Live diagnostics  | Dependencies       | Starter workspace | Plots/artifacts |
+| ---------- | -------------- | ------------------- | --------- | -------------- | --------------- | ----------------- | ------------------ | ----------------- | --------------- |
+| Java       | `.java`        | Yes                 | Yes       | Yes            | Compile/runtime | Yes, compile-only | N/A                | Yes               | No              |
+| Python     | `.py`          | Yes                 | Yes       | Yes            | Syntax/runtime  | Yes, `py_compile` | `requirements.txt` | Yes               | Planned v1.3.0  |
+| R          | `.R`, `.r`     | Planned v1.2.0      | Planned   | Planned v1.2.0 | Planned         | Not planned yet   | Planned            | Planned           | Planned v1.3.0  |
+| JavaScript | `.js`, `.mjs`  | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| TypeScript | `.ts`, `.tsx`  | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| JSON       | `.json`        | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| HTML       | `.html`        | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| CSS        | `.css`         | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| Markdown   | `.md`          | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| C          | `.c`, `.h`     | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| C++        | `.cpp`, `.hpp` | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| XML        | `.xml`         | Yes                 | Generic   | No             | No              | No                | No                 | No                | No              |
+| SQL        | `.sql`         | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
+| Perl       | `.pl`, `.pm`   | Yes                 | Yes       | No             | No              | No                | No                 | No                | No              |
 
 ## Quick Start
 
