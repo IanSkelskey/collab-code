@@ -4,7 +4,7 @@
 
 Collaborative coding rooms for classrooms, tutoring sessions, and pair programming.
 
-![Version 1.0.2](https://img.shields.io/badge/version-1.0.2-blue?style=flat&labelColor=555)
+![Version 1.0.3](https://img.shields.io/badge/version-1.0.3-blue?style=flat&labelColor=555)
 
 [![Try it live](https://img.shields.io/badge/Try%20it%20live%20%E2%86%92-059669?style=for-the-badge&logo=rocket&logoColor=white)](https://ianskelskey.github.io/collab-code)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-111827?style=for-the-badge&logo=github&logoColor=white)](./CONTRIBUTING.md)
